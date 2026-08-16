@@ -59,6 +59,7 @@ export class AuthController {
     const u = this.dataService.approveUser(id);
     if (!u) throw new Error('用户不存在');
     const { password, ...rest } = u;
+    this.dataService.logAudit({ action: '审批通过', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u.username } });
     return { ...rest, message: '已通过审批，权限已生效' };
   }
 
@@ -69,6 +70,7 @@ export class AuthController {
     const u = this.dataService.rejectUser(id);
     if (!u) throw new Error('用户不存在');
     const { password, ...rest } = u;
+    this.dataService.logAudit({ action: '审批驳回', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u.username } });
     return { ...rest, message: '已驳回申请' };
   }
 
@@ -79,6 +81,7 @@ export class AuthController {
     const u = this.dataService.updateUser(id, body);
     if (!u) throw new Error('用户不存在');
     const { password, ...rest } = u;
+    this.dataService.logAudit({ action: '修改用户', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u.username, change: body } });
     return rest;
   }
 
@@ -86,7 +89,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('super_admin')
   deleteUser(@Param('id') id: string) {
+    const u = this.dataService.getUser(id);
     this.dataService.deleteUser(id);
+    this.dataService.logAudit({ action: '删除用户', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u?.username } });
     return { message: '已删除用户' };
   }
 }

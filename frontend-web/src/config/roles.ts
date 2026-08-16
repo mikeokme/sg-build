@@ -130,3 +130,38 @@ export function getCurrentRole(): string | null {
     return null;
   }
 }
+
+// 字段级权限：按集合→字段配置，view/edit 未配置时继承分类权限
+export const FIELD_PERMISSIONS: Record<string, Record<string, { view?: number; edit?: number }>> = {
+  // 财务：金额字段仅 60 级以上查看
+  invoices: { amount: { view: 60 }, amountWithTax: { view: 60 } },
+  reimbursements: { amount: { view: 60 }, status: { view: 60 } },
+  funds: { balance: { view: 60 } },
+  payments: { amount: { view: 60 } },
+  costAnalyses: { cost: { view: 60 }, variance: { view: 60 } },
+  // 人事：薪资/证件敏感
+  staff: { salary: { view: 80, edit: 100 }, idCard: { view: 80 } },
+  // 工程：预算金额敏感
+  budgets: { amount: { view: 60, edit: 80 } },
+  // 采购：单价敏感
+  purchaseOrders: { price: { edit: 60 } },
+  // 合同：金额敏感
+  contracts: { amount: { view: 80 } },
+  equipmentLeases: { amount: { view: 80 } },
+  // 商机：金额敏感
+  opportunities: { amount: { view: 60 } },
+  bids: { bidAmount: { view: 60 } },
+};
+
+export function canViewField(collection: string, fieldKey: string, role?: string | null): boolean {
+  const rule = FIELD_PERMISSIONS[collection]?.[fieldKey];
+  if (!rule?.view) return true;
+  return getRoleLevel(role) >= rule.view;
+}
+
+export function canEditField(collection: string, fieldKey: string, categoryEdit: boolean, role?: string | null): boolean {
+  if (!categoryEdit) return false;
+  const rule = FIELD_PERMISSIONS[collection]?.[fieldKey];
+  if (!rule?.edit) return true;
+  return getRoleLevel(role) >= rule.edit;
+}

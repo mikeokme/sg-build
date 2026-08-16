@@ -38,6 +38,7 @@ export class AuthService {
 
     const { password: _, ...result } = user;
     const accessToken = this.jwtService.sign({ sub: user.id, username: user.username, role: user.role });
+    this.dataService.logAudit({ action: '注册', module: 'auth', operator: user.username, role: 'employee', detail: { appliedRole } });
     return { accessToken, user: result };
   }
 
@@ -49,11 +50,13 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      this.dataService.logAudit({ action: '登录失败', module: 'auth', operator: username, role: user.role });
       throw new UnauthorizedException('密码错误');
     }
 
     const { password: _, ...result } = user;
     const accessToken = this.jwtService.sign({ sub: user.id, username: user.username, role: user.role });
+    this.dataService.logAudit({ action: '登录', module: 'auth', operator: user.username, role: user.role });
     return { accessToken, user: result };
   }
 }

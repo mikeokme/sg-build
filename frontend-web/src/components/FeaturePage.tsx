@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Plus, Search, Pencil, Trash2, Loader2, Eye } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
-import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -36,6 +36,13 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
 
+  const visibleFields = useMemo(
+    () => feature.fields.filter((f) => canViewField(feature.collection, f.key, role)),
+    [feature, role],
+  );
+  const isFieldEditable = (f: (typeof feature.fields)[0]) =>
+    canEditField(feature.collection, f.key, allowEdit, role);
+
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/collections/${feature.collection}`, {
@@ -58,14 +65,16 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
 
   const openCreate = () => {
     setEditing(null);
-    setForm(createEmptyForm(feature.fields));
+    const form: Record<string, any> = {};
+    for (const f of visibleFields) form[f.key] = f.type === 'number' ? 0 : '';
+    setForm(form);
     setDialogOpen(true);
   };
 
   const openEdit = (item: any) => {
     setEditing(item);
     const next: Record<string, any> = {};
-    for (const f of feature.fields) next[f.key] = item[f.key] ?? (f.type === 'number' ? 0 : '');
+    for (const f of visibleFields) next[f.key] = item[f.key] ?? (f.type === 'number' ? 0 : '');
     setForm(next);
     setDialogOpen(true);
   };
@@ -144,14 +153,14 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
             <Table>
               <TableHeader>
                 <TableRow>
-                  {feature.fields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
+                  {visibleFields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
                   <TableHead className="w-20 text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((item) => (
                   <TableRow key={item.id}>
-                    {feature.fields.map((f) => <TableCell key={f.key}>{renderValue(item, f.key)}</TableCell>)}
+                    {visibleFields.map((f) => <TableCell key={f.key}>{renderValue(item, f.key)}</TableCell>)}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="编辑"><Pencil className="w-4 h-4 text-blue-600" /></Button>}
@@ -171,13 +180,14 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? '编辑' : '新增'}{feature.title}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            {feature.fields.map((f) => (
+            {visibleFields.map((f) => (
               <div key={f.key}>
                 <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
+                    disabled={!isFieldEditable(f)}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
                     <option value="">请选择</option>
@@ -187,6 +197,7 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
                   <textarea
                     className="mt-1 w-full min-h-24 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
+                    disabled={!isFieldEditable(f)}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   />
                 ) : (
@@ -194,10 +205,12 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
                     className="mt-1"
                     type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                     value={form[f.key] ?? ''}
+                    disabled={!isFieldEditable(f)}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
                     placeholder={`请输入${f.label}`}
                   />
                 )}
+                {!isFieldEditable(f) && <span className="text-[10px] text-gray-400 mt-0.5 block">不可编辑（权限不足）</span>}
               </div>
             ))}
           </div>
