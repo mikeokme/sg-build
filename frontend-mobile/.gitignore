@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# expo
+.expo/
+.expo-shared/
+web-build/
+
+# build
+dist/
+
+# env
+.env
+.env.local
+
+# native builds
+android/
+ios/
+
+# logs
+*.log
+
+# IDE
+.idea/
+.vscode/
