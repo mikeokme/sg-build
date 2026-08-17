@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { io, Socket } from 'socket.io-client';
+import io from 'socket.io-client';\nimport type { Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact,
