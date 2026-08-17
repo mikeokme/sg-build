@@ -13,6 +13,9 @@ out/
 # Data files (persisted JSON)
 backend/data/
 
+# 其他项目的副本（非本项目代码）
+sg-build-main/
+
 # Expo
 .expo/
 .expo-shared/

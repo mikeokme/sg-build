@@ -6,9 +6,10 @@ import Link from 'next/link';
 import {
   Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Menu, Bell, Search, Truck,
-  ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid,
+  ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid, ClipboardCheck, MessageCircle,
+  Network,
 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,29 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { categories } from '@/config/features';
 import { CATEGORY_MIN_LEVEL, getRoleLevel, getRoleLabel } from '@/config/roles';
+import { KeyRound } from 'lucide-react';
+
+const API_BASE = 'http://localhost:3000';
+
+const notificationTypeStyle: Record<string, any> = {
+  approval: { dot: 'bg-orange-500', label: '审批' },
+  task: { dot: 'bg-blue-500', label: '任务' },
+  system: { dot: 'bg-purple-500', label: '系统' },
+  alert: { dot: 'bg-red-500', label: '预警' },
+};
+
+function timeAgo(iso: string): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins}分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}天前`;
+  return new Date(iso).toLocaleDateString();
+}
 
 const categoryIcons: Record<string, any> = {
   oa: Bell,
@@ -38,9 +62,50 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+    engineering: true, procurement: true, material: true, equipment: true,
+    oa: true, market: true, finance: true, quality: true,
+    hr: true, platform: true, resource: true,
+  });
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<any>(null);
+
+  const fetchNotifications = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const list = await res.json();
+        setNotifications(list);
+        setUnreadCount(list.filter((n: any) => !n.read).length);
+      }
+    } catch {}
+  };
+
+  const markAllRead = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE}/notifications/read-all`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch {}
+  };
+
+  const markRead = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } });
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {}
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -51,6 +116,21 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     const saved = localStorage.getItem('user');
     if (saved) { try { setUser(JSON.parse(saved)); } catch {} }
     setLoading(false);
+    fetchNotifications();
+
+    // 获取系统设置（公司名称 + Logo）
+    fetch(`${API_BASE}/auth/settings`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => { if (d && !d.message) setSiteSettings(d); })
+      .catch(() => {});
+
+    // SSE 实时推送：新通知到达时即时刷新未读角标
+    const es = new EventSource(`${API_BASE}/notifications/stream?token=${encodeURIComponent(token)}`);
+    es.onmessage = (ev) => { try { const d = JSON.parse(ev.data); if (d?.notification) fetchNotifications(); } catch {} };
+    es.onerror = () => { /* 断线自动重连，交给浏览器 */ };
+
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => { clearInterval(interval); es.close(); };
   }, []);
 
   useEffect(() => {
@@ -62,7 +142,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       if (cat) {
         setCollapsed((prev) => {
           const next = { ...prev };
-          for (const c of categories) next[c.key] = c.key !== catKey;
+          // 默认展开当前分类，保留其他分类当前状态
+          if (next[catKey] === undefined) next[catKey] = false;
           return next;
         });
       }
@@ -87,10 +168,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} flex-shrink-0 bg-slate-900 transition-all duration-200 flex flex-col overflow-hidden`}>
         <div className="h-14 flex items-center px-4 border-b border-slate-700/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {siteSettings?.companyLogo ? (
+                <img src={siteSettings.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Building2 className="w-4 h-4 text-white" />
+              )}
             </div>
-            {sidebarOpen && <div><span className="font-bold text-white text-sm block leading-none">SG-Build</span><span className="text-[10px] text-slate-400 leading-none">施工管理系统</span></div>}
+            {sidebarOpen && <div><span className="font-bold text-white text-sm block leading-none">{siteSettings?.companyName || 'SG-Build'}</span><span className="text-[10px] text-slate-400 leading-none">施工管理系统</span></div>}
           </div>
         </div>
         <nav className="flex-1 py-3 px-2 overflow-y-auto">
@@ -99,6 +184,23 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <LayoutGrid className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm truncate">工作台</span>}
           </Link>
+          <Link href="/todos"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/todos' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+            <ClipboardCheck className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm truncate">待办中心</span>}
+          </Link>
+          <Link href="/chat"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/chat' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+            <MessageCircle className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm truncate">消息</span>}
+          </Link>
+          {userLevel >= 80 && (
+            <Link href="/org"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/org' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+              <Network className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && <span className="text-sm truncate">组织架构</span>}
+            </Link>
+          )}
 
           {visibleCategories.map((cat) => {
             const Icon = categoryIcons[cat.key] || Building2;
@@ -136,7 +238,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <DropdownMenu>
               <DropdownMenuTrigger className="w-full">
                 <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer">
-                  <Avatar className="w-8 h-8"><AvatarFallback className="bg-blue-600 text-white text-xs">{user?.username?.[0]?.toUpperCase() || 'M'}</AvatarFallback></Avatar>
+                  <Avatar className="w-8 h-8">
+                    {user?.avatar && <AvatarImage src={user.avatar} alt="头像" className="object-cover" />}
+                    <AvatarFallback className="bg-blue-600 text-white text-xs font-bold">{(user?.name || user?.username || 'U')[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0 text-left"><p className="text-sm font-medium text-white truncate">{user?.username || 'admin'}</p><p className="text-[10px] text-slate-400 truncate">{getRoleLabel(user?.role)}</p></div>
                   <ChevronDown className="w-4 h-4 text-slate-500" />
                 </div>
@@ -145,8 +250,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>我的账户</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem><UserCircle className="w-4 h-4 mr-2" />个人信息</DropdownMenuItem>
-                  <DropdownMenuItem><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />个人中心</DropdownMenuItem></Link>
+                  {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem></Link>
+                  )}
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />修改密码</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />退出登录</DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -168,32 +276,63 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <DropdownMenu>
+            <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) fetchNotifications(); }}>
               <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 relative">
                 <Bell className="w-5 h-5" />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">5</span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuContent align="end" className="w-80 max-h-[420px] overflow-y-auto">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>通知消息</DropdownMenuLabel>
+                  <div className="flex items-center justify-between pr-1">
+                    <DropdownMenuLabel>通知消息</DropdownMenuLabel>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50">全部已读</button>
+                    )}
+                  </div>
                   <DropdownMenuSeparator />
-                  {[{ t: '城南地铁站 - 进度周报审核', time: '10分钟前' }, { t: '滨江大桥 - 材料进场验收', time: '1小时前' }, { t: '科技园A栋 - 安全巡检待处理', time: '2小时前' }].map((item, i) => (
-                    <DropdownMenuItem key={i} className="flex items-start gap-2 py-2.5 cursor-pointer hover:bg-gray-50">
-                      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-orange-500" />
-                      <div className="flex-1 min-w-0"><p className="text-sm text-gray-700 truncate">{item.t}</p><p className="text-xs text-gray-400">{item.time}</p></div>
-                    </DropdownMenuItem>
-                  ))}
+                  {notifications.length === 0 ? (
+                    <div className="py-10 text-center text-gray-400 text-sm">暂无通知</div>
+                  ) : (
+                    notifications.slice(0, 8).map((n) => {
+                      const style = notificationTypeStyle[n.type] || notificationTypeStyle.system;
+                      return (
+                        <Link key={n.id} href={n.link || '/notifications'} onClick={() => !n.read && markRead(n.id)}>
+                          <DropdownMenuItem className={`flex items-start gap-2 py-2.5 cursor-pointer ${n.read ? 'opacity-60' : 'hover:bg-gray-50'}`}>
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${style.dot}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-700 truncate">{n.title}</p>
+                              <p className="text-xs text-gray-400 truncate mt-0.5">{n.content}</p>
+                              <p className="text-[10px] text-gray-300 mt-0.5">{style.label} · {timeAgo(n.createdAt)}</p>
+                            </div>
+                          </DropdownMenuItem>
+                        </Link>
+                      );
+                    })
+                  )}
+                  <DropdownMenuSeparator />
+                  <Link href="/notifications"><DropdownMenuItem className="cursor-pointer justify-center text-sm text-blue-600 hover:bg-blue-50 py-2">查看全部通知</DropdownMenuItem></Link>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100"><UserCircle className="w-5 h-5" /></DropdownMenuTrigger>
+              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="头像" className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{(user?.name || user?.username || 'U')[0]?.toUpperCase()}</div>
+                )}
+              </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>我的账户</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem><UserCircle className="w-4 h-4 mr-2" />个人信息</DropdownMenuItem>
-                  <DropdownMenuItem><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />个人中心</DropdownMenuItem></Link>
+                  {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem></Link>
+                  )}
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />修改密码</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />退出登录</DropdownMenuItem>
                 </DropdownMenuGroup>

@@ -4,6 +4,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { CoreModule } from './core/core.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CollectionModule } from './modules/collection/collection.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { OrgModule } from './modules/org/org.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -18,6 +21,9 @@ import { AppService } from './app.service';
     CoreModule,
     AuthModule,
     CollectionModule,
+    DashboardModule,
+    ChatModule,
+    OrgModule,
   ],
   controllers: [AppController],
   providers: [AppService],
