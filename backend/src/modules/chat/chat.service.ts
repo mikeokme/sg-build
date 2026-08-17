@@ -14,6 +14,12 @@ export class ChatService {
   setEmitter(fn: ChatEventFn) { this.emitter = fn; }
   emit(event: string, payload: any) { try { this.emitter(event, payload); } catch {} }
 
+  // 向指定用户列表发送事件（用于阅后即焚消息的定向通知）
+  emitToUsers(event: string, payload: any, targetUsers: string[]) {
+    if (!targetUsers.length) return;
+    try { this.emitter(event, { ...payload, _targetUsers: targetUsers }); } catch {}
+  }
+
   // ── 会话 ──
 
   listConversations(username: string): any[] {
@@ -201,7 +207,13 @@ export class ChatService {
     this.dataService.updateConversation(c.id, { lastMessageAt: message.createdAt });
 
     const clientMsg = this.decorateForClient(message, c.id, username);
-    this.emit('chat:message', { conversationId: c.id, message: clientMsg });
+
+    // 群聊阅后即焚：仅通知发送者和指定接收者，其他人无通知无显示
+    if (burn && burnTarget && c.type === 'group') {
+      this.emitToUsers('chat:message', { conversationId: c.id, message: clientMsg }, [username, burnTarget]);
+    } else {
+      this.emit('chat:message', { conversationId: c.id, message: clientMsg });
+    }
     return { message: clientMsg };
   }
 
@@ -241,8 +253,9 @@ export class ChatService {
     const seconds = m.burnSeconds || 10;
     const content = m.encrypted ? decryptMessage(conversationId, m.content) : m.content;
 
-    // 通知所有会话成员：消息被揭示（附带解密内容）
-    this.emit('chat:revealed', {
+    // 通知指定用户：消息被揭示（仅发送者和所有已揭示者）
+    const targetUsers = m.burnTarget ? [m.sender, m.burnTarget, ...newRevealedBy] : newRevealedBy;
+    this.emitToUsers('chat:revealed', {
       conversationId,
       messageId,
       revealedBy: newRevealedBy,
@@ -250,7 +263,7 @@ export class ChatService {
       seconds,
       isFirstReveal,
       content,
-    });
+    }, targetUsers);
 
     return { ok: true, seconds, content };
   }
@@ -298,14 +311,18 @@ export class ChatService {
     });
 
     const seconds = m.burnSeconds || 10;
-    this.emit('chat:burning', { conversationId, messageId, seconds });
+    // 仅通知相关用户燃烧中状态
+    const targetUsers = m.burnTarget ? [m.sender, m.burnTarget] : [];
+    this.emitToUsers('chat:burning', { conversationId, messageId, seconds }, targetUsers);
 
     const timer = setTimeout(() => {
       const still = this.dataService.getChatMessage(messageId);
       if (still && still.burn) {
         this.dataService.deleteChatMessage(messageId);
         this.burnTimers.delete(messageId);
-        this.emit('chat:burned', { conversationId, messageId });
+        // 仅通知相关用户消息已焚毁
+        const targetUsers = still.burnTarget ? [still.sender, still.burnTarget] : [];
+        this.emitToUsers('chat:burned', { conversationId, messageId }, targetUsers);
       }
     }, seconds * 1000);
 

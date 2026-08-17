@@ -17,6 +17,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [siteSettings, setSiteSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/auth/settings`)
+      .then((r) => r.json())
+      .then((d) => { if (d && !d.message) setSiteSettings(d); })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +51,14 @@ export default function LoginPage() {
         <div className="absolute inset-0" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.04\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
-              <Building2 className="w-8 h-8 text-white" />
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
+              {siteSettings?.companyLogo ? (
+                <img src={siteSettings.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Building2 className="w-8 h-8 text-white" />
+              )}
             </div>
-            <div><h1 className="text-2xl font-bold">SG-Build</h1><p className="text-sm text-blue-200">施工管理系统</p></div>
+            <div><h1 className="text-2xl font-bold">{siteSettings?.companyName || 'SG-Build'}</h1><p className="text-sm text-blue-200">施工管理系统</p></div>
           </div>
           <h2 className="text-4xl font-bold mb-6 leading-tight">智慧施工<br />高效管理</h2>
           <p className="text-blue-200 text-lg mb-12">集项目管理、进度跟踪、物资调度、安全巡检于一体的企业级施工管理平台</p>
@@ -62,10 +74,14 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
-              <Building2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
+              {siteSettings?.companyLogo ? (
+                <img src={siteSettings.companyLogo} alt="Logo" className="w-full h-full object-contain" />
+              ) : (
+                <Building2 className="w-6 h-6 text-white" />
+              )}
             </div>
-            <span className="text-xl font-bold text-white">SG-Build</span>
+            <span className="text-xl font-bold text-white">{siteSettings?.companyName || 'SG-Build'}</span>
           </div>
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">欢迎登录</h2>
@@ -111,7 +127,7 @@ export default function LoginPage() {
               </div>
             </CardContent>
           </Card>
-          <p className="text-center text-slate-500 text-xs mt-8">© 2026 SG-Build 施工管理系统</p>
+          <p className="text-center text-slate-500 text-xs mt-8">© 2026 {siteSettings?.companyName || 'SG-Build'} 施工管理系统</p>
         </div>
       </div>
     </div>

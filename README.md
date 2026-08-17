@@ -8,8 +8,8 @@
 
 | 层 | 技术 |
 | --- | --- |
-| 后端 | NestJS 10 + JWT 认证 + 内存存储（端口 3000） |
-| PC 端 | Next.js 15 + shadcn/ui + Tailwind CSS（端口 3001） |
+| 后端 | NestJS 10 + JWT 认证 + WebSocket 实时通信 + 内存存储（端口 3000） |
+| PC 端 | Next.js 16 + shadcn/ui + Tailwind CSS + Dark Mode（端口 3001） |
 | 移动端 | Expo (React Native) + React Navigation |
 
 ## 功能模块（11 大业务中心）
@@ -25,23 +25,28 @@
 | 财务管理 finance | 发票、报销、资金、付款、成本分析 |
 | 质量安全 quality | 安全检查/培训/奖惩/事故/投入台账、质量检查/培训/奖惩/事故 |
 | 人力资源 hr | 员工档案、考勤、班组、培训、奖惩、办公资产 |
-| 平台中心 platform | 系统信息、预警、日志、用户与权限 |
+| 平台中心 platform | 系统信息、预警、日志、用户与权限、系统设置 |
 | 基础资源 resource | 材料、供应商、项目字典 |
 
-## 页面类型引擎
+## 核心特性
 
-业务功能由配置驱动，统一渲染为 6 种页面：
+### 1. 阅后即焚消息（即时通讯）
+- 群聊中可发送阅后即焚消息，指定接收人后仅对方可见
+- 支持 5/10/30/60 秒倒计时自动销毁
+- 消息揭示后启动焚毁倒计时，仅发送者和接收者可见
+- 加密消息与阅后即焚双重保护
 
-- `list` 通用列表（增删改查）
-- `dashboard` 统计看板（汇总 + 分布 + 明细）
-- `approval` 审批流（待审批 / 已批准 / 已驳回）
-- `gantt` 进度甘特图
-- `calendar` 日程日历
-- `doc` 制度文档
-- `user-manage` 用户权限管理（平台中心）
+### 2. 项目部配置
+- 系统设置页面支持配置站点名称、公司名称
+- 数据保留天数、会话超时时间等参数可调
+- 支持上传企业 Logo
 
-## 权限体系
+### 3. 主题与语言设置
+- 右上角配置按钮一键切换主题：明（太阳）/ 暗（月亮）/ 随系统
+- 支持中英文切换
+- 设置自动保存到 localStorage
 
+### 4. 权限体系
 5 级角色，注册时凭注册码申请，**一律先为普通用户，需超级管理员二次确认后才生效**：
 
 | 角色 | 级别 | 说明 |
@@ -62,6 +67,18 @@
 | employee | `SGB-EMP-2026` |
 | outsource | `SGB-OUT-2026` |
 
+## 页面类型引擎
+
+业务功能由配置驱动，统一渲染为 6 种页面：
+
+- `list` 通用列表（增删改查）
+- `dashboard` 统计看板（汇总 + 分布 + 明细）
+- `approval` 审批流（待审批 / 已批准 / 已驳回）
+- `gantt` 进度甘特图
+- `calendar` 日程日历
+- `doc` 制度文档
+- `user-manage` 用户权限管理（平台中心）
+
 ## 快速开始
 
 ### 1. 后端（端口 3000）
@@ -69,7 +86,7 @@
 ```bash
 cd backend
 npm install
-npm run start:dev
+npm start
 ```
 
 ### 2. PC 前端（端口 3001）
@@ -77,7 +94,7 @@ npm run start:dev
 ```bash
 cd frontend-web
 npm install
-npm run dev
+npm run dev -- -p 3001
 ```
 
 ### 3. 移动端（可选）
@@ -100,20 +117,42 @@ npm run start
 ## 项目结构
 
 ```
-├── backend/          # NestJS 后端 (3000)
+├── backend/              # NestJS 后端 (3000)
 │   └── src/
-│       ├── modules/  # auth、collection
-│       ├── services/ # 内存数据服务 + 种子数据
-│       └── guards/   # JWT + 集合权限守卫
-├── frontend-web/     # Next.js PC 端 (3001)
+│       ├── modules/      # auth、chat、collection、dashboard、org
+│       ├── services/     # 内存数据服务 + 种子数据
+│       └── guards/       # JWT + 集合权限守卫
+├── frontend-web/         # Next.js PC 端 (3001)
 │   └── src/
-│       ├── app/      # 路由（动态 [category]/[feature]）
-│       ├── components/ # 页面引擎 + UI 组件
-│       └── config/   # features.ts 模块注册表、roles.ts 权限配置
-├── frontend-mobile/  # Expo 移动端
-├── docs/             # 架构规划文档
-└── sg-build/         # 早期原型（保留）
+│       ├── app/          # 路由（动态 [category]/[feature]）
+│       ├── components/   # 页面引擎 + UI 组件
+│       ├── context/      # SettingsContext（主题/语言设置）
+│       └── config/       # features.ts 模块注册表、roles.ts 权限配置
+├── frontend-mobile/      # Expo 移动端
+├── docs/                 # 架构规划文档
+└── sg-build-main/        # 原型参考代码
 ```
+
+## API 接口
+
+| 接口 | 说明 |
+| --- | --- |
+| `POST /auth/login` | 用户登录 |
+| `POST /auth/register` | 用户注册 |
+| `GET /auth/users` | 获取用户列表（管理员） |
+| `GET /auth/settings` | 获取系统设置 |
+| `PUT /auth/settings` | 更新系统设置 |
+| `GET /collections/:name` | 获取集合数据 |
+| `POST /collections/:name` | 新增数据 |
+| `PUT /collections/:name/:id` | 更新数据 |
+| `DELETE /collections/:name/:id` | 删除数据 |
+| `GET /chat/conversations` | 获取聊天会话列表 |
+| `GET /chat/conversations/:id/messages` | 获取消息列表 |
+| `WebSocket /chat` | 实时聊天（Socket.IO） |
+| `GET /notifications` | 获取通知列表 |
+| `GET /notifications/stream` | SSE 实时通知推送 |
+| `GET /dashboard/stats` | 工作台统计数据 |
+| `GET /org/departments` | 组织架构数据 |
 
 ## 架构设计
 
@@ -124,3 +163,4 @@ npm run start
 - 数据为内存存储，服务重启后重置（含种子演示数据）
 - 后端接口统一前缀 `/collections/:name`（集合 CRUD），`/auth/*` 为认证与用户管理
 - 业务中心 / 功能 / 字段全部由 `frontend-web/src/config/features.ts` 配置驱动，新增功能无需新写页面
+- 主题和语言设置持久化到 localStorage

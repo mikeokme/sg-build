@@ -35,7 +35,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private broadcastToConversation(conversationId: string, event: string, payload: any) {
     if (!conversationId) return;
     try {
-      this.server.to(`conv:${conversationId}`).emit(event, payload);
+      // 阅后即焚定向通知：仅发送给指定用户
+      const targetUsers = payload?._targetUsers;
+      if (targetUsers && Array.isArray(targetUsers) && targetUsers.length > 0) {
+        targetUsers.forEach((u: string) => {
+          try { this.server.to(`user:${u}`).emit(event, payload); } catch {}
+        });
+      } else {
+        this.server.to(`conv:${conversationId}`).emit(event, payload);
+      }
     } catch {}
   }
 

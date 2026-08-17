@@ -16,7 +16,7 @@ export class NotificationController {
     return req.user?.username || '';
   }
 
-  // SSE 实时推送：EventSource 不支持自定义 Header，因此 token 支持通过 query ?token= 读取
+  // SSE 实时推送：EventSource 用 ?token= 连接（仅 SseJwtGuard）
   @Get('stream')
   @UseGuards(SseJwtGuard)
   stream(@Req() req: AuthedRequest, @Res() res: any) {
@@ -35,7 +35,7 @@ export class NotificationController {
       } catch {}
     };
 
-    send('connected', { message: '已连接实时通知' });
+    send('connected', { message: '已连接实时通知流' });
 
     const unsubscribe = this.dataService.subscribeNotifications(username, (n) => {
       send('notification', { notification: n });

@@ -7,7 +7,7 @@ import {
   Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Menu, Bell, Search, Truck,
   ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid, ClipboardCheck, MessageCircle,
-  Network,
+  Network, Sun, Moon, Monitor, Languages,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 import { categories } from '@/config/features';
 import { CATEGORY_MIN_LEVEL, getRoleLevel, getRoleLabel } from '@/config/roles';
 import { KeyRound } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -61,6 +62,7 @@ const categoryIcons: Record<string, any> = {
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { theme, cycleTheme, language, cycleLanguage } = useSettings();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     engineering: true, procurement: true, material: true, equipment: true,
@@ -276,6 +278,32 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {/* 配置按钮 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <Settings className="w-5 h-5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>配置</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {/* 主题切换 */}
+                <DropdownMenuItem onClick={cycleTheme} className="cursor-pointer justify-between">
+                  <span className="flex items-center gap-2">
+                    {theme === 'light' ? <Sun className="w-4 h-4" /> : theme === 'dark' ? <Moon className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+                    {theme === 'light' ? '明' : theme === 'dark' ? '暗' : '随系统'}
+                  </span>
+                  <span className="text-xs text-gray-400">主题</span>
+                </DropdownMenuItem>
+                {/* 语言切换 */}
+                <DropdownMenuItem onClick={cycleLanguage} className="cursor-pointer justify-between">
+                  <span className="flex items-center gap-2">
+                    <Languages className="w-4 h-4" />
+                    {language === 'zh' ? '中' : '英文 (us-E)'}
+                  </span>
+                  <span className="text-xs text-gray-400">语音</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) fetchNotifications(); }}>
               <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 relative">
                 <Bell className="w-5 h-5" />

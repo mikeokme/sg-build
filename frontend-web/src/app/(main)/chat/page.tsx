@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import io from 'socket.io-client';
-import { Socket } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact,
@@ -46,7 +45,7 @@ export default function ChatPage() {
   const [burnTarget, setBurnTarget] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, number>>(new Map());
-  const [socket, setSocket] = useState<any>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [groupName, setGroupName] = useState('');
@@ -857,11 +856,12 @@ export default function ChatPage() {
                     {BURN_SECONDS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                   {selectedConv?.type === 'group' && (
-                    <select value={burnTarget} onChange={(e) => setBurnTarget(e.target.value)} className="h-8 text-xs rounded-lg border border-amber-200 bg-amber-50 px-2 focus:outline-none max-w-[120px]">
+                    <select value={burnTarget} onChange={(e) => setBurnTarget(e.target.value)} className="h-8 text-xs rounded-lg border border-amber-200 bg-amber-50 px-2 focus:outline-none max-w-[160px]">
                       <option value="">选择接收人</option>
-                      {selectedConv.members.filter((m: string) => m !== me?.username).map((m: string) => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
+                      {selectedConv.members.filter((m: string) => m !== me?.username).map((m: string) => {
+                        const user = userMap.get(m);
+                        return <option key={m} value={m}>{user?.name || m}</option>;
+                      })}
                     </select>
                   )}
                 </>

@@ -196,8 +196,8 @@ function Dialog({ open, onClose, title, children }: { open: boolean; onClose: ()
 // ── Main Page ──
 export default function OrgChartPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -255,8 +255,8 @@ export default function OrgChartPage() {
       ? departments.filter((d) => d.name.includes(search))
       : departments;
     const { nodes: n, edges: e } = layoutTree(filtered, handleAdd, handleEdit, handleDelete, handleAddPosition);
-    setNodes(n as any);
-    setEdges(e as any);
+    setNodes(n);
+    setEdges(e);
   }, [departments, search]);
 
   function handleAdd(parentId: string) {
