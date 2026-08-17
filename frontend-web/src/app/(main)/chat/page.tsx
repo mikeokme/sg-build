@@ -46,7 +46,7 @@ export default function ChatPage() {
   const [burnTarget, setBurnTarget] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, number>>(new Map());
-  const [socket, setSocket] = useState<any>(null)(null);
+  const [socket, setSocket] = useState<any>(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [groupName, setGroupName] = useState('');
