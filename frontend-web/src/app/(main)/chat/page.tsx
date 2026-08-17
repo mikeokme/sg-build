@@ -246,23 +246,24 @@ export default function ChatPage() {
       if (res.ok) {
         const convs = await res.json();
         setConvs(convs);
-        // 加载项目部组成员信息
-        const projectConvs = convs.filter((c: any) => c.category === 'project');
-        const groups: any[] = [];
-        for (const conv of projectConvs) {
-          try {
-            const mRes = await fetch(`${API_BASE}/chat/conversations/${conv.id}/members`, { headers: { Authorization: `Bearer ${token}` } });
-            if (mRes.ok) {
-              const members = await mRes.json();
-              groups.push({ id: conv.id, name: conv.name, projectId: conv.projectId, members });
-            }
-          } catch {}
+        // 从通讯录 API 获取项目部组数据
+        const contactsRes = await fetch(`${API_BASE}/chat/contacts`, { headers: { Authorization: `Bearer ${token}` } });
+        if (contactsRes.ok) {
+          const contacts = await contactsRes.json();
+          const projectGroup = contacts.find((c: any) => c.id === '_project_group');
+          if (projectGroup) {
+            setProjectGroups([{
+              id: '_project_group',
+              name: '项目部组',
+              projectId: '',
+              members: projectGroup.members
+            }]);
+          } else {
+            setProjectGroups([]);
+          }
         }
-        setProjectGroups(groups);
         // 默认折叠所有项目部组
-        const sections: Record<string, boolean> = {};
-        groups.forEach((g: any) => { sections[g.id] = false; });
-        setProjectGroupSections(sections);
+        setProjectGroupSections({ _project_group: false });
       }
     } catch {}
   }, []);
