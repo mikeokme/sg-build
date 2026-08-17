@@ -48,8 +48,7 @@ export class ChatController {
       }));
   }
 
-  // 通讯录：按部门分组返回
-  @Get('contacts')
+  // 通讯录：按部门分组返�?  @Get('contacts')
   getContacts(@Req() req: AuthedRequest) {
     const me = this.username(req);
     const users = this.dataService.getUsers().filter((u) => u.username !== me && u.isActive !== false);
@@ -63,7 +62,7 @@ export class ChatController {
 
     // 将用户分配到部门
     for (const u of users) {
-      const deptName = u.department || '未分配';
+      const deptName = u.department || '未分�?;
       // 找到对应部门
       let found = false;
       for (const [, dept] of deptMap) {
@@ -104,10 +103,8 @@ export class ChatController {
     // 构建层级树（只保留有成员的部门）
     const result: any[] = [];
     for (const [, dept] of deptMap) {
-      if (dept.members.length === 0 && dept.id !== 'd1') continue; // 跳过空部门（保留集团总部）
-      if (dept.id === 'd1') continue; // 跳过集团总部节点本身
-      // 只保留直属部门（parentId === 'd1'）和子部门
-      if (dept.parentId === 'd1' || dept.id.startsWith('_temp_')) {
+      if (dept.members.length === 0 && dept.id !== 'd1') continue; // 跳过空部门（保留集团总部�?      if (dept.id === 'd1') continue; // 跳过集团总部节点本身
+      // 只保留直属部门（parentId === 'd1'）和子部�?      if (dept.parentId === 'd1' || dept.id.startsWith('_temp_')) {
         const children = Array.from(deptMap.values())
           .filter((d) => d.parentId === dept.id && d.members.length > 0)
           .map((d) => ({ id: d.id, name: d.name, code: d.code, leader: d.leader, members: d.members }));
@@ -123,10 +120,54 @@ export class ChatController {
       }
     }
 
+    // �?sortOrder 排序
+    result.sort((a, b) => {
+      const deptA = departments.find((d) => d.id === a.id);
+      const deptB = departments.find((d) => d.id === b.id);
+      return (deptA?.sortOrder ?? 99) - (deptB?.sortOrder ?? 99);
+    });
+
+    // 收集项目部组成员（去重）
+    const projectConvMembers = new Map<string, any>();
+    const projectConvs = this.dataService.getConversations().filter((c: any) => c.category === 'project');
+    for (const conv of projectConvs) {
+      for (const username of conv.members) {
+        if (!projectConvMembers.has(username)) {
+          const user = users.find((u: any) => u.username === username);
+          if (user) {
+            projectConvMembers.set(username, {
+              username: user.username,
+              name: user.name || user.username,
+              role: user.role,
+              position: user.position || '',
+              phone: user.phone || '',
+              isHead: !!user.isHead,
+              isDeputy: !!user.isDeputy,
+              avatar: user.avatar || '',
+            });
+          }
+        }
+      }
+    }
+    // 将项目部组插入到市场�?d8)之后
+    const projectGroupMembers = Array.from(projectConvMembers.values());
+    const marketIndex = result.findIndex((d) => d.id === 'd8');
+    if (marketIndex >= 0 && projectGroupMembers.length > 0) {
+      result.splice(marketIndex + 1, 0, {
+        id: '_project_group',
+        name: '项目部组',
+        code: 'XM-GROUP',
+        leader: '',
+        memberCount: projectGroupMembers.length,
+        members: projectGroupMembers.sort((a: any, b: any) => (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0) || (b.isDeputy ? 1 : 0) - (a.isDeputy ? 1 : 0)),
+        children: [],
+      });
+    }
+
     // 也把未分配的用户放到最前面
-    const unassigned = deptMap.get('_temp_未分配');
+    const unassigned = deptMap.get('_temp_未分�?);
     if (unassigned && unassigned.members.length > 0) {
-      result.unshift({ id: '_unassigned', name: '未分配部门', code: '', leader: '', memberCount: unassigned.members.length, members: unassigned.members, children: [] });
+      result.unshift({ id: '_unassigned', name: '未分配部�?, code: '', leader: '', memberCount: unassigned.members.length, members: unassigned.members, children: [] });
     }
 
     return result;
@@ -145,7 +186,7 @@ export class ChatController {
     const conv = this.chatService.createGroup(body?.name, body?.members || [], owner);
     this.dataService.addNotification(owner, {
       title: '群聊创建成功',
-      content: `「${conv.name}」已创建，共 ${conv.members.length} 人`,
+      content: `�?{conv.name}」已创建，共 ${conv.members.length} 人`,
       type: 'system',
       link: '/chat',
     });
@@ -158,32 +199,27 @@ export class ChatController {
     return this.chatService.listMessages(this.username(req), id);
   }
 
-  // 获取群成员列表
-  @Get('conversations/:id/members')
+  // 获取群成员列�?  @Get('conversations/:id/members')
   getMembers(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.chatService.getGroupMembers(id, this.username(req));
   }
 
-  // 添加群成员
-  @Post('conversations/:id/members')
+  // 添加群成�?  @Post('conversations/:id/members')
   addMembers(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { usernames: string[] }) {
     return this.chatService.addMembers(id, body?.usernames || [], this.username(req));
   }
 
-  // 移除群成员
-  @Delete('conversations/:id/members/:username')
+  // 移除群成�?  @Delete('conversations/:id/members/:username')
   removeMember(@Param('id') id: string, @Param('username') username: string, @Req() req: AuthedRequest) {
     return this.chatService.removeMember(id, username, this.username(req));
   }
 
-  // 通过 REST 发送（备用；实时消息走 WS）
-  @Post('conversations/:id/messages')
+  // 通过 REST 发送（备用；实时消息走 WS�?  @Post('conversations/:id/messages')
   sendMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: any) {
     return this.chatService.sendMessage(this.username(req), { conversationId: id, ...body });
   }
 
-  // 标记已读（备用；实时走 WS）
-  @Put('conversations/:id/read')
+  // 标记已读（备用；实时�?WS�?  @Put('conversations/:id/read')
   markRead(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.chatService.markRead(this.username(req), id);
   }
@@ -194,19 +230,18 @@ export class ChatController {
     return this.chatService.deleteMessage(this.username(req), id, messageId);
   }
 
-  // 删除联系人（仅超管和高管）
-  @Delete('users/:username')
+  // 删除联系人（仅超管和高管�?  @Delete('users/:username')
   @UseGuards(RolesGuard)
   @Roles('super_admin', 'high_admin')
   deleteContact(@Param('username') username: string, @Req() req: AuthedRequest) {
     const me = this.dataService.getUserByUsername(this.username(req));
     const target = this.dataService.getUserByUsername(username);
-    if (!target) throw new ForbiddenException('用户不存在');
+    if (!target) throw new ForbiddenException('用户不存�?);
     if (target.role === 'super_admin' && me?.role !== 'super_admin') {
-      throw new ForbiddenException('无法删除超级管理员');
+      throw new ForbiddenException('无法删除超级管理�?);
     }
     this.dataService.deleteUser(target.id);
-    this.dataService.logAudit({ action: '删除联系人', module: 'chat/contacts', operator: this.username(req), role: me?.role, detail: { target: username } });
-    return { message: `已删除用户 ${username}` };
+    this.dataService.logAudit({ action: '删除联系�?, module: 'chat/contacts', operator: this.username(req), role: me?.role, detail: { target: username } });
+    return { message: `已删除用�?${username}` };
   }
 }
