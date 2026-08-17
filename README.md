@@ -35,11 +35,13 @@
 - 支持 5/10/30/60 秒倒计时自动销毁
 - 消息揭示后启动焚毁倒计时，仅发送者和接收者可见
 - 加密消息与阅后即焚双重保护
+- 定向广播：仅通知发送者和指定接收者，其他成员无通知无显示
 
 ### 2. 项目部配置
 - 系统设置页面支持配置站点名称、公司名称
 - 数据保留天数、会话超时时间等参数可调
 - 支持上传企业 Logo
+- 通讯录中项目部组自动插入到市场部之后
 
 ### 3. 主题与语言设置
 - 右上角配置按钮一键切换主题：明（太阳）/ 暗（月亮）/ 随系统
@@ -153,6 +155,9 @@ npm run start
 | `GET /notifications/stream` | SSE 实时通知推送 |
 | `GET /dashboard/stats` | 工作台统计数据 |
 | `GET /org/departments` | 组织架构数据 |
+| `GET /chat/contacts` | 通讯录（按部门分组） |
+| `POST /chat/conversations/single` | 发起单聊 |
+| `POST /chat/conversations/group` | 创建群聊 |
 
 ## 架构设计
 
@@ -164,3 +169,5 @@ npm run start
 - 后端接口统一前缀 `/collections/:name`（集合 CRUD），`/auth/*` 为认证与用户管理
 - 业务中心 / 功能 / 字段全部由 `frontend-web/src/config/features.ts` 配置驱动，新增功能无需新写页面
 - 主题和语言设置持久化到 localStorage
+- 消息会话顺序：群聊 → 单聊 → 项目部组
+- 通讯录布局：部门列表 → 项目部组（插入到市场部之后）
