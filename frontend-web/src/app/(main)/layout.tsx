@@ -284,24 +284,26 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 <Settings className="w-5 h-5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>配置</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {/* 主题切换 */}
-                <DropdownMenuItem onClick={cycleTheme} className="cursor-pointer justify-between">
-                  <span className="flex items-center gap-2">
-                    {theme === 'light' ? <Sun className="w-4 h-4" /> : theme === 'dark' ? <Moon className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                    {theme === 'light' ? '明' : theme === 'dark' ? '暗' : '随系统'}
-                  </span>
-                  <span className="text-xs text-gray-400">主题</span>
-                </DropdownMenuItem>
-                {/* 语言切换 */}
-                <DropdownMenuItem onClick={cycleLanguage} className="cursor-pointer justify-between">
-                  <span className="flex items-center gap-2">
-                    <Languages className="w-4 h-4" />
-                    {language === 'zh' ? '中' : '英文 (us-E)'}
-                  </span>
-                  <span className="text-xs text-gray-400">语音</span>
-                </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>配置</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {/* 主题切换 */}
+                  <DropdownMenuItem onClick={cycleTheme} className="cursor-pointer justify-between">
+                    <span className="flex items-center gap-2">
+                      {theme === 'light' ? <Sun className="w-4 h-4" /> : theme === 'dark' ? <Moon className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+                      {theme === 'light' ? '明' : theme === 'dark' ? '暗' : '随系统'}
+                    </span>
+                    <span className="text-xs text-gray-400">主题</span>
+                  </DropdownMenuItem>
+                  {/* 语言切换 */}
+                  <DropdownMenuItem onClick={cycleLanguage} className="cursor-pointer justify-between">
+                    <span className="flex items-center gap-2">
+                      <Languages className="w-4 h-4" />
+                      {language === 'zh' ? '中' : '英文 (us-E)'}
+                    </span>
+                    <span className="text-xs text-gray-400">语音</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) fetchNotifications(); }}>
