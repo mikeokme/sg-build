@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import io from 'socket.io-client';\nimport type { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact,
@@ -45,7 +46,7 @@ export default function ChatPage() {
   const [burnTarget, setBurnTarget] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, number>>(new Map());
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<any>(null)(null);
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [groupName, setGroupName] = useState('');
