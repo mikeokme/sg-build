@@ -10,6 +10,9 @@ build/
 out/
 *.tsbuildinfo
 
+# Data files (persisted JSON)
+backend/data/
+
 # Expo
 .expo/
 .expo-shared/
