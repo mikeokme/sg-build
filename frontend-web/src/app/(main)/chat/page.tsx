@@ -101,6 +101,9 @@ export default function ChatPage() {
   const [burn, setBurn] = useState(false);
   const [burnSec, setBurnSec] = useState(10);
   const [burnTarget, setBurnTarget] = useState('');
+  const [replyTo, setReplyTo] = useState<any>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, number>>(new Map());
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -429,8 +432,20 @@ export default function ChatPage() {
 
   const sendMessage = () => {
     if (!socket || !selectedId || !input.trim()) return;
-    socket.emit('chat:send', { conversationId: selectedId, content: input.trim(), encrypted, burn, burnSeconds: burn ? burnSec : undefined, burnTarget: burn && selectedConv?.type === 'group' ? burnTarget : undefined });
-    setInput(''); setEncrypted(false); setBurn(false); setBurnTarget(''); inputRef.current?.focus();
+    // 检测@提及
+    const mentionMatch = input.match(/@(\S+)/g) || [];
+    const mentions = mentionMatch.map(m => m.substring(1));
+    socket.emit('chat:send', { 
+      conversationId: selectedId, 
+      content: input.trim(), 
+      encrypted, 
+      burn, 
+      burnSeconds: burn ? burnSec : undefined, 
+      burnTarget: burn && selectedConv?.type === 'group' ? burnTarget : undefined,
+      replyTo: replyTo?.id || '',
+      mention: mentions
+    });
+    setInput(''); setEncrypted(false); setBurn(false); setBurnTarget(''); setReplyTo(null); inputRef.current?.focus();
   };
 
   const revealMessage = (messageId: string) => {
@@ -876,13 +891,44 @@ export default function ChatPage() {
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
 
               return (
-                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}>
+                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`} onMouseEnter={() => setHoveredMsgId(m.id)} onMouseLeave={() => setHoveredMsgId(null)}>
                   <div className={`max-w-[70%] ${isMine ? 'order-2' : ''}`}>
+                    {/* 回复引用 */}
+                    {m.replyTo && (() => {
+                      const repliedMsg = messages.find(msg => msg.id === m.replyTo);
+                      if (!repliedMsg) return null;
+                      return (
+                        <div className="mb-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 border-l-2 border-blue-400">
+                          <span className="font-medium text-blue-600">{userMap.get(repliedMsg.sender)?.name || repliedMsg.sender}:</span>
+                          <span className="ml-1 truncate">{repliedMsg.content?.substring(0, 50)}{repliedMsg.content?.length > 50 ? '...' : ''}</span>
+                        </div>
+                      );
+                    })()}
+                    {/* @提及提示 */}
+                    {m.mentionedUsers?.includes(me?.username) && !isMine && (
+                      <div className="mb-1 text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
+                        @你
+                      </div>
+                    )}
                     {!isMine && selectedConv.type === 'group' && (
                       <p className="text-[10px] text-gray-400 mb-0.5 ml-1">
                         {(() => { const u = userMap.get(m.sender); return u ? `${u.name || m.sender}` : m.sender; })()}
                         {(() => { const u = userMap.get(m.sender); const dept = u?.department || ''; return dept ? <span className="text-gray-300 ml-1">· {getDeptLabel(dept)}</span> : null; })()}
                       </p>
+                    )}
+
+                    {/* 消息操作按钮 */}
+                    {hoveredMsgId === m.id && !isBurnHidden && (
+                      <div className={`flex gap-1 mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                        <button onClick={() => setReplyTo(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="回复">↩ 回复</button>
+                        {isMine && (() => {
+                          const msgTime = new Date(m.createdAt).getTime();
+                          const canRecall = Date.now() - msgTime < 2 * 60 * 1000; // 2分钟内可撤回
+                          return canRecall ? (
+                            <button onClick={() => burnNow(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-red-100 hover:text-red-600 rounded text-gray-600" title="撤回">撤回</button>
+                          ) : null;
+                        })()}
+                      </div>
                     )}
 
                     {isBurnHidden ? (
@@ -960,7 +1006,16 @@ export default function ChatPage() {
 
           {/* 输入区 */}
           <div className="border-t border-gray-200 p-3 bg-white">
+            {/* 回复引用 */}
+            {replyTo && (
+              <div className="flex items-center gap-2 mb-2 p-2 bg-blue-50 rounded-lg text-xs">
+                <span className="text-blue-600 font-medium">回复 {userMap.get(replyTo.sender)?.name || replyTo.sender}:</span>
+                <span className="text-gray-600 truncate flex-1">{replyTo.content?.substring(0, 30)}{replyTo.content?.length > 30 ? '...' : ''}</span>
+                <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-gray-600"><X className="w-3 h-3" /></button>
+              </div>
+            )}
             <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="h-8 px-2" title="表情"><span className="text-lg">😊</span></Button>
               <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密' : '开启加密'}><Lock className="w-3.5 h-3.5" /></Button>
               <Button size="sm" variant={burn ? 'default' : 'ghost'} onClick={() => { setBurn(!burn); if (!burn) setEncrypted(true); }} className={`h-8 px-2 ${burn ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title={burn ? '已开启阅后即焚' : '开启阅后即焚'}><Flame className="w-3.5 h-3.5" /></Button>
               {burn && (
@@ -979,9 +1034,17 @@ export default function ChatPage() {
                   )}
                 </>
               )}
-              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? '输入加密消息...' : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息...'} className="flex-1 h-9 text-sm" />
+              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? '输入加密消息...' : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
               <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
             </div>
+            {/* 表情选择器 */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-16 right-4 bg-white border rounded-lg shadow-lg p-2 flex gap-1 flex-wrap w-48 z-50">
+                {['😊', '😂', '👍', '🙏', '❤️', '🔥', '👏', '😮', '😢', '😡', '🎉', '✅'].map((emoji) => (
+                  <button key={emoji} onClick={() => { setInput(prev => prev + emoji); setShowEmojiPicker(false); }} className="text-xl p-1 hover:bg-gray-100 rounded">{emoji}</button>
+                ))}
+              </div>
+            )}
           </div>
           </div>
 
