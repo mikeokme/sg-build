@@ -228,7 +228,7 @@ export class ChatService {
     return { messages };
   }
 
-  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string }) {
+  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; replyTo?: string; mention?: string[] }) {
     const c = this.dataService.getConversation(payload.conversationId);
     if (!c) return { error: '会话不存在' };
     if (!c.members.includes(username)) return { error: '无权发送消息' };
@@ -238,7 +238,18 @@ export class ChatService {
     const encrypted = !!payload.encrypted;
     const burn = !!payload.burn;
     const burnTarget = payload.burnTarget || '';
+    const replyTo = payload.replyTo || '';
+    const mention = payload.mention || [];
     const stored = encrypted ? encryptMessage(c.id, content) : content;
+    
+    // 处理@提及
+    const mentionedUsers: string[] = [];
+    mention.forEach((m: string) => {
+      if (c.members.includes(m) && m !== username) {
+        mentionedUsers.push(m);
+      }
+    });
+
     const message = this.dataService.addChatMessage({
       conversationId: c.id,
       sender: username,
@@ -248,20 +259,34 @@ export class ChatService {
       burn,
       burnSeconds: burn ? (Number(payload.burnSeconds) || 10) : 0,
       burnTarget: c.type === 'group' ? burnTarget : '',
+      replyTo,
+      mentionedUsers,
       revealedBy: [],
       readBy: [username],
+      createdAt: new Date().toISOString(),
     });
 
     this.dataService.updateConversation(c.id, { lastMessageAt: message.createdAt });
 
     const clientMsg = this.decorateForClient(message, c.id, username);
 
-    // 群聊阅后即焚：仅通知发送者和指定接收者，其他人无通知无显示
+    // 群聊阅后即焚：仅通知发送者和指定接收者
     if (burn && burnTarget && c.type === 'group') {
       this.emitToUsers('chat:message', { conversationId: c.id, message: clientMsg }, [username, burnTarget]);
     } else {
       this.emit('chat:message', { conversationId: c.id, message: clientMsg });
     }
+
+    // 通知被@的用户
+    if (mentionedUsers.length > 0) {
+      this.emitToUsers('chat:mention', {
+        conversationId: c.id,
+        messageId: message.id,
+        sender: username,
+        mentionedUsers,
+      }, mentionedUsers);
+    }
+
     return { message: clientMsg };
   }
 

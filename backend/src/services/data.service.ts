@@ -52,173 +52,253 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   const now = Date.now();
   const conversations = [
     // ── 部门群（category: 'department'）──
-    { id: 'dg_hq', type: 'group', name: '集团总部群', category: 'department', departmentId: 'hq', members: ['admin','manager','test1','test2','test3','test4','test5','test6','test7','test8','test49','test50','test51','test52','test53','test54','test55','test56','test57','test58'], admins: ['manager','test1'], owner: 'admin', createdAt: new Date(now - 86400000 * 10).toISOString() },
-    { id: 'dg_biz', type: 'group', name: '业务部门群', category: 'department', departmentId: 'biz', members: ['test9','test59','test60','test61','test62','test63','test64','test65','test66'], admins: ['test59'], owner: 'test9', createdAt: new Date(now - 86400000 * 10).toISOString() },
-    { id: 'dg_sub', type: 'group', name: '分子公司群', category: 'department', departmentId: 'sub', members: ['test10','test67','test68','test69','test70','test71','test72','test73','test74','test75','test76','test77','test78','test79','test80','test81','test82','test83','test84','test85'], admins: ['test71','test76'], owner: 'test10', createdAt: new Date(now - 86400000 * 10).toISOString() },
-    { id: 'dg_proj', type: 'group', name: '项目部群', category: 'department', departmentId: 'proj', members: ['test86','test87','test88','test89','test90','test91','test92','test93','test94','test95','test96','test97','test98','test99','test100','test101','test102','test103','test104','test105','test106','test107','test108'], admins: ['test92'], owner: 'test86', createdAt: new Date(now - 86400000 * 10).toISOString() },
-    { id: 'dg_hq_hr',   type: 'group', name: '人力资源部群', category: 'department', departmentId: 'hq_hr',   members: ['test2','test3','test50'], admins: [], owner: 'test2', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_hq_fin',  type: 'group', name: '财务管理部群', category: 'department', departmentId: 'hq_fin',  members: ['test4','test51','test52'], admins: ['test51'], owner: 'test4', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_hq_adm',  type: 'group', name: '综合管理部群', category: 'department', departmentId: 'hq_adm',  members: ['test6','test8','test49'], admins: ['test8'], owner: 'test6', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_hq_it',   type: 'group', name: '信息技术部群', category: 'department', departmentId: 'hq_it',   members: ['test53','test54'], admins: [], owner: 'test53', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_hq_saf',  type: 'group', name: '安全管理部群', category: 'department', departmentId: 'hq_saf',  members: ['test5','test55','test56'], admins: ['test55'], owner: 'test5', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_hq_qua',  type: 'group', name: '质量管理部群', category: 'department', departmentId: 'hq_qua',  members: ['test7','test57','test58'], admins: ['test57'], owner: 'test7', createdAt: new Date(now - 86400000 * 9).toISOString() },
-    { id: 'dg_biz_mkt', type: 'group', name: '市场经营部群', category: 'department', departmentId: 'biz_market', members: ['test9','test59','test60'], admins: ['test59'], owner: 'test9', createdAt: new Date(now - 86400000 * 8).toISOString() },
-    { id: 'dg_biz_con', type: 'group', name: '商务合约部群', category: 'department', departmentId: 'biz_contract', members: ['test61','test62'], admins: [], owner: 'test61', createdAt: new Date(now - 86400000 * 8).toISOString() },
-    { id: 'dg_biz_bid', type: 'group', name: '投标管理部群', category: 'department', departmentId: 'biz_bid',   members: ['test63','test64'], admins: [], owner: 'test63', createdAt: new Date(now - 86400000 * 8).toISOString() },
-    { id: 'dg_biz_svc', type: 'group', name: '客户服务部群', category: 'department', departmentId: 'biz_service', members: ['test65','test66'], admins: [], owner: 'test65', createdAt: new Date(now - 86400000 * 8).toISOString() },
-    { id: 'dg_sub1',    type: 'group', name: '一公司群',     category: 'department', departmentId: 'sub1', members: ['test10','test67','test68','test69','test70'], admins: ['test67'], owner: 'test10', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    { id: 'dg_sub2',    type: 'group', name: '二公司群',     category: 'department', departmentId: 'sub2', members: ['test71','test72','test73','test74','test75'], admins: ['test72'], owner: 'test71', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    { id: 'dg_sub3',    type: 'group', name: '三公司群',     category: 'department', departmentId: 'sub3', members: ['test76','test77','test78','test79','test80'], admins: ['test77'], owner: 'test76', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    { id: 'dg_sub4',    type: 'group', name: '四公司群',     category: 'department', departmentId: 'sub4', members: ['test81','test82','test83','test84','test85'], admins: ['test82'], owner: 'test81', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    // ── 项目部群（category: 'project'）──
-    { id: 'g1', type: 'group', name: '城南地铁站群', category: 'project', projectId: 'p1', members: ['admin','test86','test87','test88','test89','test90','test91'], admins: ['test87'], owner: 'test86', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    { id: 'g2', type: 'group', name: '滨江大桥群', category: 'project', projectId: 'p2', members: ['admin','test92','test93','test94','test95','test96','test97'], admins: ['test93'], owner: 'test92', createdAt: new Date(now - 86400000 * 5).toISOString() },
-    { id: 'g3', type: 'group', name: '地铁3号线群', category: 'project', projectId: 'p4', members: ['admin','test98','test99','test100'], admins: ['test99'], owner: 'test98', createdAt: new Date(now - 86400000 * 3).toISOString() },
-    { id: 'g6', type: 'group', name: '城北道路群', category: 'project', projectId: 'p5', members: ['admin','test101','test102'], admins: [], owner: 'test101', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 'g7', type: 'group', name: '高铁站群', category: 'project', projectId: 'p8', members: ['admin','test103','test104'], admins: [], owner: 'test103', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 'g8', type: 'group', name: '城南商业群', category: 'project', projectId: 'p9', members: ['admin','test105','test106'], admins: [], owner: 'test105', createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'g9', type: 'group', name: '城北学校群', category: 'project', projectId: 'p11', members: ['admin','test107','test108'], admins: [], owner: 'test107', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dg_hq', type: 'group', name: '集团总部群', category: 'department', departmentId: 'hq', members: ['admin','manager','张伟','李明','王磊','赵丽','孙强','周芳','吴刚','郑敏','马行政','钱人事','赵会计','周出纳','陈工','林工','何安全','高安全','梁质量','宋质量'], admins: ['manager','张伟'], owner: 'admin', createdAt: new Date(now - 86400000 * 10).toISOString() },
+    { id: 'dg_biz', type: 'group', name: '业务部门群', category: 'department', departmentId: 'biz', members: ['刘市场','韩市场','杨市场','朱商务','秦商务','许投标','何投标','吕客服','施客服'], admins: ['韩市场'], owner: '刘市场', createdAt: new Date(now - 86400000 * 10).toISOString() },
+    { id: 'dg_sub', type: 'group', name: '分子公司群', category: 'department', departmentId: 'sub', members: ['钱建国','孙一','周一','吴一','郑一','陈国强','孙二','周二','吴二','郑二','周海涛','孙三','周三','吴三','郑三','孙建国','孙四','周四','吴四','郑四'], admins: ['陈国强','周海涛'], owner: '钱建国', createdAt: new Date(now - 86400000 * 10).toISOString() },
+    { id: 'dg_proj', type: 'group', name: '项目部群', category: 'department', departmentId: 'proj', members: ['刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','张经理','李技术3','王施工3','李经理','张测量','孙经理','周施工','周经理','吴采购','吴经理','郑施工'], admins: ['马师傅'], owner: '刘工', createdAt: new Date(now - 86400000 * 10).toISOString() },
+    { id: 'dg_hq_hr',   type: 'group', name: '人力资源部群', category: 'department', departmentId: 'hq_hr',   members: ['李明','王磊','钱人事'], admins: [], owner: '李明', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_hq_fin',  type: 'group', name: '财务管理部群', category: 'department', departmentId: 'hq_fin',  members: ['赵丽','赵会计','周出纳'], admins: ['赵会计'], owner: '赵丽', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_hq_adm',  type: 'group', name: '综合管理部群', category: 'department', departmentId: 'hq_adm',  members: ['周芳','郑敏','马行政'], admins: ['郑敏'], owner: '周芳', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_hq_it',   type: 'group', name: '信息技术部群', category: 'department', departmentId: 'hq_it',   members: ['陈工','林工'], admins: [], owner: '陈工', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_hq_saf',  type: 'group', name: '安全管理部群', category: 'department', departmentId: 'hq_saf',  members: ['孙强','何安全','高安全'], admins: ['何安全'], owner: '孙强', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_hq_qua',  type: 'group', name: '质量管理部群', category: 'department', departmentId: 'hq_qua',  members: ['吴刚','梁质量','宋质量'], admins: ['梁质量'], owner: '吴刚', createdAt: new Date(now - 86400000 * 9).toISOString() },
+    { id: 'dg_biz_mkt', type: 'group', name: '市场经营部群', category: 'department', departmentId: 'biz_market', members: ['刘市场','韩市场','杨市场'], admins: ['韩市场'], owner: '刘市场', createdAt: new Date(now - 86400000 * 8).toISOString() },
+    { id: 'dg_biz_con', type: 'group', name: '商务合约部群', category: 'department', departmentId: 'biz_contract', members: ['朱商务','秦商务'], admins: [], owner: '朱商务', createdAt: new Date(now - 86400000 * 8).toISOString() },
+    { id: 'dg_biz_bid', type: 'group', name: '投标管理部群', category: 'department', departmentId: 'biz_bid',   members: ['许投标','何投标'], admins: [], owner: '许投标', createdAt: new Date(now - 86400000 * 8).toISOString() },
+    { id: 'dg_biz_svc', type: 'group', name: '客户服务部群', category: 'department', departmentId: 'biz_service', members: ['吕客服','施客服'], admins: [], owner: '吕客服', createdAt: new Date(now - 86400000 * 8).toISOString() },
+    { id: 'dg_sub1',    type: 'group', name: '一公司群',     category: 'department', departmentId: 'sub1', members: ['钱建国','孙一','周一','吴一','郑一'], admins: ['孙一'], owner: '钱建国', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    { id: 'dg_sub2',    type: 'group', name: '二公司群',     category: 'department', departmentId: 'sub2', members: ['陈国强','孙二','周二','吴二','郑二'], admins: ['孙二'], owner: '陈国强', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    { id: 'dg_sub3',    type: 'group', name: '三公司群',     category: 'department', departmentId: 'sub3', members: ['周海涛','孙三','周三','吴三','郑三'], admins: ['孙三'], owner: '周海涛', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    { id: 'dg_sub4',    type: 'group', name: '四公司群',     category: 'department', departmentId: 'sub4', members: ['孙建国','孙四','周四','吴四','郑四'], admins: ['孙四'], owner: '孙建国', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    // ── 水利项目部群（category: 'project'）──
+    // 项目部群：项目经理为群主，副经理+技术负责人为管理员，五大员为成员
+    { id: 'g1', type: 'group', name: '清河水库群', category: 'project', projectId: 'p1', members: ['admin','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','张测量'], admins: ['张副1','李技术1'], owner: '刘工', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    { id: 'g2', type: 'group', name: '南水北调群', category: 'project', projectId: 'p2', members: ['admin','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量'], admins: ['张副2','李技术2'], owner: '马师傅', createdAt: new Date(now - 86400000 * 5).toISOString() },
+    { id: 'g3', type: 'group', name: '流域治理群', category: 'project', projectId: 'p4', members: ['admin','张经理','李技术3','王施工3','赵质量3','钱安全3'], admins: ['李技术3'], owner: '张经理', createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'g6', type: 'group', name: '农田水利群', category: 'project', projectId: 'p5', members: ['admin','李经理','张测量','王施工4','赵质量4'], admins: [], owner: '李经理', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'g7', type: 'group', name: '水文监测群', category: 'project', projectId: 'p8', members: ['admin','孙经理','周施工','吴安全'], admins: [], owner: '孙经理', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'g8', type: 'group', name: '生态廊道群', category: 'project', projectId: 'p9', members: ['admin','周经理','吴采购','郑质量'], admins: [], owner: '周经理', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'g9', type: 'group', name: '山区水库群', category: 'project', projectId: 'p11', members: ['admin','吴经理','郑施工','陈安全'], admins: [], owner: '吴经理', createdAt: new Date(now - 86400000 * 1).toISOString() },
     // ── 普通群聊 ──
-    { id: 'g4', type: 'group', name: '安全管理群', members: ['admin', 'test5', 'test7', 'test55', 'test56'], admins: ['test5'], owner: 'admin', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 'g5', type: 'group', name: '综合事务群', members: ['admin', 'manager', 'test6', 'test8', 'test49'], admins: ['manager'], owner: 'admin', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'g4', type: 'group', name: '安全管理群', members: ['admin', '孙强', '吴刚', '何安全', '高安全'], admins: ['孙强'], owner: 'admin', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'g5', type: 'group', name: '综合事务群', members: ['admin', 'manager', '周芳', '郑敏', '马行政'], admins: ['manager'], owner: 'admin', createdAt: new Date(now - 86400000 * 1).toISOString() },
     // 单聊
-    { id: 's1', type: 'single', name: 'test5', members: ['test5', 'test7'], owner: 'test5', createdAt: new Date(now - 86400000 * 4).toISOString() },
-    { id: 's2', type: 'single', name: 'test1', members: ['test1', 'test4'], owner: 'test1', createdAt: new Date(now - 86400000 * 3).toISOString() },
-    { id: 's3', type: 'single', name: 'test9', members: ['test9', 'test10'], owner: 'test9', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 's4', type: 'single', name: 'test6', members: ['test6', 'test8'], owner: 'test6', createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 's5', type: 'single', name: 'test2', members: ['test2', 'test4'], owner: 'test2', createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 's1', type: 'single', name: '孙强', members: ['admin', '孙强', '吴刚'], owner: '孙强', createdAt: new Date(now - 86400000 * 4).toISOString() },
+    { id: 's2', type: 'single', name: '张伟', members: ['admin', '张伟', '赵丽'], owner: '张伟', createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 's3', type: 'single', name: '刘市场', members: ['admin', '刘市场', '钱建国'], owner: '刘市场', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's4', type: 'single', name: '周芳', members: ['admin', '周芳', '郑敏'], owner: '周芳', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 's5', type: 'single', name: '李明', members: ['admin', '李明', '赵丽'], owner: '李明', createdAt: new Date(now - 3600000 * 12).toISOString() },
   ];
 
   const chatMessages = [
-    // ── 部门群消息 ──
-    { id: 'dgm1', conversationId: 'dg_hq', sender: 'admin', content: '集团总部各位同事，本周五下午召开季度总结会', type: 'text', readBy: ['admin','manager','test1'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    // ── 集团总部群消息 ──
+    { id: 'dgm1', conversationId: 'dg_hq', sender: 'admin', content: '集团总部各位同事，本周五下午召开季度总结会', type: 'text', readBy: ['admin','manager','张伟'], createdAt: new Date(now - 86400000 * 2).toISOString() },
     { id: 'dgm2', conversationId: 'dg_hq', sender: 'manager', content: '收到，我准备汇报材料', type: 'text', readBy: ['admin','manager'], createdAt: new Date(now - 86400000 * 2 + 600000).toISOString() },
-    { id: 'dgm3', conversationId: 'dg_biz', sender: 'test9', content: '业务部门本月新签合同3份，总额2.8亿', type: 'text', readBy: ['test9','test59'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm4', conversationId: 'dg_sub', sender: 'test10', content: '各子公司注意：下月启动年度审计', type: 'text', readBy: ['test10','test71'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm5', conversationId: 'dg_proj', sender: 'test86', content: '项目部本月在建项目7个，请各项目经理报送进度', type: 'text', readBy: ['test86','test92'], createdAt: new Date(now - 3600000 * 12).toISOString() },
-    { id: 'dgm6', conversationId: 'dg_hq_fin', sender: 'test4', content: '财务部：请各位同事8月25日前完成报销', type: 'text', readBy: ['test4'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm7', conversationId: 'dg_hq_saf', sender: 'test5', content: '安全月检查结果已出，发现2项隐患需整改', type: 'text', readBy: ['test5','test55'], createdAt: new Date(now - 3600000 * 8).toISOString() },
-    { id: 'dgm8', conversationId: 'dg_sub1', sender: 'test10', content: '一公司本月产值目标1200万，进度如何？', type: 'text', readBy: ['test10'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm9', conversationId: 'dg_sub2', sender: 'test71', content: '二公司滨江大桥项目进度正常', type: 'text', readBy: ['test71'], createdAt: new Date(now - 3600000 * 6).toISOString() },
-    // ── 城南地铁站项目群 ──
-    { id: 'cm1', conversationId: 'g1', sender: 'admin', content: '各位，城南地铁站主体结构验收安排在下周三', type: 'text', readBy: ['admin','test86','test87'], createdAt: new Date(now - 86400000 * 6).toISOString() },
-    { id: 'cm2', conversationId: 'g1', sender: 'test86', content: '收到，我提前准备好验收资料', type: 'text', readBy: ['admin','test86'], createdAt: new Date(now - 86400000 * 6 + 600000).toISOString() },
-    { id: 'cm3', conversationId: 'g1', sender: 'test87', content: '技术方案已经过监理审核，没问题', type: 'text', readBy: ['admin','test87'], createdAt: new Date(now - 86400000 * 5).toISOString() },
-    { id: 'cm4', conversationId: 'g1', sender: 'test88', content: '现场钢筋绑扎已完成，等待验收', type: 'text', readBy: ['admin','test88'], createdAt: new Date(now - 86400000 * 4).toISOString() },
-    // ── 滨江大桥项目群 ──
-    { id: 'cm7', conversationId: 'g2', sender: 'test92', content: '滨江大桥桩基检测报告已出，全部合格', type: 'text', readBy: ['admin','test92'], createdAt: new Date(now - 86400000 * 4).toISOString() },
-    { id: 'cm8', conversationId: 'g2', sender: 'test93', content: '好的，下一步墩柱施工准备', type: 'text', readBy: ['admin','test93'], createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'dgm3', conversationId: 'dg_hq', sender: '张伟', content: '总裁办已将会议议程发给各部门', type: 'text', readBy: ['admin','张伟'], createdAt: new Date(now - 86400000 * 2 + 1200000).toISOString() },
+    { id: 'dgm4', conversationId: 'dg_hq', sender: 'admin', content: '请各部门负责人提前准备PPT汇报', type: 'encrypted', readBy: ['admin','manager','张伟'], encrypted: true, createdAt: new Date(now - 86400000 * 2 + 1800000).toISOString() },
+    // ── 业务部门群消息 ──
+    { id: 'dgm5', conversationId: 'dg_biz', sender: '刘市场', content: '业务部门本月新签合同3份，总额2.8亿', type: 'text', readBy: ['刘市场','韩市场'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm6', conversationId: 'dg_biz', sender: '韩市场', content: '市场部的同事们辛苦了，继续加油', type: 'text', readBy: ['韩市场'], createdAt: new Date(now - 86400000 * 1 + 600000).toISOString() },
+    // ── 分子公司群消息 ──
+    { id: 'dgm7', conversationId: 'dg_sub', sender: '钱建国', content: '各子公司注意：下月启动年度审计', type: 'text', readBy: ['钱建国','陈国强'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm8', conversationId: 'dg_sub', sender: '陈国强', content: '二公司审计资料已准备完毕', type: 'text', readBy: ['陈国强'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    // ── 项目部群消息 ──
+    { id: 'dgm9', conversationId: 'dg_proj', sender: '刘工', content: '项目部本月在建项目7个，请各项目经理报送进度', type: 'text', readBy: ['刘工','马师傅'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 'dgm10', conversationId: 'dg_proj', sender: '马师傅', content: '滨江大桥项目进度正常，预计月底前完成桩基施工', type: 'text', readBy: ['马师傅'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    // ── 部门子群消息 ──
+    { id: 'dgm11', conversationId: 'dg_hq_fin', sender: '赵丽', content: '财务部：请各位同事8月25日前完成报销', type: 'text', readBy: ['赵丽'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm12', conversationId: 'dg_hq_saf', sender: '孙强', content: '安全月检查结果已出，发现2项隐患需整改', type: 'text', readBy: ['孙强','何安全'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    { id: 'dgm13', conversationId: 'dg_hq_qua', sender: '吴刚', content: '质量部：上周抽查发现3处质量问题，已下发整改通知', type: 'text', readBy: ['吴刚','梁质量'], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    // ── 清河水库项目群 ──
+    { id: 'cm1', conversationId: 'g1', sender: 'admin', content: '各位，清河水库除险加固工程主体坝体浇筑安排在下周一', type: 'text', readBy: ['admin','刘工','张副1','李技术1'], createdAt: new Date(now - 86400000 * 6).toISOString() },
+    { id: 'cm2', conversationId: 'g1', sender: '刘工', content: '收到，我提前准备好坝体混凝土配合比报告', type: 'text', readBy: ['admin','刘工'], createdAt: new Date(now - 86400000 * 6 + 600000).toISOString() },
+    { id: 'cm3', conversationId: 'g1', sender: '李技术1', content: '技术方案已经过水利厅专家组审核，没问题', type: 'text', readBy: ['admin','李技术1'], createdAt: new Date(now - 86400000 * 5).toISOString() },
+    { id: 'cm4', conversationId: 'g1', sender: '王施工1', content: '现场防渗墙施工已完成，等待验收', type: 'text', readBy: ['admin','王施工1'], createdAt: new Date(now - 86400000 * 4).toISOString() },
+    { id: 'cm5', conversationId: 'g1', sender: '赵质量1', content: '放水涵管浇筑计划已排好，明天开始', type: 'text', readBy: ['赵质量1'], createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'cm6', conversationId: 'g1', sender: '钱安全1', content: '安全巡查发现坝肩有渗水点，已上报', type: 'text', readBy: ['admin','钱安全1'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'cm7', conversationId: 'g1', sender: 'admin', content: '验收通过，进度良好，继续推进', type: 'text', readBy: ['admin'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    // 清河水库群阅后即焚消息
+    { id: 'cm_f1', conversationId: 'g1', sender: 'admin', content: '刘工，坝体渗透系数数据先别上报，等我复核后再报水利厅', type: 'text', burn: true, burnSeconds: 30, burnTarget: '刘工', readBy: ['admin'], createdAt: new Date(now - 3600000 * 3).toISOString() },
+    // 清河水库群阅后即焚消息（发给admin）
+    { id: 'cm_f5', conversationId: 'g1', sender: '刘工', content: 'admin，南水北调项目二期预算有调整，具体内容私聊，此消息阅后即焚', type: 'text', burn: true, burnSeconds: 60, burnTarget: 'admin', readBy: ['刘工'], createdAt: new Date(now - 3600000 * 1).toISOString() },
+    // 清河水库群加密消息
+    { id: 'cm_e1', conversationId: 'g1', sender: '刘工', content: '水库除险加固总预算：总投资6800万，专项资金已到位', type: 'text', encrypted: true, readBy: ['刘工'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    // ── 南水北调项目群 ──
+    { id: 'cm8', conversationId: 'g2', sender: '马师傅', content: '南水北调支线渠系工程渠道开挖已完成80%', type: 'text', readBy: ['admin','马师傅'], createdAt: new Date(now - 86400000 * 4).toISOString() },
+    { id: 'cm9', conversationId: 'g2', sender: '张副2', content: '渠道衬砌施工即将开始，预制板已进场', type: 'text', readBy: ['admin','张副2'], createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'cm10', conversationId: 'g2', sender: '李技术2', content: '渡槽结构设计已完成，等设计院确认', type: 'text', readBy: ['李技术2'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'cm11', conversationId: 'g2', sender: '王施工2', content: '渠道土方运输路线已确定，预计下周进场', type: 'text', readBy: ['王施工2'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm12', conversationId: 'g2', sender: '赵质量2', content: '节制闸基坑开挖方案已报监理审批', type: 'text', readBy: ['赵质量2'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    { id: 'cm13', conversationId: 'g2', sender: '钱安全2', content: '水质监测点已布设完毕，开始实时监测', type: 'text', readBy: ['钱安全2'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    // 南水北调群阅后即焚消息
+    { id: 'cm_f2', conversationId: 'g2', sender: '马师傅', content: '业主那边透露二期延伸段预算可增加到2亿，别往外说', type: 'text', burn: true, burnSeconds: 60, burnTarget: '张副2', readBy: ['马师傅'], createdAt: new Date(now - 3600000 * 5).toISOString() },
+    { id: 'cm_f3', conversationId: 'g2', sender: '张副2', content: '渠道衬砌分包报价有3家，最低价是1200万', type: 'text', burn: true, burnSeconds: 30, burnTarget: '马师傅', readBy: ['张副2'], createdAt: new Date(now - 3600000 * 2).toISOString() },
+    // ── 流域治理项目群 ──
+    { id: 'cm14', conversationId: 'g3', sender: '张经理', content: '流域治理工程河道疏浚方案已通过评审', type: 'text', readBy: ['admin','张经理','李技术3'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'cm15', conversationId: 'g3', sender: '李技术3', content: '护岸工程设计变更已完成，等业主确认', type: 'text', readBy: ['admin','李技术3'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm16', conversationId: 'g3', sender: 'admin', content: '很好，准备上报水利局的施工图审查', type: 'text', readBy: ['admin','张经理'], createdAt: new Date(now - 3600000 * 5).toISOString() },
+    // 流域治理群阅后即焚消息
+    { id: 'cm_f4', conversationId: 'g3', sender: '张经理', content: '河道采砂许可证审批有变，具体数字先别对外透露', type: 'text', burn: true, burnSeconds: 15, burnTarget: '李技术3', readBy: ['张经理'], createdAt: new Date(now - 3600000 * 1).toISOString() },
+    // ── 农田水利群 ──
+    { id: 'cm17', conversationId: 'g6', sender: '李经理', content: '农田水利灌溉工程渠道衬砌已通过验收', type: 'text', readBy: ['admin','李经理'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm18', conversationId: 'g6', sender: '张测量', content: '量水设施安装已完成，开始通水试验', type: 'text', readBy: ['张测量'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    // ── 水文监测群 ──
+    { id: 'cm19', conversationId: 'g7', sender: '孙经理', content: '跨河大桥水文监测站基础施工已完成', type: 'text', readBy: ['admin','孙经理'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm20', conversationId: 'g7', sender: '周施工', content: '水位计、雨量计已采购，下周到货安装', type: 'text', readBy: ['周施工'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    // ── 生态廊道群 ──
+    { id: 'cm21', conversationId: 'g8', sender: '周经理', content: '滨江生态廊道工程植被恢复方案已定', type: 'text', readBy: ['admin','周经理'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm22', conversationId: 'g8', sender: '吴采购', content: '生态护坡材料已到场，准备施工', type: 'text', readBy: ['吴采购'], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    // ── 山区水库群 ──
+    { id: 'cm23', conversationId: 'g9', sender: '吴经理', content: '山区小型水库建设地勘报告已出，库盆条件良好', type: 'text', readBy: ['admin','吴经理'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm24', conversationId: 'g9', sender: '郑施工', content: '溢洪道结构计算已完成，等设计院确认', type: 'text', readBy: ['郑施工'], createdAt: new Date(now - 3600000 * 5).toISOString() },
     // ── 安全管理群 ──
-    { id: 'cm14', conversationId: 'g4', sender: 'test5', content: '本月安全检查发现3项隐患，已下发整改通知', type: 'text', readBy: ['admin','test5'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg1', conversationId: 'g4', sender: '孙强', content: '本月水利工程施工安全检查发现4项隐患', type: 'text', readBy: ['admin','孙强','吴刚'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg2', conversationId: 'g4', sender: '吴刚', content: '质量管理部已配合完成安全质量联合检查', type: 'text', readBy: ['吴刚'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    { id: 'smg3', conversationId: 'g4', sender: '何安全', content: '清河水库坝肩渗水点已设置监测仪器', type: 'text', readBy: ['admin','何安全'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    { id: 'smg4', conversationId: 'g4', sender: '高安全', content: '南水北调渠道基坑临边防护已整改完毕', type: 'text', readBy: ['高安全'], createdAt: new Date(now - 3600000 * 2).toISOString() },
+    // 安全管理群阅后即焚
+    { id: 'smg_f1', conversationId: 'g4', sender: '孙强', content: '上次清河水库的渗漏事故调查报告先别公开', type: 'text', burn: true, burnSeconds: 30, burnTarget: '吴刚', readBy: ['孙强'], createdAt: new Date(now - 3600000 * 1).toISOString() },
     // ── 综合事务群 ──
-    { id: 'cm17', conversationId: 'g5', sender: 'manager', content: '下周一下午2点全员例会，请准时参加', type: 'text', readBy: ['admin','manager'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    // ── 单聊 ──
-    { id: 'sm1', conversationId: 's1', sender: 'test5', content: '吴刚，明天城南站有个高处作业，你去检查一下', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 5).toISOString() },
-    { id: 'sm2', conversationId: 's1', sender: 'test7', content: '好的，我上午过去', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 4).toISOString() },
-    { id: 'sm6', conversationId: 's2', sender: 'test1', content: '赵丽，3号线的投标报价你核对了吗？', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 6).toISOString() },
-    { id: 'sm7', conversationId: 's2', sender: 'test4', content: '核对了，总价没问题', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 5).toISOString() },
-    { id: 'sm11', conversationId: 's3', sender: 'test9', content: '马师傅，明天几点到场？', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 8).toISOString() },
-    { id: 'sm12', conversationId: 's3', sender: 'test10', content: '早上7点，钢筋班组全员到', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 7).toISOString() },
-    { id: 'sm15', conversationId: 's4', sender: 'test6', content: '郑敏，这个月办公用品采购单你帮我审一下', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 10).toISOString() },
-    { id: 'sm16', conversationId: 's4', sender: 'test8', content: '好的，发过来我看看', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 9).toISOString() },
-    { id: 'sm18', conversationId: 's5', sender: 'test2', content: '赵丽，城北道路那个变更签证的费用什么时候能批？', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 12).toISOString() },
-    { id: 'sm19', conversationId: 's5', sender: 'test4', content: '财务这边已经审核完了，等总经理签字', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 11).toISOString() },
+    { id: 'smg5', conversationId: 'g5', sender: 'manager', content: '下周一下午2点全员例会，请准时参加', type: 'text', readBy: ['admin','manager','周芳'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg6', conversationId: 'g5', sender: '郑敏', content: '会议室已预定，第三会议室', type: 'text', readBy: ['admin','郑敏'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 'smg7', conversationId: 'g5', sender: '周芳', content: '报销审批流程已更新，请大家注意新规定', type: 'text', readBy: ['admin','周芳'], createdAt: new Date(now - 3600000 * 3).toISOString() },
+    // ── 单聊：孙强 ↔ 吴刚（安全与质量） ──
+    { id: 's1m1', conversationId: 's1', sender: '孙强', content: '吴刚，清河水库坝肩渗水点需要重点监测', type: 'text', readBy: ['孙强','吴刚'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 5).toISOString() },
+    { id: 's1m2', conversationId: 's1', sender: '吴刚', content: '好的，我上午过去，带上渗压计', type: 'text', readBy: ['孙强','吴刚'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 4).toISOString() },
+    { id: 's1m3', conversationId: 's1', sender: '孙强', content: '带上渗压计和量水堰，记录渗流量数据', type: 'text', readBy: ['孙强'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 3).toISOString() },
+    { id: 's1m4', conversationId: 's1', sender: '吴刚', content: '收到', type: 'text', readBy: ['吴刚'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 2).toISOString() },
+    // 单聊阅后即焚
+    { id: 's1m5', conversationId: 's1', sender: '孙强', content: '上次清河水库的渗漏事故调查报告先别公开', type: 'text', burn: true, burnSeconds: 30, readBy: [], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's1m6', conversationId: 's1', sender: '吴刚', content: '明白，我会注意', type: 'text', readBy: ['吴刚'], createdAt: new Date(now - 86400000 * 2 + 3600000).toISOString() },
+    // ── 单聊：张伟 ↔ 赵丽（商务沟通） ──
+    { id: 's2m1', conversationId: 's2', sender: '张伟', content: '赵丽，流域治理工程的投标报价你核对了吗？', type: 'text', readBy: ['张伟','赵丽'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 6).toISOString() },
+    { id: 's2m2', conversationId: 's2', sender: '赵丽', content: '核对了，总价没问题，分包部分我调了一下', type: 'text', readBy: ['张伟','赵丽'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 5).toISOString() },
+    { id: 's2m3', conversationId: 's2', sender: '张伟', content: '好，那我明天提交水利厅', type: 'text', readBy: ['张伟'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 4).toISOString() },
+    // 单聊阅后即焚
+    { id: 's2m4', conversationId: 's2', sender: '张伟', content: '业主那边透露预算可以到3.5亿，你心里有数就行', type: 'text', burn: true, burnSeconds: 60, readBy: [], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's2m5', conversationId: 's2', sender: '赵丽', content: '明白，我按这个数来谈', type: 'text', readBy: ['赵丽'], createdAt: new Date(now - 86400000 * 2 + 3600000).toISOString() },
+    // ── 单聊：刘市场 ↔ 钱建国（外协沟通） ──
+    { id: 's3m1', conversationId: 's3', sender: '刘市场', content: '马师傅，南水北调渠道衬砌明天几点开始？', type: 'text', readBy: ['刘市场','钱建国'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 8).toISOString() },
+    { id: 's3m2', conversationId: 's3', sender: '钱建国', content: '早上6点，预制板运输队全员到', type: 'text', readBy: ['刘市场','钱建国'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 7).toISOString() },
+    { id: 's3m3', conversationId: 's3', sender: '刘市场', content: '好，注意安全，渠道临边作业要系安全带', type: 'text', readBy: ['刘市场'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 6).toISOString() },
+    // 单聊阅后即焚
+    { id: 's3m4', conversationId: 's3', sender: '钱建国', content: '上次渠道土方量多报了500方，别跟别人讲', type: 'text', burn: true, burnSeconds: 15, readBy: [], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    // ── 单聊：周芳 ↔ 郑敏（物资与行政） ──
+    { id: 's4m1', conversationId: 's4', sender: '周芳', content: '郑敏，这个月项目部办公用品采购单你帮我审一下', type: 'text', readBy: ['周芳','郑敏'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 's4m2', conversationId: 's4', sender: '郑敏', content: '好的，发过来我看看', type: 'text', readBy: ['周芳','郑敏'], createdAt: new Date(now - 3600000 * 9).toISOString() },
+    { id: 's4m3', conversationId: 's4', sender: '周芳', content: '已经发到你邮箱了', type: 'text', readBy: ['周芳'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    // ── 单聊：李明 ↔ 赵丽（技术与财务） ──
+    { id: 's5m1', conversationId: 's5', sender: '李明', content: '赵丽，农田水利那个变更签证的费用什么时候能批？', type: 'text', readBy: ['李明','赵丽'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 's5m2', conversationId: 's5', sender: '赵丽', content: '财务这边已经审核完了，等总经理签字', type: 'text', readBy: ['李明','赵丽'], createdAt: new Date(now - 3600000 * 11).toISOString() },
+    { id: 's5m3', conversationId: 's5', sender: '李明', content: '大概什么时候能到账？', type: 'text', readBy: ['李明'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 's5m4', conversationId: 's5', sender: '赵丽', content: '签字完3个工作日内付款', type: 'text', readBy: ['李明','赵丽'], createdAt: new Date(now - 3600000 * 9).toISOString() },
+    // 单聊阅后即焚
+    { id: 's5m5', conversationId: 's5', sender: '李明', content: '那个分包队的结算单你帮我先压一下，别急着付', type: 'text', burn: true, burnSeconds: 30, readBy: [], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    // ── 加密消息测试 ──
+    { id: 'em1', conversationId: 's1', sender: '孙强', content: '安全检查发现重大隐患，详情电话沟通', type: 'text', encrypted: true, readBy: ['孙强'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'em2', conversationId: 's2', sender: '张伟', content: '流域治理投标底价3.2亿，不能泄露', type: 'text', encrypted: true, readBy: ['张伟'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'em3', conversationId: 'g1', sender: '刘工', content: '水库除险加固总投资6800万，专项资金已到位', type: 'text', encrypted: true, readBy: ['刘工'], createdAt: new Date(now - 3600000 * 4).toISOString() },
   ];
 
   collections['suppliers'] = [
-    { id: 's1', name: '华北建材有限公司', contact: '王强', phone: '13900000001', material: '水泥、钢筋' },
-    { id: 's2', name: '恒信钢材集团', contact: '刘洋', phone: '13900000002', material: '钢材' },
-    { id: 's3', name: '安达机械租赁', contact: '马丽', phone: '13900000003', material: '塔吊、汽车吊' },
+    { id: 's1', name: '华源水泥集团', contact: '王强', phone: '13900000001', material: '大坝专用水泥、混凝土' },
+    { id: 's2', name: '恒信钢材集团', contact: '刘洋', phone: '13900000002', material: '钢筋、钢板桩' },
+    { id: 's3', name: '安达机械租赁', contact: '马丽', phone: '13900000003', material: '挖掘机、装载机' },
+    { id: 's4', name: '水利材料厂', contact: '张总', phone: '13900000004', material: '土工膜、防渗材料' },
+    { id: 's5', name: '监测设备公司', contact: '李总', phone: '13900000005', material: '渗压计、水位计' },
   ];
 
   collections['materials'] = [
-    { id: 'm1', name: 'P.O42.5水泥', spec: '50kg/袋', unit: '吨', price: 480 },
+    { id: 'm1', name: '大坝专用水泥', spec: 'P.O42.5', unit: '吨', price: 520 },
     { id: 'm2', name: 'HRB400螺纹钢', spec: 'Φ20', unit: '吨', price: 3650 },
-    { id: 'm3', name: '河沙', spec: '中砂', unit: 'm³', price: 150 },
-    { id: 'm4', name: '商品混凝土C30', spec: '泵送', unit: 'm³', price: 430 },
+    { id: 'm3', name: '土工膜', spec: '0.5mm', unit: '㎡', price: 18 },
+    { id: 'm4', name: '预制混凝土板', spec: '渠道衬砌用', unit: '块', price: 85 },
+    { id: 'm5', name: '渗压计', spec: '智能型', unit: '台', price: 3500 },
+    { id: 'm6', name: '水位计', spec: '雷达式', unit: '台', price: 8500 },
   ];
 
   collections['teams'] = [
-    { id: 't1', name: '钢筋班组', leader: '赵铁柱', members: 25, project: '城南地铁站' },
-    { id: 't2', name: '混凝土班组', leader: '孙建国', members: 18, project: '滨江大桥' },
-    { id: 't3', name: '防水班组', leader: '蓝云天', members: 12, project: '城南地铁站' },
-    { id: 't4', name: '桩基班组', leader: 'test10', members: 20, project: '高铁站交通枢纽' },
-    { id: 't5', name: '土方班组', leader: '赵铁柱', members: 15, project: '城北道路改造' },
-    { id: 't6', name: '钢筋班组', leader: 'test9', members: 22, project: '地铁3号线' },
-    { id: 't7', name: '模板班组', leader: '孙建国', members: 16, project: '城南商业综合体' },
-    { id: 't8', name: '水电班组', leader: '张师傅', members: 10, project: '城北学校扩建' },
+    { id: 't1', name: '坝体施工班组', leader: '刘工', members: 35, project: '清河水库' },
+    { id: 't2', name: '渠道衬砌班组', leader: '马师傅', members: 28, project: '南水北调' },
+    { id: 't3', name: '防渗施工班组', leader: '李技术', members: 18, project: '清河水库' },
+    { id: 't4', name: '渡槽施工班组', leader: '马师傅', members: 22, project: '南水北调' },
+    { id: 't5', name: '土方班组', leader: '刘工', members: 15, project: '农田水利' },
+    { id: 't6', name: '河道疏浚班组', leader: '张经理', members: 30, project: '流域治理' },
+    { id: 't7', name: '生态护坡班组', leader: '马师傅', members: 16, project: '生态廊道' },
+    { id: 't8', name: '监测设备安装班组', leader: '孙经理', members: 10, project: '水文监测' },
   ];
 
   collections['projects'] = [
-    { id: 'p1', name: '城南地铁站项目', code: 'XM-2024-001', manager: '陈国强', budget: 8500, startDate: '2024-03-01', endDate: '2026-06-30', status: '在建' },
-    { id: 'p2', name: '滨江大桥工程', code: 'XM-2024-002', manager: '周海涛', budget: 12000, startDate: '2024-05-15', endDate: '2027-01-31', status: '在建' },
-    { id: 'p3', name: '城东物流园工程', code: 'XM-2023-007', manager: '钱建国', budget: 5000, startDate: '2023-09-01', endDate: '2026-03-31', status: '竣工' },
-    { id: 'p4', name: '地铁3号线二期土建', code: 'XM-2025-003', manager: 'test1', budget: 98000, startDate: '2025-01-15', endDate: '2027-12-31', status: '在建' },
-    { id: 'p5', name: '城北新区道路改造', code: 'XM-2025-004', manager: 'test2', budget: 5600, startDate: '2025-06-01', endDate: '2026-12-31', status: '在建' },
-    { id: 'p6', name: '滨江景观带工程', code: 'XM-2024-005', manager: 'test3', budget: 4380, startDate: '2024-08-01', endDate: '2026-06-30', status: '完工' },
-    { id: 'p7', name: '城西污水处理厂', code: 'XM-2023-006', manager: 'test4', budget: 12000, startDate: '2023-03-01', endDate: '2025-12-31', status: '完工' },
-    { id: 'p8', name: '高铁站交通枢纽', code: 'XM-2026-008', manager: 'test5', budget: 156000, startDate: '2026-01-01', endDate: '2029-06-30', status: '在建' },
-    { id: 'p9', name: '城南商业综合体', code: 'XM-2025-009', manager: 'test6', budget: 7800, startDate: '2025-04-01', endDate: '2027-03-31', status: '在建' },
-    { id: 'p10', name: '经济开发区标准厂房', code: 'XM-2023-010', manager: '陈国强', budget: 3200, startDate: '2023-06-01', endDate: '2025-08-31', status: '竣工' },
-    { id: 'p11', name: '城北学校扩建工程', code: 'XM-2026-011', manager: 'test7', budget: 4500, startDate: '2026-03-01', endDate: '2027-08-31', status: '在建' },
+    { id: 'p1', name: '清河水库除险加固工程', code: 'SL-2024-001', manager: '刘工', budget: 6800, startDate: '2024-03-01', endDate: '2026-06-30', status: '在建' },
+    { id: 'p2', name: '南水北调支线渠系工程', code: 'SL-2024-002', manager: '马师傅', budget: 15000, startDate: '2024-05-15', endDate: '2027-01-31', status: '在建' },
+    { id: 'p3', name: '城市防洪堤加固工程', code: 'SL-2023-003', manager: '钱建国', budget: 5000, startDate: '2023-09-01', endDate: '2026-03-31', status: '竣工' },
+    { id: 'p4', name: '流域综合治理工程', code: 'SL-2025-004', manager: '张经理', budget: 32000, startDate: '2025-01-15', endDate: '2027-12-31', status: '在建' },
+    { id: 'p5', name: '农田水利灌溉工程', code: 'SL-2025-005', manager: '李经理', budget: 2800, startDate: '2025-06-01', endDate: '2026-12-31', status: '在建' },
+    { id: 'p6', name: '湿地公园水系工程', code: 'SL-2024-006', manager: '王磊', budget: 4380, startDate: '2024-08-01', endDate: '2026-06-30', status: '完工' },
+    { id: 'p7', name: '污水处理厂升级工程', code: 'SL-2023-007', manager: '赵丽', budget: 8000, startDate: '2023-03-01', endDate: '2025-12-31', status: '完工' },
+    { id: 'p8', name: '跨河大桥水文监测站', code: 'SL-2026-008', manager: '孙经理', budget: 1200, startDate: '2026-01-01', endDate: '2027-06-30', status: '在建' },
+    { id: 'p9', name: '滨江生态廊道工程', code: 'SL-2025-009', manager: '周经理', budget: 5600, startDate: '2025-04-01', endDate: '2027-03-31', status: '在建' },
+    { id: 'p10', name: '灌区现代化改造工程', code: 'SL-2023-010', manager: '陈国强', budget: 3200, startDate: '2023-06-01', endDate: '2025-08-31', status: '竣工' },
+    { id: 'p11', name: '山区小型水库建设', code: 'SL-2026-011', manager: '吴经理', budget: 2500, startDate: '2026-03-01', endDate: '2027-08-31', status: '在建' },
   ];
 
   // 工程管理
   collections['projectArchives'] = [
-    { id: 'pa1', name: '城南地铁站项目', code: 'XM-2024-001', manager: '陈国强', customer: '城投集团', amount: 85000000, startDate: '2024-03-01', endDate: '2026-06-30', status: '在建' },
-    { id: 'pa2', name: '滨江大桥工程', code: 'XM-2024-002', manager: '周海涛', customer: '市交通集团', amount: 120000000, startDate: '2024-05-15', endDate: '2027-01-31', status: '在建' },
-    { id: 'pa3', name: '地铁3号线二期土建', code: 'XM-2025-003', manager: 'test1', customer: '轨道交通集团', amount: 980000000, startDate: '2025-01-15', endDate: '2027-12-31', status: '在建' },
-    { id: 'pa4', name: '城北新区道路改造', code: 'XM-2025-004', manager: 'test2', customer: '城投集团', amount: 56000000, startDate: '2025-06-01', endDate: '2026-12-31', status: '在建' },
-    { id: 'pa5', name: '滨江景观带工程', code: 'XM-2024-005', manager: 'test3', customer: '市建委', amount: 43800000, startDate: '2024-08-01', endDate: '2026-06-30', status: '完工' },
-    { id: 'pa6', name: '城西污水处理厂', code: 'XM-2023-006', manager: 'test4', customer: '市环保局', amount: 120000000, startDate: '2023-03-01', endDate: '2025-12-31', status: '完工' },
-    { id: 'pa7', name: '高铁站交通枢纽', code: 'XM-2026-008', manager: 'test5', customer: '铁路集团', amount: 1560000000, startDate: '2026-01-01', endDate: '2029-06-30', status: '在建' },
-    { id: 'pa8', name: '城南商业综合体', code: 'XM-2025-009', manager: 'test6', customer: '万达集团', amount: 78000000, startDate: '2025-04-01', endDate: '2027-03-31', status: '在建' },
-    { id: 'pa9', name: '经济开发区标准厂房', code: 'XM-2023-010', manager: '陈国强', customer: '经开区管委会', amount: 32000000, startDate: '2023-06-01', endDate: '2025-08-31', status: '竣工' },
-    { id: 'pa10', name: '城北学校扩建工程', code: 'XM-2026-011', manager: 'test7', customer: '市教育局', amount: 45000000, startDate: '2026-03-01', endDate: '2027-08-31', status: '在建' },
+    { id: 'pa1', name: '清河水库除险加固工程', code: 'SL-2024-001', manager: '刘工', customer: '市水利局', amount: 68000000, startDate: '2024-03-01', endDate: '2026-06-30', status: '在建' },
+    { id: 'pa2', name: '南水北调支线渠系工程', code: 'SL-2024-002', manager: '马师傅', customer: '省水利厅', amount: 150000000, startDate: '2024-05-15', endDate: '2027-01-31', status: '在建' },
+    { id: 'pa3', name: '城市防洪堤加固工程', code: 'SL-2023-003', manager: '钱建国', customer: '市防汛办', amount: 50000000, startDate: '2023-09-01', endDate: '2026-03-31', status: '竣工' },
+    { id: 'pa4', name: '流域综合治理工程', code: 'SL-2025-004', manager: '张经理', customer: '流域管理局', amount: 320000000, startDate: '2025-01-15', endDate: '2027-12-31', status: '在建' },
+    { id: 'pa5', name: '农田水利灌溉工程', code: 'SL-2025-005', manager: '李经理', customer: '县农业农村局', amount: 28000000, startDate: '2025-06-01', endDate: '2026-12-31', status: '在建' },
+    { id: 'pa6', name: '湿地公园水系工程', code: 'SL-2024-006', manager: '王磊', customer: '市园林局', amount: 43800000, startDate: '2024-08-01', endDate: '2026-06-30', status: '完工' },
+    { id: 'pa7', name: '污水处理厂升级工程', code: 'SL-2023-007', manager: '赵丽', customer: '市环保局', amount: 80000000, startDate: '2023-03-01', endDate: '2025-12-31', status: '完工' },
+    { id: 'pa8', name: '跨河大桥水文监测站', code: 'SL-2026-008', manager: '孙经理', customer: '水文局', amount: 12000000, startDate: '2026-01-01', endDate: '2027-06-30', status: '在建' },
+    { id: 'pa9', name: '滨江生态廊道工程', code: 'SL-2025-009', manager: '周经理', customer: '市住建局', amount: 56000000, startDate: '2025-04-01', endDate: '2027-03-31', status: '在建' },
+    { id: 'pa10', name: '灌区现代化改造工程', code: 'SL-2023-010', manager: '陈国强', customer: '灌区管理处', amount: 32000000, startDate: '2023-06-01', endDate: '2025-08-31', status: '竣工' },
+    { id: 'pa11', name: '山区小型水库建设', code: 'SL-2026-011', manager: '吴经理', customer: '县水利局', amount: 25000000, startDate: '2026-03-01', endDate: '2027-08-31', status: '在建' },
   ];
 
   collections['plans'] = [
-    { id: 'pl1', name: '城南地铁站主体结构钢筋需用计划', project: '城南地铁站项目', material: 'HRB400螺纹钢', quantity: 320, unit: '吨', planDate: '2026-07-01', status: '已批准' },
-    { id: 'pl2', name: '滨江大桥墩柱混凝土需用计划', project: '滨江大桥工程', material: 'P.O42.5水泥', quantity: 1500, unit: '吨', planDate: '2026-07-15', status: '待审批' },
-    { id: 'pl3', name: '城南地铁站机电安装电缆需用计划', project: '城南地铁站项目', material: '电缆', quantity: 5000, unit: '米', planDate: '2026-08-01', status: '待审批' },
+    { id: 'pl1', name: '清河水库坝体混凝土需用计划', project: '清河水库除险加固工程', material: '大坝专用水泥', quantity: 1500, unit: '吨', planDate: '2026-07-01', status: '已批准' },
+    { id: 'pl2', name: '南水北调渠道衬砌板需用计划', project: '南水北调支线渠系工程', material: '预制混凝土板', quantity: 5000, unit: '块', planDate: '2026-07-15', status: '待审批' },
+    { id: 'pl3', name: '清河水库防渗土工膜需用计划', project: '清河水库除险加固工程', material: '土工膜', quantity: 8000, unit: '㎡', planDate: '2026-08-01', status: '待审批' },
   ];
 
   collections['productionValues'] = [
-    { id: 'pv1', project: '城南地铁站项目', month: '2026-07', value: 1250, owner: '陈国强' },
-    { id: 'pv2', project: '滨江大桥工程', month: '2026-07', value: 980, owner: '周海涛' },
-    { id: 'pv3', project: '城南地铁站项目', month: '2026-06', value: 1100, owner: '陈国强' },
-    { id: 'pv4', project: '地铁3号线二期土建', month: '2026-07', value: 3200, owner: 'test1' },
-    { id: 'pv5', project: '城北新区道路改造', month: '2026-07', value: 850, owner: 'test2' },
-    { id: 'pv6', project: '高铁站交通枢纽', month: '2026-07', value: 4500, owner: 'test5' },
-    { id: 'pv7', project: '城南商业综合体', month: '2026-07', value: 1600, owner: 'test6' },
-    { id: 'pv8', project: '城北学校扩建工程', month: '2026-07', value: 680, owner: 'test7' },
-    { id: 'pv9', project: '城南地铁站项目', month: '2026-05', value: 1050, owner: '陈国强' },
-    { id: 'pv10', project: '滨江大桥工程', month: '2026-06', value: 920, owner: '周海涛' },
+    { id: 'pv1', project: '清河水库除险加固工程', month: '2026-07', value: 1250, owner: '刘工' },
+    { id: 'pv2', project: '南水北调支线渠系工程', month: '2026-07', value: 980, owner: '马师傅' },
+    { id: 'pv3', project: '清河水库除险加固工程', month: '2026-06', value: 1100, owner: '刘工' },
+    { id: 'pv4', project: '流域综合治理工程', month: '2026-07', value: 3200, owner: '张经理' },
+    { id: 'pv5', project: '农田水利灌溉工程', month: '2026-07', value: 850, owner: '李经理' },
+    { id: 'pv6', project: '跨河大桥水文监测站', month: '2026-07', value: 450, owner: '孙经理' },
+    { id: 'pv7', project: '滨江生态廊道工程', month: '2026-07', value: 680, owner: '周经理' },
+    { id: 'pv8', project: '山区小型水库建设', month: '2026-07', value: 420, owner: '吴经理' },
+    { id: 'pv9', project: '清河水库除险加固工程', month: '2026-05', value: 1050, owner: '刘工' },
+    { id: 'pv10', project: '南水北调支线渠系工程', month: '2026-06', value: 920, owner: '马师傅' },
   ];
 
   collections['budgets'] = [
-    { id: 'bd1', name: '城南地铁站项目施工预算', project: '城南地铁站项目', amount: 78000000, date: '2024-04-01' },
-    { id: 'bd2', name: '滨江大桥工程概预算', project: '滨江大桥工程', amount: 108000000, date: '2024-06-15' },
-    { id: 'bd3', name: '地铁3号线二期预算', project: '地铁3号线二期土建', amount: 890000000, date: '2025-02-01' },
-    { id: 'bd4', name: '城北道路改造预算', project: '城北新区道路改造', amount: 52000000, date: '2025-07-01' },
-    { id: 'bd5', name: '高铁站交通枢纽预算', project: '高铁站交通枢纽', amount: 1400000000, date: '2026-02-01' },
-    { id: 'bd6', name: '城南商业综合体预算', project: '城南商业综合体', amount: 72000000, date: '2025-05-01' },
+    { id: 'bd1', name: '清河水库除险加固预算', project: '清河水库除险加固工程', amount: 68000000, date: '2024-04-01' },
+    { id: 'bd2', name: '南水北调渠系工程预算', project: '南水北调支线渠系工程', amount: 150000000, date: '2024-06-15' },
+    { id: 'bd3', name: '流域治理工程预算', project: '流域综合治理工程', amount: 320000000, date: '2025-02-01' },
+    { id: 'bd4', name: '农田水利灌溉预算', project: '农田水利灌溉工程', amount: 28000000, date: '2025-07-01' },
+    { id: 'bd5', name: '水文监测站预算', project: '跨河大桥水文监测站', amount: 12000000, date: '2026-02-01' },
+    { id: 'bd6', name: '生态廊道工程预算', project: '滨江生态廊道工程', amount: 56000000, date: '2025-05-01' },
   ];
 
   collections['rentalPlans'] = [
-    { id: 'rp1', name: '城南地铁站塔吊租赁计划', equipment: '塔式起重机', quantity: 2, duration: 12, startDate: '2026-09-01' },
-    { id: 'rp2', name: '滨江大桥汽车吊租赁计划', equipment: '汽车吊50t', quantity: 1, duration: 6, startDate: '2026-08-15' },
+    { id: 'rp1', name: '清河水库挖掘机租赁计划', equipment: '挖掘机CAT320', quantity: 3, duration: 12, startDate: '2026-09-01' },
+    { id: 'rp2', name: '南水北调运输车辆租赁计划', equipment: '自卸车20t', quantity: 10, duration: 8, startDate: '2026-08-15' },
   ];
 
   collections['subcontractPlans'] = [
-    { id: 'sp1', name: '城南地铁站防水工程分包计划', project: '城南地铁站项目', content: '地下结构防水施工', amount: 2600000, team: '蓝天防水班组' },
-    { id: 'sp2', name: '滨江大桥钢结构安装分包计划', project: '滨江大桥工程', content: '钢箱梁现场安装', amount: 5800000, team: '华安钢构班组' },
+    { id: 'sp1', name: '清河水库防渗工程分包计划', project: '清河水库除险加固工程', content: '库盆防渗施工', amount: 2600000, team: '水利防渗班组' },
+    { id: 'sp2', name: '南水北调渠道衬砌分包计划', project: '南水北调支线渠系工程', content: '渠道预制板铺设', amount: 5800000, team: '渠道衬砌班组' },
   ];
 
   collections['changes'] = [
-    { id: 'ch1', title: '城南地铁站出站口变更', project: '城南地铁站项目', type: '设计变更', amount: 850000, content: '东侧出站口新增雨棚', status: '已批准' },
-    { id: 'ch2', title: '滨江大桥桩基签证', project: '滨江大桥工程', type: '签证变更', amount: 320000, content: '岩层加固签证', status: '待审批' },
-    { id: 'ch3', title: '城南地铁站钢筋型号代换', project: '城南地铁站项目', type: '材料代换', amount: 45000, content: 'Φ20→Φ22 部分代换', status: '待审批' },
+    { id: 'ch1', title: '清河水库坝体加高变更', project: '清河水库除险加固工程', type: '设计变更', amount: 850000, content: '坝顶加高0.5米以满足防洪标准', status: '已批准' },
+    { id: 'ch2', title: '南水北调渠道线路调整', project: '南水北调支线渠系工程', type: '签证变更', amount: 320000, content: '穿越村庄路段调整', status: '待审批' },
+    { id: 'ch3', title: '流域治理护岸结构变更', project: '流域综合治理工程', type: '设计变更', amount: 450000, content: '护岸型式由重力式改为扶壁式', status: '待审批' },
     { id: 'ch4', title: '地铁3号线车站加宽', project: '地铁3号线二期土建', type: '设计变更', amount: 5600000, content: '1号站台加宽2米', status: '待审批' },
     { id: 'ch5', title: '城北道路路基处理方案变更', project: '城北新区道路改造', type: '签证变更', amount: 780000, content: '软基处理换填方案调整', status: '已批准' },
     { id: 'ch6', title: '高铁站项目桩基变更', project: '高铁站交通枢纽', type: '设计变更', amount: 12000000, content: '桩基深度调整', status: '待审批' },
@@ -234,14 +314,14 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'a2', title: '出差报销申请', applicant: 'admin', type: '报销审批', amount: 3600, date: '2026-08-11', status: '待审批' },
     { id: 'a3', title: '滨江大桥分包合同审批', applicant: 'admin', type: '合同审批', amount: 1500000, date: '2026-08-08', status: '已批准' },
     { id: 'a4', title: '租用塔吊申请', applicant: 'admin', type: '用款审批', amount: 120000, date: '2026-08-05', status: '已驳回' },
-    { id: 'a5', title: '地铁3号线钢材采购', applicant: 'test1', type: '采购审批', amount: 5600000, date: '2026-08-12', status: '待审批' },
-    { id: 'a6', title: '城北道路改造混凝土采购', applicant: 'test2', type: '采购审批', amount: 1200000, date: '2026-08-13', status: '待审批' },
-    { id: 'a7', title: 'test5出差差旅费报销', applicant: 'test5', type: '报销审批', amount: 2800, date: '2026-08-14', status: '待审批' },
-    { id: 'a8', title: '高铁站项目设备租赁', applicant: 'test1', type: '用款审批', amount: 350000, date: '2026-08-09', status: '已批准' },
-    { id: 'a9', title: 'test7质量检测费报销', applicant: 'test7', type: '报销审批', amount: 4500, date: '2026-08-07', status: '已批准' },
-    { id: 'a10', title: '安全防护用品采购', applicant: 'test5', type: '采购审批', amount: 68000, date: '2026-08-06', status: '已批准' },
-    { id: 'a11', title: '城南商业综合体设计变更', applicant: 'test6', type: '合同审批', amount: 230000, date: '2026-08-15', status: '待审批' },
-    { id: 'a12', title: 'test9外协人员进场申请', applicant: 'test9', type: '其他', amount: 0, date: '2026-08-16', status: '待审批' },
+    { id: 'a5', title: '地铁3号线钢材采购', applicant: '张伟', type: '采购审批', amount: 5600000, date: '2026-08-12', status: '待审批' },
+    { id: 'a6', title: '城北道路改造混凝土采购', applicant: '李明', type: '采购审批', amount: 1200000, date: '2026-08-13', status: '待审批' },
+    { id: 'a7', title: '孙强出差差旅费报销', applicant: '孙强', type: '报销审批', amount: 2800, date: '2026-08-14', status: '待审批' },
+    { id: 'a8', title: '高铁站项目设备租赁', applicant: '张伟', type: '用款审批', amount: 350000, date: '2026-08-09', status: '已批准' },
+    { id: 'a9', title: '吴刚质量检测费报销', applicant: '吴刚', type: '报销审批', amount: 4500, date: '2026-08-07', status: '已批准' },
+    { id: 'a10', title: '安全防护用品采购', applicant: '孙强', type: '采购审批', amount: 68000, date: '2026-08-06', status: '已批准' },
+    { id: 'a11', title: '城南商业综合体设计变更', applicant: '周芳', type: '合同审批', amount: 230000, date: '2026-08-15', status: '待审批' },
+    { id: 'a12', title: '刘市场外协人员进场申请', applicant: '刘市场', type: '其他', amount: 0, date: '2026-08-16', status: '待审批' },
   ];
 
   // 公告通知
@@ -267,16 +347,16 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'pr3', project: '城南地铁站项目', task: '机电安装', startDate: '2026-08-01', endDate: '2026-12-31', progress: 15, owner: '刘工' },
     { id: 'pr4', project: '滨江大桥工程', task: '桩基施工', startDate: '2026-05-15', endDate: '2026-08-31', progress: 80, owner: '周海涛' },
     { id: 'pr5', project: '滨江大桥工程', task: '墩柱施工', startDate: '2026-08-01', endDate: '2026-11-30', progress: 25, owner: '孙工' },
-    { id: 'pr6', project: '地铁3号线二期土建', task: '地质勘察', startDate: '2026-01-15', endDate: '2026-04-30', progress: 100, owner: 'test1' },
-    { id: 'pr7', project: '地铁3号线二期土建', task: '围护结构施工', startDate: '2026-05-01', endDate: '2026-10-31', progress: 45, owner: 'test2' },
-    { id: 'pr8', project: '城北新区道路改造', task: '路基处理', startDate: '2026-06-01', endDate: '2026-08-31', progress: 70, owner: 'test2' },
-    { id: 'pr9', project: '城北新区道路改造', task: '路面铺设', startDate: '2026-09-01', endDate: '2026-11-30', progress: 0, owner: 'test2' },
-    { id: 'pr10', project: '高铁站交通枢纽', task: '基坑开挖', startDate: '2026-03-01', endDate: '2026-06-30', progress: 100, owner: 'test5' },
-    { id: 'pr11', project: '高铁站交通枢纽', task: '主体结构', startDate: '2026-07-01', endDate: '2027-06-30', progress: 35, owner: 'test5' },
-    { id: 'pr12', project: '城南商业综合体', task: '桩基施工', startDate: '2026-04-01', endDate: '2026-07-31', progress: 90, owner: 'test6' },
-    { id: 'pr13', project: '城南商业综合体', task: '地下室施工', startDate: '2026-08-01', endDate: '2026-12-31', progress: 20, owner: 'test6' },
-    { id: 'pr14', project: '城北学校扩建工程', task: '基础施工', startDate: '2026-03-01', endDate: '2026-05-31', progress: 100, owner: 'test7' },
-    { id: 'pr15', project: '城北学校扩建工程', task: '主体施工', startDate: '2026-06-01', endDate: '2026-10-31', progress: 55, owner: 'test7' },
+    { id: 'pr6', project: '地铁3号线二期土建', task: '地质勘察', startDate: '2026-01-15', endDate: '2026-04-30', progress: 100, owner: '张伟' },
+    { id: 'pr7', project: '地铁3号线二期土建', task: '围护结构施工', startDate: '2026-05-01', endDate: '2026-10-31', progress: 45, owner: '李明' },
+    { id: 'pr8', project: '城北新区道路改造', task: '路基处理', startDate: '2026-06-01', endDate: '2026-08-31', progress: 70, owner: '李明' },
+    { id: 'pr9', project: '城北新区道路改造', task: '路面铺设', startDate: '2026-09-01', endDate: '2026-11-30', progress: 0, owner: '李明' },
+    { id: 'pr10', project: '高铁站交通枢纽', task: '基坑开挖', startDate: '2026-03-01', endDate: '2026-06-30', progress: 100, owner: '孙强' },
+    { id: 'pr11', project: '高铁站交通枢纽', task: '主体结构', startDate: '2026-07-01', endDate: '2027-06-30', progress: 35, owner: '孙强' },
+    { id: 'pr12', project: '城南商业综合体', task: '桩基施工', startDate: '2026-04-01', endDate: '2026-07-31', progress: 90, owner: '周芳' },
+    { id: 'pr13', project: '城南商业综合体', task: '地下室施工', startDate: '2026-08-01', endDate: '2026-12-31', progress: 20, owner: '周芳' },
+    { id: 'pr14', project: '城北学校扩建工程', task: '基础施工', startDate: '2026-03-01', endDate: '2026-05-31', progress: 100, owner: '吴刚' },
+    { id: 'pr15', project: '城北学校扩建工程', task: '主体施工', startDate: '2026-06-01', endDate: '2026-10-31', progress: 55, owner: '吴刚' },
   ];
 
   // 设备台账
@@ -429,8 +509,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'rm1', title: '出差差旅费报销', applicant: '周海涛', amount: 3600, date: '2026-08-11', status: '待审批' },
     { id: 'rm2', title: '办公用品采购报销', applicant: '李材料', amount: 1200, date: '2026-08-02', status: '已批准' },
     { id: 'rm3', title: '设备维修费报销', applicant: '张机械', amount: 15000, date: '2026-08-08', status: '待审批' },
-    { id: 'rm4', title: 'test5出差差旅费报销', applicant: 'test5', amount: 2800, date: '2026-08-14', status: '待审批' },
-    { id: 'rm5', title: '质量检测费报销', applicant: 'test7', amount: 4500, date: '2026-08-07', status: '已批准' },
+    { id: 'rm4', title: '孙强出差差旅费报销', applicant: '孙强', amount: 2800, date: '2026-08-14', status: '待审批' },
+    { id: 'rm5', title: '质量检测费报销', applicant: '吴刚', amount: 4500, date: '2026-08-07', status: '已批准' },
   ];
 
   collections['funds'] = [
@@ -494,9 +574,9 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'at15', name: '陈国强', date: '2026-08-13', status: '出勤' },
     { id: 'at16', name: '张伟', date: '2026-08-13', status: '出勤' },
     { id: 'at17', name: '李明', date: '2026-08-13', status: '迟到' },
-    { id: 'at18', name: 'test5', date: '2026-08-14', status: '出勤' },
-    { id: 'at19', name: 'test6', date: '2026-08-14', status: '出勤' },
-    { id: 'at20', name: 'test7', date: '2026-08-14', status: '出勤' },
+    { id: 'at18', name: '孙强', date: '2026-08-14', status: '出勤' },
+    { id: 'at19', name: '周芳', date: '2026-08-14', status: '出勤' },
+    { id: 'at20', name: '吴刚', date: '2026-08-14', status: '出勤' },
   ];
 
   collections['trainings'] = [
@@ -519,17 +599,17 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   collections['safetyInspections'] = [
     { id: 'si1', title: '城南地铁站8月安全大检查', project: '城南地铁站项目', inspector: '王安全', date: '2026-08-10', issues: '临边防护缺失、基坑边堆料', status: '整改中' },
     { id: 'si2', title: '滨江大桥高处作业检查', project: '滨江大桥工程', inspector: '王安全', date: '2026-08-06', issues: '个别工人未系安全带', status: '已完成' },
-    { id: 'si3', title: '地铁3号线基坑安全检查', project: '地铁3号线二期土建', inspector: 'test5', date: '2026-08-12', issues: '围挡缺失2处', status: '整改中' },
-    { id: 'si4', title: '城北道路施工安全检查', project: '城北新区道路改造', inspector: 'test5', date: '2026-08-11', issues: '交通疏导标识不足', status: '已完成' },
-    { id: 'si5', title: '高铁站项目临电检查', project: '高铁站交通枢纽', inspector: 'test5', date: '2026-08-13', issues: '三级配电箱未上锁', status: '整改中' },
-    { id: 'si6', title: '城南商业综合体消防检查', project: '城南商业综合体', inspector: 'test5', date: '2026-08-09', issues: '灭火器过期3具', status: '已完成' },
+    { id: 'si3', title: '地铁3号线基坑安全检查', project: '地铁3号线二期土建', inspector: '孙强', date: '2026-08-12', issues: '围挡缺失2处', status: '整改中' },
+    { id: 'si4', title: '城北道路施工安全检查', project: '城北新区道路改造', inspector: '孙强', date: '2026-08-11', issues: '交通疏导标识不足', status: '已完成' },
+    { id: 'si5', title: '高铁站项目临电检查', project: '高铁站交通枢纽', inspector: '孙强', date: '2026-08-13', issues: '三级配电箱未上锁', status: '整改中' },
+    { id: 'si6', title: '城南商业综合体消防检查', project: '城南商业综合体', inspector: '孙强', date: '2026-08-09', issues: '灭火器过期3具', status: '已完成' },
   ];
 
   collections['safetyTrainings'] = [
     { id: 'stn1', title: '新入场工人三级安全教育', trainer: '王安全', date: '2026-08-12', participants: 32, content: '入场安全须知、事故案例' },
     { id: 'stn2', title: '起重吊装作业专项培训', trainer: '张机械', date: '2026-08-03', participants: 15, content: '吊装操作规程与信号指挥' },
-    { id: 'stn3', title: '高处作业安全培训', trainer: 'test5', date: '2026-08-08', participants: 28, content: '安全带使用、临边防护' },
-    { id: 'stn4', title: '临时用电安全培训', trainer: 'test5', date: '2026-08-05', participants: 20, content: '三级配电、两级保护' },
+    { id: 'stn3', title: '高处作业安全培训', trainer: '孙强', date: '2026-08-08', participants: 28, content: '安全带使用、临边防护' },
+    { id: 'stn4', title: '临时用电安全培训', trainer: '孙强', date: '2026-08-05', participants: 20, content: '三级配电、两级保护' },
   ];
 
   collections['safetyPunishments'] = [
@@ -595,8 +675,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   collections['meetings'] = [
     { id: 'mt1', title: '城南地铁站主体结构施工协调会', date: '2026-08-17', location: '项目部会议室', host: '陈国强', participants: '各班组负责人、材料、安全', content: '协调主体结构进度与材料供应' },
     { id: 'mt2', title: '安全生产月度例会', date: '2026-08-20', location: '公司会议室', host: '王安全', participants: '各项目安全员', content: '通报本月安全检查情况' },
-    { id: 'mt3', title: '地铁3号线项目启动会', date: '2026-08-22', location: '集团会议室', host: 'test1', participants: '项目全体成员', content: '项目启动动员与任务分工' },
-    { id: 'mt4', title: '高铁站项目进度协调会', date: '2026-08-19', location: '项目部', host: 'test5', participants: '各部门负责人', content: '基坑开挖进度协调' },
+    { id: 'mt3', title: '地铁3号线项目启动会', date: '2026-08-22', location: '集团会议室', host: '张伟', participants: '项目全体成员', content: '项目启动动员与任务分工' },
+    { id: 'mt4', title: '高铁站项目进度协调会', date: '2026-08-19', location: '项目部', host: '孙强', participants: '各部门负责人', content: '基坑开挖进度协调' },
     { id: 'mt5', title: '8月经营分析会', date: '2026-08-25', location: '集团会议室', host: 'manager', participants: '各部门经理', content: '月度经营指标分析' },
   ];
 
@@ -604,13 +684,13 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'ts1', title: '编制城南地铁站8月进度计划', assignee: '陈国强', project: '城南地铁站项目', priority: '高', dueDate: '2026-08-18', status: '进行中' },
     { id: 'ts2', title: '整理滨江大桥桩基验收资料', assignee: '周海涛', project: '滨江大桥工程', priority: '中', dueDate: '2026-08-22', status: '未开始' },
     { id: 'ts3', title: '统计7月物资出入库数据', assignee: '李材料', project: '城南地铁站项目', priority: '低', dueDate: '2026-08-15', status: '已完成' },
-    { id: 'ts4', title: '编制地铁3号线施工方案', assignee: 'test1', project: '地铁3号线二期土建', priority: '高', dueDate: '2026-08-20', status: '进行中' },
-    { id: 'ts5', title: '城北道路改造投标文件', assignee: 'test2', project: '城北新区道路改造', priority: '高', dueDate: '2026-08-25', status: '进行中' },
-    { id: 'ts6', title: '滨江景观带竣工资料整理', assignee: 'test3', project: '滨江景观带工程', priority: '中', dueDate: '2026-08-19', status: '已完成' },
-    { id: 'ts7', title: '安全月活动总结报告', assignee: 'test5', project: '安全管理', priority: '中', dueDate: '2026-08-17', status: '进行中' },
-    { id: 'ts8', title: '8月钢材对账单编制', assignee: 'test4', project: '财务管理', priority: '低', dueDate: '2026-08-28', status: '未开始' },
-    { id: 'ts9', title: '高铁站项目开工报告', assignee: 'test5', project: '高铁站交通枢纽', priority: '高', dueDate: '2026-08-30', status: '未开始' },
-    { id: 'ts10', title: '物资盘点表更新', assignee: 'test6', project: '物资管理', priority: '低', dueDate: '2026-08-21', status: '进行中' },
+    { id: 'ts4', title: '编制地铁3号线施工方案', assignee: '张伟', project: '地铁3号线二期土建', priority: '高', dueDate: '2026-08-20', status: '进行中' },
+    { id: 'ts5', title: '城北道路改造投标文件', assignee: '李明', project: '城北新区道路改造', priority: '高', dueDate: '2026-08-25', status: '进行中' },
+    { id: 'ts6', title: '滨江景观带竣工资料整理', assignee: '王磊', project: '滨江景观带工程', priority: '中', dueDate: '2026-08-19', status: '已完成' },
+    { id: 'ts7', title: '安全月活动总结报告', assignee: '孙强', project: '安全管理', priority: '中', dueDate: '2026-08-17', status: '进行中' },
+    { id: 'ts8', title: '8月钢材对账单编制', assignee: '赵丽', project: '财务管理', priority: '低', dueDate: '2026-08-28', status: '未开始' },
+    { id: 'ts9', title: '高铁站项目开工报告', assignee: '孙强', project: '高铁站交通枢纽', priority: '高', dueDate: '2026-08-30', status: '未开始' },
+    { id: 'ts10', title: '物资盘点表更新', assignee: '周芳', project: '物资管理', priority: '低', dueDate: '2026-08-21', status: '进行中' },
   ];
 
   collections['documents'] = [
@@ -623,8 +703,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'op1', name: '城北新区道路改造项目', customer: '城投集团', amount: 56000000, stage: '方案沟通', owner: '张伟', date: '2026-07-20' },
     { id: 'op2', name: '地铁3号线二期土建', customer: '轨道交通集团', amount: 120000000, stage: '报价谈判', owner: '李明', date: '2026-08-02' },
     { id: 'op3', name: '城东物流园二期', customer: '城东物流', amount: 88000000, stage: '初步接触', owner: '王雷', date: '2026-08-05' },
-    { id: 'op4', name: '高新区产业园建设', customer: '高新区管委会', amount: 230000000, stage: '方案沟通', owner: 'test3', date: '2026-07-15' },
-    { id: 'op5', name: '城际铁路站房改造', customer: '铁路集团', amount: 450000000, stage: '初步接触', owner: 'test3', date: '2026-08-08' },
+    { id: 'op4', name: '高新区产业园建设', customer: '高新区管委会', amount: 230000000, stage: '方案沟通', owner: '王磊', date: '2026-07-15' },
+    { id: 'op5', name: '城际铁路站房改造', customer: '铁路集团', amount: 450000000, stage: '初步接触', owner: '王磊', date: '2026-08-08' },
     { id: 'op6', name: '城南片区管网改造', customer: '市水务局', amount: 32000000, stage: '投标', owner: '王磊', date: '2026-08-01' },
   ];
 
@@ -663,9 +743,10 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'hq_hr', name: '人力资源部', code: 'HQ-HR', parentId: 'hq', leader: '孙行政', phone: '', description: '负责人力资源管理', sortOrder: 1 },
     { id: 'hq_finance', name: '财务管理部', code: 'HQ-FIN', parentId: 'hq', leader: '赵丽', phone: '13900001004', description: '负责财务核算与资金管理', sortOrder: 2 },
     { id: 'hq_admin', name: '综合管理部', code: 'HQ-ADM', parentId: 'hq', leader: '郑敏', phone: '13900001008', description: '负责行政后勤与综合事务', sortOrder: 3 },
-    { id: 'hq_it', name: '信息技术部', code: 'HQ-IT', parentId: 'hq', leader: '经理', phone: '13800000099', description: '负责信息化建设与系统维护', sortOrder: 4 },
+    { id: 'hq_it', name: '信息技术部', code: 'HQ-IT', parentId: 'hq', leader: '陈工', phone: '13800000099', description: '负责信息化建设与系统维护', sortOrder: 4 },
     { id: 'hq_safety', name: '安全管理部', code: 'HQ-SAF', parentId: 'hq', leader: '孙强', phone: '13900001005', description: '负责安全生产管理', sortOrder: 5 },
     { id: 'hq_quality', name: '质量管理部', code: 'HQ-QUA', parentId: 'hq', leader: '吴刚', phone: '13900001007', description: '负责工程质量控制', sortOrder: 6 },
+    { id: 'hq_tech', name: '技术质量部', code: 'HQ-TEC', parentId: 'hq', leader: '张伟', phone: '13900001001', description: '负责水利工程技术管理', sortOrder: 7 },
 
     // ── 业务部门 ──
     { id: 'biz', name: '业务部门', code: 'BIZ', parentId: null, leader: '', phone: '', description: '市场与业务拓展', sortOrder: 1 },
@@ -676,20 +757,20 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
 
     // ── 分子公司 ──
     { id: 'sub', name: '分子公司', code: 'SUB', parentId: null, leader: '', phone: '', description: '下属子公司与分公司', sortOrder: 2 },
-    { id: 'sub1', name: '一公司', code: 'SUB-01', parentId: 'sub', leader: '钱建国', phone: '13800000011', description: '第一工程公司', sortOrder: 0 },
-    { id: 'sub2', name: '二公司', code: 'SUB-02', parentId: 'sub', leader: '陈国强', phone: '13811110001', description: '第二工程公司', sortOrder: 1 },
-    { id: 'sub3', name: '三公司', code: 'SUB-03', parentId: 'sub', leader: '周海涛', phone: '13811110002', description: '第三工程公司', sortOrder: 2 },
-    { id: 'sub4', name: '四公司', code: 'SUB-04', parentId: 'sub', leader: '孙建国', phone: '13800000012', description: '第四工程公司', sortOrder: 3 },
+    { id: 'sub1', name: '一公司', code: 'SUB-01', parentId: 'sub', leader: '钱建国', phone: '13800000011', description: '第一水利工程公司', sortOrder: 0 },
+    { id: 'sub2', name: '二公司', code: 'SUB-02', parentId: 'sub', leader: '陈国强', phone: '13811110001', description: '第二水利工程公司', sortOrder: 1 },
+    { id: 'sub3', name: '三公司', code: 'SUB-03', parentId: 'sub', leader: '周海涛', phone: '13811110002', description: '第三水利工程公司', sortOrder: 2 },
+    { id: 'sub4', name: '四公司', code: 'SUB-04', parentId: 'sub', leader: '孙建国', phone: '13800000012', description: '第四水利工程公司', sortOrder: 3 },
 
     // ── 项目部 ──
     { id: 'proj', name: '项目部', code: 'PROJ', parentId: null, leader: '', phone: '', description: '各项目现场管理', sortOrder: 3 },
-    { id: 'proj1', name: '城南地铁站项目部', code: 'PROJ-01', parentId: 'proj', leader: '陈国强', phone: '13811110001', description: '城南地铁站项目现场管理', sortOrder: 0 },
-    { id: 'proj2', name: '滨江大桥项目部', code: 'PROJ-02', parentId: 'proj', leader: '周海涛', phone: '13811110002', description: '滨江大桥工程现场管理', sortOrder: 1 },
-    { id: 'proj3', name: '地铁3号线项目部', code: 'PROJ-03', parentId: 'proj', leader: '张伟', phone: '13900001001', description: '地铁3号线二期土建管理', sortOrder: 2 },
-    { id: 'proj4', name: '城北道路项目部', code: 'PROJ-04', parentId: 'proj', leader: '李明', phone: '13900001002', description: '城北新区道路改造管理', sortOrder: 3 },
-    { id: 'proj5', name: '高铁站项目部', code: 'PROJ-05', parentId: 'proj', leader: '孙强', phone: '13900001005', description: '高铁站交通枢纽管理', sortOrder: 4 },
-    { id: 'proj6', name: '城南商业项目部', code: 'PROJ-06', parentId: 'proj', leader: '周芳', phone: '13900001006', description: '城南商业综合体管理', sortOrder: 5 },
-    { id: 'proj7', name: '城北学校项目部', code: 'PROJ-07', parentId: 'proj', leader: '吴刚', phone: '13900001007', description: '城北学校扩建工程管理', sortOrder: 6 },
+    { id: 'proj1', name: '清河水库项目部', code: 'PROJ-01', parentId: 'proj', leader: '刘工', phone: '13900014001', description: '清河水库除险加固工程现场管理', sortOrder: 0 },
+    { id: 'proj2', name: '南水北调项目部', code: 'PROJ-02', parentId: 'proj', leader: '马师傅', phone: '13900014007', description: '南水北调支线渠系工程现场管理', sortOrder: 1 },
+    { id: 'proj3', name: '流域治理项目部', code: 'PROJ-03', parentId: 'proj', leader: '张经理', phone: '13900015001', description: '流域综合治理工程管理', sortOrder: 2 },
+    { id: 'proj4', name: '农田水利项目部', code: 'PROJ-04', parentId: 'proj', leader: '李经理', phone: '13900015004', description: '农田水利灌溉工程管理', sortOrder: 3 },
+    { id: 'proj5', name: '水文监测项目部', code: 'PROJ-05', parentId: 'proj', leader: '孙经理', phone: '13900015006', description: '跨河大桥水文监测站管理', sortOrder: 4 },
+    { id: 'proj6', name: '生态廊道项目部', code: 'PROJ-06', parentId: 'proj', leader: '周经理', phone: '13900015008', description: '滨江生态廊道工程管理', sortOrder: 5 },
+    { id: 'proj7', name: '山区水库项目部', code: 'PROJ-07', parentId: 'proj', leader: '吴经理', phone: '13900015010', description: '山区小型水库建设管理', sortOrder: 6 },
   ];
 
   collections['orgPositions'] = [
@@ -729,100 +810,111 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
       role: 'high_admin', appliedRole: 'high_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(),
       name: '王总', department: '总裁办公室', position: '总经理', phone: '13800000099', isHead: false, isDeputy: true,
     },
-    { id: 'u3',  username: 'test1',  email: 'test1@test.com',  password: PWD_HASH, role: 'high_admin',     appliedRole: 'high_admin',     roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张伟',   department: '总裁办公室', position: '副总经理', phone: '13900001001', isDeputy: true },
-    { id: 'u4',  username: 'test2',  email: 'test2@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李明',   department: '人力资源部', position: '部门经理', phone: '13900001002', isHead: true },
-    { id: 'u5',  username: 'test3',  email: 'test3@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王磊',   department: '人力资源部', position: '副经理', phone: '13900001003', isDeputy: true },
-    { id: 'u6',  username: 'test4',  email: 'test4@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵丽',   department: '财务管理部', position: '部门经理', phone: '13900001004', isHead: true },
-    { id: 'u7',  username: 'test5',  email: 'test5@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙强',   department: '安全管理部', position: '部门经理', phone: '13900001005', isHead: true },
-    { id: 'u8',  username: 'test6',  email: 'test6@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周芳',   department: '综合管理部', position: '部门经理', phone: '13900001006', isHead: true },
-    { id: 'u9',  username: 'test7',  email: 'test7@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴刚',   department: '质量管理部', position: '部门经理', phone: '13900001007', isHead: true },
-    { id: 'u10', username: 'test8',  email: 'test8@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑敏',   department: '综合管理部', position: '副经理', phone: '13900001008', isDeputy: true },
-    { id: 'u51', username: 'test49', email: 'test49@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '马行政', department: '综合管理部', position: '行政专员', phone: '13900011001' },
-    { id: 'u52', username: 'test50', email: 'test50@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱人事', department: '人力资源部', position: '人事专员', phone: '13900011002' },
-    { id: 'u53', username: 'test51', email: 'test51@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵会计', department: '财务管理部', position: '会计', phone: '13900011003', isDeputy: true },
-    { id: 'u54', username: 'test52', email: 'test52@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周出纳', department: '财务管理部', position: '出纳', phone: '13900011004' },
-    { id: 'u55', username: 'test53', email: 'test53@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '陈IT',   department: '信息技术部', position: '部门经理', phone: '13900011005', isHead: true },
-    { id: 'u56', username: 'test54', email: 'test54@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '林IT',   department: '信息技术部', position: '开发工程师', phone: '13900011006' },
-    { id: 'u57', username: 'test55', email: 'test55@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '何安全', department: '安全管理部', position: '副经理', phone: '13900011007', isDeputy: true },
-    { id: 'u58', username: 'test56', email: 'test56@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '高安全', department: '安全管理部', position: '安全员', phone: '13900011008' },
-    { id: 'u59', username: 'test57', email: 'test57@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '梁质量', department: '质量管理部', position: '副经理', phone: '13900011009', isDeputy: true },
-    { id: 'u60', username: 'test58', email: 'test58@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '宋质量', department: '质量管理部', position: '质检员', phone: '13900011010' },
+    { id: 'u3',  username: '张伟',  email: '张伟@test.com',  password: PWD_HASH, role: 'high_admin',     appliedRole: 'high_admin',     roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张伟',   department: '总裁办公室', position: '副总经理', phone: '13900001001', isDeputy: true },
+    { id: 'u4',  username: '李明',  email: '李明@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李明',   department: '人力资源部', position: '部门经理', phone: '13900001002', isHead: true },
+    { id: 'u5',  username: '王磊',  email: '王磊@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王磊',   department: '人力资源部', position: '副经理', phone: '13900001003', isDeputy: true },
+    { id: 'u6',  username: '赵丽',  email: '赵丽@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵丽',   department: '财务管理部', position: '部门经理', phone: '13900001004', isHead: true },
+    { id: 'u7',  username: '孙强',  email: '孙强@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙强',   department: '安全管理部', position: '部门经理', phone: '13900001005', isHead: true },
+    { id: 'u8',  username: '周芳',  email: '周芳@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周芳',   department: '综合管理部', position: '部门经理', phone: '13900001006', isHead: true },
+    { id: 'u9',  username: '吴刚',  email: '吴刚@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴刚',   department: '质量管理部', position: '部门经理', phone: '13900001007', isHead: true },
+    { id: 'u10', username: '郑敏',  email: '郑敏@test.com',  password: PWD_HASH, role: 'employee',       appliedRole: 'employee',       roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑敏',   department: '综合管理部', position: '副经理', phone: '13900001008', isDeputy: true },
+    { id: 'u51', username: '马行政', email: '马行政@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '马行政', department: '综合管理部', position: '行政专员', phone: '13900011001' },
+    { id: 'u52', username: '钱人事', email: '钱人事@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱人事', department: '人力资源部', position: '人事专员', phone: '13900011002' },
+    { id: 'u53', username: '赵会计', email: '赵会计@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵会计', department: '财务管理部', position: '会计', phone: '13900011003', isDeputy: true },
+    { id: 'u54', username: '周出纳', email: '周出纳@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周出纳', department: '财务管理部', position: '出纳', phone: '13900011004' },
+    { id: 'u55', username: '陈工', email: '陈工@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '陈工',   department: '信息技术部', position: '部门经理', phone: '13900011005', isHead: true },
+    { id: 'u56', username: '林工', email: '林工@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '林工',   department: '信息技术部', position: '开发工程师', phone: '13900011006' },
+    { id: 'u57', username: '何安全', email: '何安全@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '何安全', department: '安全管理部', position: '副经理', phone: '13900011007', isDeputy: true },
+    { id: 'u58', username: '高安全', email: '高安全@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '高安全', department: '安全管理部', position: '安全员', phone: '13900011008' },
+    { id: 'u59', username: '梁质量', email: '梁质量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '梁质量', department: '质量管理部', position: '副经理', phone: '13900011009', isDeputy: true },
+    { id: 'u60', username: '宋质量', email: '宋质量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '宋质量', department: '质量管理部', position: '质检员', phone: '13900011010' },
 
     // ── 业务部门 ──
-    { id: 'u11', username: 'test9',  email: 'test9@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘市场',  department: '市场经营部', position: '部门经理', phone: '13900001009', isHead: true },
-    { id: 'u61', username: 'test59', email: 'test59@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '韩市场', department: '市场经营部', position: '副经理', phone: '13900012001', isDeputy: true },
-    { id: 'u62', username: 'test60', email: 'test60@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '杨市场', department: '市场经营部', position: '市场专员', phone: '13900012002' },
-    { id: 'u63', username: 'test61', email: 'test61@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '朱商务', department: '商务合约部', position: '部门经理', phone: '13900012003', isHead: true },
-    { id: 'u64', username: 'test62', email: 'test62@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '秦商务', department: '商务合约部', position: '商务专员', phone: '13900012004' },
-    { id: 'u65', username: 'test63', email: 'test63@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '许投标', department: '投标管理部', position: '部门经理', phone: '13900012005', isHead: true },
-    { id: 'u66', username: 'test64', email: 'test64@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '何投标', department: '投标管理部', position: '投标专员', phone: '13900012006' },
-    { id: 'u67', username: 'test65', email: 'test65@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吕客服', department: '客户服务部', position: '部门经理', phone: '13900012007', isHead: true },
-    { id: 'u68', username: 'test66', email: 'test66@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '施客服', department: '客户服务部', position: '客服专员', phone: '13900012008' },
+    { id: 'u11', username: '刘市场',  email: '刘市场@test.com',  password: PWD_HASH, role: 'general_admin',  appliedRole: 'general_admin',  roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘市场',  department: '市场经营部', position: '部门经理', phone: '13900001009', isHead: true },
+    { id: 'u61', username: '韩市场', email: '韩市场@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '韩市场', department: '市场经营部', position: '副经理', phone: '13900012001', isDeputy: true },
+    { id: 'u62', username: '杨市场', email: '杨市场@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '杨市场', department: '市场经营部', position: '市场专员', phone: '13900012002' },
+    { id: 'u63', username: '朱商务', email: '朱商务@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '朱商务', department: '商务合约部', position: '部门经理', phone: '13900012003', isHead: true },
+    { id: 'u64', username: '秦商务', email: '秦商务@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '秦商务', department: '商务合约部', position: '商务专员', phone: '13900012004' },
+    { id: 'u65', username: '许投标', email: '许投标@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '许投标', department: '投标管理部', position: '部门经理', phone: '13900012005', isHead: true },
+    { id: 'u66', username: '何投标', email: '何投标@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '何投标', department: '投标管理部', position: '投标专员', phone: '13900012006' },
+    { id: 'u67', username: '吕客服', email: '吕客服@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吕客服', department: '客户服务部', position: '部门经理', phone: '13900012007', isHead: true },
+    { id: 'u68', username: '施客服', email: '施客服@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '施客服', department: '客户服务部', position: '客服专员', phone: '13900012008' },
 
     // ── 分子公司：一公司 ──
-    { id: 'u12', username: 'test10', email: 'test10@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱建国', department: '一公司', position: '公司经理', phone: '13900001010', isHead: true },
-    { id: 'u69', username: 'test67', email: 'test67@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙一',   department: '一公司', position: '副经理', phone: '13900013001', isDeputy: true },
-    { id: 'u70', username: 'test68', email: 'test68@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周一',   department: '一公司', position: '技术负责人', phone: '13900013002' },
-    { id: 'u71', username: 'test69', email: 'test69@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴一',   department: '一公司', position: '安全员', phone: '13900013003' },
-    { id: 'u72', username: 'test70', email: 'test70@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑一',   department: '一公司', position: '施工员', phone: '13900013004' },
+    { id: 'u12', username: '钱建国', email: '钱建国@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱建国', department: '一公司', position: '公司经理', phone: '13900001010', isHead: true },
+    { id: 'u69', username: '孙一', email: '孙一@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙一',   department: '一公司', position: '副经理', phone: '13900013001', isDeputy: true },
+    { id: 'u70', username: '周一', email: '周一@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周一',   department: '一公司', position: '技术负责人', phone: '13900013002' },
+    { id: 'u71', username: '吴一', email: '吴一@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴一',   department: '一公司', position: '安全员', phone: '13900013003' },
+    { id: 'u72', username: '郑一', email: '郑一@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑一',   department: '一公司', position: '施工员', phone: '13900013004' },
 
     // ── 分子公司：二公司 ──
-    { id: 'u73', username: 'test71', email: 'test71@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '陈国强', department: '二公司', position: '公司经理', phone: '13900013005', isHead: true },
-    { id: 'u74', username: 'test72', email: 'test72@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙二',   department: '二公司', position: '副经理', phone: '13900013006', isDeputy: true },
-    { id: 'u75', username: 'test73', email: 'test73@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周二',   department: '二公司', position: '技术负责人', phone: '13900013007' },
-    { id: 'u76', username: 'test74', email: 'test74@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴二',   department: '二公司', position: '安全员', phone: '13900013008' },
-    { id: 'u77', username: 'test75', email: 'test75@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑二',   department: '二公司', position: '施工员', phone: '13900013009' },
+    { id: 'u73', username: '陈国强', email: '陈国强@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '陈国强', department: '二公司', position: '公司经理', phone: '13900013005', isHead: true },
+    { id: 'u74', username: '孙二', email: '孙二@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙二',   department: '二公司', position: '副经理', phone: '13900013006', isDeputy: true },
+    { id: 'u75', username: '周二', email: '周二@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周二',   department: '二公司', position: '技术负责人', phone: '13900013007' },
+    { id: 'u76', username: '吴二', email: '吴二@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴二',   department: '二公司', position: '安全员', phone: '13900013008' },
+    { id: 'u77', username: '郑二', email: '郑二@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑二',   department: '二公司', position: '施工员', phone: '13900013009' },
 
     // ── 分子公司：三公司 ──
-    { id: 'u78', username: 'test76', email: 'test76@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周海涛', department: '三公司', position: '公司经理', phone: '13900013010', isHead: true },
-    { id: 'u79', username: 'test77', email: 'test77@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙三',   department: '三公司', position: '副经理', phone: '13900013011', isDeputy: true },
-    { id: 'u80', username: 'test78', email: 'test78@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周三',   department: '三公司', position: '技术负责人', phone: '13900013012' },
-    { id: 'u81', username: 'test79', email: 'test79@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴三',   department: '三公司', position: '安全员', phone: '13900013013' },
-    { id: 'u82', username: 'test80', email: 'test80@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑三',   department: '三公司', position: '施工员', phone: '13900013014' },
+    { id: 'u78', username: '周海涛', email: '周海涛@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周海涛', department: '三公司', position: '公司经理', phone: '13900013010', isHead: true },
+    { id: 'u79', username: '孙三', email: '孙三@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙三',   department: '三公司', position: '副经理', phone: '13900013011', isDeputy: true },
+    { id: 'u80', username: '周三', email: '周三@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周三',   department: '三公司', position: '技术负责人', phone: '13900013012' },
+    { id: 'u81', username: '吴三', email: '吴三@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴三',   department: '三公司', position: '安全员', phone: '13900013013' },
+    { id: 'u82', username: '郑三', email: '郑三@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑三',   department: '三公司', position: '施工员', phone: '13900013014' },
 
     // ── 分子公司：四公司 ──
-    { id: 'u83', username: 'test81', email: 'test81@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙建国', department: '四公司', position: '公司经理', phone: '13900013015', isHead: true },
-    { id: 'u84', username: 'test82', email: 'test82@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙四',   department: '四公司', position: '副经理', phone: '13900013016', isDeputy: true },
-    { id: 'u85', username: 'test83', email: 'test83@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周四',   department: '四公司', position: '技术负责人', phone: '13900013017' },
-    { id: 'u86', username: 'test84', email: 'test84@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴四',   department: '四公司', position: '安全员', phone: '13900013018' },
-    { id: 'u87', username: 'test85', email: 'test85@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑四',   department: '四公司', position: '施工员', phone: '13900013019' },
+    { id: 'u83', username: '孙建国', email: '孙建国@test.com', password: PWD_HASH, role: 'high_admin',    appliedRole: 'high_admin',    roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙建国', department: '四公司', position: '公司经理', phone: '13900013015', isHead: true },
+    { id: 'u84', username: '孙四', email: '孙四@test.com', password: PWD_HASH, role: 'general_admin', appliedRole: 'general_admin', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙四',   department: '四公司', position: '副经理', phone: '13900013016', isDeputy: true },
+    { id: 'u85', username: '周四', email: '周四@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周四',   department: '四公司', position: '技术负责人', phone: '13900013017' },
+    { id: 'u86', username: '吴四', email: '吴四@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴四',   department: '四公司', position: '安全员', phone: '13900013018' },
+    { id: 'u87', username: '郑四', email: '郑四@test.com', password: PWD_HASH, role: 'employee',      appliedRole: 'employee',      roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑四',   department: '四公司', position: '施工员', phone: '13900013019' },
 
-    // ── 项目部：城南地铁站 ──
-    { id: 'u88', username: 'test86', email: 'test86@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘工',   department: '城南地铁站项目部', position: '项目经理', phone: '13900014001', isHead: true },
-    { id: 'u89', username: 'test87', email: 'test87@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张刚',   department: '城南地铁站项目部', position: '施工员', phone: '13900014002' },
-    { id: 'u90', username: 'test88', email: 'test88@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李强',   department: '城南地铁站项目部', position: '钢筋工长', phone: '13900014003' },
-    { id: 'u91', username: 'test89', email: 'test89@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王伟',   department: '城南地铁站项目部', position: '木工工长', phone: '13900014004' },
-    { id: 'u92', username: 'test90', email: 'test90@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘磊',   department: '城南地铁站项目部', position: '混凝土工长', phone: '13900014005' },
-    { id: 'u93', username: 'test91', email: 'test91@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵刚',   department: '城南地铁站项目部', position: '安全员', phone: '13900014006' },
+    // ── 项目部：清河水库（项目经理/副经理/技术负责人/五大员）──
+    { id: 'u88', username: '刘工', email: '刘工@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘工', department: '清河水库项目部', position: '项目经理', phone: '13900014001', isHead: true },
+    { id: 'u89', username: '张副1', email: '张副1@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张副', department: '清河水库项目部', position: '副经理', phone: '13900014002', isDeputy: true },
+    { id: 'u90', username: '李技术1', email: '李技术1@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李技术', department: '清河水库项目部', position: '技术负责人', phone: '13900014003' },
+    { id: 'u91', username: '王施工1', email: '王施工1@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王施工', department: '清河水库项目部', position: '施工员', phone: '13900014004' },
+    { id: 'u92', username: '赵质量1', email: '赵质量1@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵质量', department: '清河水库项目部', position: '质量员', phone: '13900014005' },
+    { id: 'u93', username: '钱安全1', email: '钱安全1@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱安全', department: '清河水库项目部', position: '安全员', phone: '13900014006' },
+    { id: 'u111', username: '孙材料1', email: '孙材料1@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙材料', department: '清河水库项目部', position: '材料员', phone: '13900014007' },
+    { id: 'u112', username: '张测量', email: '张测量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周测量', department: '清河水库项目部', position: '测量员', phone: '13900014008' },
 
-    // ── 项目部：滨江大桥 ──
-    { id: 'u94', username: 'test92', email: 'test92@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '马师傅', department: '滨江大桥项目部', position: '项目经理', phone: '13900014007', isHead: true },
-    { id: 'u95', username: 'test93', email: 'test93@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张伟',   department: '滨江大桥项目部', position: '施工员', phone: '13900014008' },
-    { id: 'u96', username: 'test94', email: 'test94@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李刚',   department: '滨江大桥项目部', position: '桩基工长', phone: '13900014009' },
-    { id: 'u97', username: 'test95', email: 'test95@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王强',   department: '滨江大桥项目部', position: '电焊工长', phone: '13900014010' },
-    { id: 'u98', username: 'test96', email: 'test96@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '刘伟',   department: '滨江大桥项目部', position: '起重工', phone: '13900014011' },
-    { id: 'u99', username: 'test97', email: 'test97@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵强',   department: '滨江大桥项目部', position: '安全员', phone: '13900014012' },
+    // ── 项目部：南水北调（项目经理/副经理/技术负责人/五大员）──
+    { id: 'u94', username: '马师傅', email: '马师傅@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '马师傅', department: '南水北调项目部', position: '项目经理', phone: '13900014009', isHead: true },
+    { id: 'u95', username: '张副2', email: '张副2@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张副', department: '南水北调项目部', position: '副经理', phone: '13900014010', isDeputy: true },
+    { id: 'u96', username: '李技术2', email: '李技术2@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李技术', department: '南水北调项目部', position: '技术负责人', phone: '13900014011' },
+    { id: 'u97', username: '王施工2', email: '王施工2@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王施工', department: '南水北调项目部', position: '施工员', phone: '13900014012' },
+    { id: 'u98', username: '赵质量2', email: '赵质量2@test.com', password: PWD_HASH, role: 'outsource', appliedRole: 'outsource', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵质量', department: '南水北调项目部', position: '质量员', phone: '13900014013' },
+    { id: 'u99', username: '钱安全2', email: '钱安全2@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱安全', department: '南水北调项目部', position: '安全员', phone: '13900014014' },
+    { id: 'u113', username: '孙材料2', email: '孙材料2@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙材料', department: '南水北调项目部', position: '材料员', phone: '13900014015' },
+    { id: 'u114', username: '周测量', email: '周测量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周测量', department: '南水北调项目部', position: '测量员', phone: '13900014016' },
 
-    // ── 项目部：地铁3号线 ──
-    { id: 'u100', username: 'test98',  email: 'test98@test.com',  password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张经理', department: '地铁3号线项目部', position: '项目经理', phone: '13900015001', isHead: true },
-    { id: 'u101', username: 'test99',  email: 'test99@test.com',  password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李技术', department: '地铁3号线项目部', position: '技术负责人', phone: '13900015002' },
-    { id: 'u102', username: 'test100', email: 'test100@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王施工', department: '地铁3号线项目部', position: '施工员', phone: '13900015003' },
+    // ── 项目部：流域治理 ──
+    { id: 'u100', username: '张经理', email: '张经理@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张经理', department: '流域治理项目部', position: '项目经理', phone: '13900015001', isHead: true },
+    { id: 'u101', username: '李技术3', email: '李技术3@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李技术', department: '流域治理项目部', position: '技术负责人', phone: '13900015002' },
+    { id: 'u102', username: '王施工3', email: '王施工3@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王施工', department: '流域治理项目部', position: '施工员', phone: '13900015003' },
+    { id: 'u115', username: '赵质量3', email: '赵质量3@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵质量', department: '流域治理项目部', position: '质量员', phone: '13900015004' },
+    { id: 'u116', username: '钱安全3', email: '钱安全3@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '钱安全', department: '流域治理项目部', position: '安全员', phone: '13900015005' },
 
-    // ── 项目部：城北道路 ──
-    { id: 'u103', username: 'test101', email: 'test101@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李经理', department: '城北道路项目部', position: '项目经理', phone: '13900015004', isHead: true },
-    { id: 'u104', username: 'test102', email: 'test102@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张测量', department: '城北道路项目部', position: '测量员', phone: '13900015005' },
+    // ── 项目部：农田水利 ──
+    { id: 'u103', username: '李经理', email: '李经理@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '李经理', department: '农田水利项目部', position: '项目经理', phone: '13900015006', isHead: true },
+    { id: 'u104', username: '张测量', email: '张测量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '张测量', department: '农田水利项目部', position: '测量员', phone: '13900015007' },
+    { id: 'u117', username: '王施工4', email: '王施工4@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '王施工', department: '农田水利项目部', position: '施工员', phone: '13900015008' },
+    { id: 'u118', username: '赵质量4', email: '赵质量4@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '赵质量', department: '农田水利项目部', position: '质量员', phone: '13900015009' },
 
-    // ── 项目部：高铁站 ──
-    { id: 'u105', username: 'test103', email: 'test103@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙经理', department: '高铁站项目部', position: '项目经理', phone: '13900015006', isHead: true },
-    { id: 'u106', username: 'test104', email: 'test104@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周施工', department: '高铁站项目部', position: '施工员', phone: '13900015007' },
+    // ── 项目部：水文监测 ──
+    { id: 'u105', username: '孙经理', email: '孙经理@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '孙经理', department: '水文监测项目部', position: '项目经理', phone: '13900015010', isHead: true },
+    { id: 'u106', username: '周施工', email: '周施工@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周施工', department: '水文监测项目部', position: '施工员', phone: '13900015011' },
+    { id: 'u119', username: '吴安全', email: '吴安全@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴安全', department: '水文监测项目部', position: '安全员', phone: '13900015012' },
 
-    // ── 项目部：城南商业 ──
-    { id: 'u107', username: 'test105', email: 'test105@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周经理', department: '城南商业项目部', position: '项目经理', phone: '13900015008', isHead: true },
-    { id: 'u108', username: 'test106', email: 'test106@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴采购', department: '城南商业项目部', position: '采购员', phone: '13900015009' },
+    // ── 项目部：生态廊道 ──
+    { id: 'u107', username: '周经理', email: '周经理@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '周经理', department: '生态廊道项目部', position: '项目经理', phone: '13900015013', isHead: true },
+    { id: 'u108', username: '吴采购', email: '吴采购@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴采购', department: '生态廊道项目部', position: '材料员', phone: '13900015014' },
+    { id: 'u120', username: '郑质量', email: '郑质量@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑质量', department: '生态廊道项目部', position: '质量员', phone: '13900015015' },
 
-    // ── 项目部：城北学校 ──
-    { id: 'u109', username: 'test107', email: 'test107@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴经理', department: '城北学校项目部', position: '项目经理', phone: '13900015010', isHead: true },
-    { id: 'u110', username: 'test108', email: 'test108@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑施工', department: '城北学校项目部', position: '施工员', phone: '13900015011' },
+    // ── 项目部：山区水库 ──
+    { id: 'u109', username: '吴经理', email: '吴经理@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '吴经理', department: '山区水库项目部', position: '项目经理', phone: '13900015016', isHead: true },
+    { id: 'u110', username: '郑施工', email: '郑施工@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '郑施工', department: '山区水库项目部', position: '施工员', phone: '13900015017' },
+    { id: 'u121', username: '陈安全', email: '陈安全@test.com', password: PWD_HASH, role: 'employee', appliedRole: 'employee', roleStatus: 'approved', isActive: true, createdAt: new Date().toISOString(), name: '陈安全', department: '山区水库项目部', position: '安全员', phone: '13900015018' },
   ];
 
   return { users, collections, settings: { ...DEFAULT_SETTINGS }, conversations, chatMessages };

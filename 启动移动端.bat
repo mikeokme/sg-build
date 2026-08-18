@@ -6,5 +6,9 @@ echo    SG-Build Mobile - Expo
 echo ============================================
 echo.
 
-cd /d E:\Desktop\APP\frontend-mobile
+REM 获取当前目录
+set "SCRIPT_DIR=%~dp0"
+set "MOBILE_DIR=%SCRIPT_DIR%frontend-mobile"
+
+cd /d %MOBILE_DIR%
 npx expo start --port 8081
