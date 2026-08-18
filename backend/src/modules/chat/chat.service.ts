@@ -29,7 +29,33 @@ export class ChatService {
     return convs.map((c) => {
       const msgs = this.dataService.getChatMessages(c.id);
       const last = msgs[msgs.length - 1] || null;
-      const unread = msgs.filter((m) => m.sender !== username && !m.readBy.includes(username)).length;
+      const unread = msgs.filter((m) => {
+        if (m.sender === username || m.readBy.includes(username)) return false;
+        if (m.burn && c.type === 'group') {
+          const isTarget = m.burnTarget === username;
+          const isSender = m.sender === username;
+          if (!isTarget && !isSender) return false;
+        }
+        return true;
+      }).length;
+      const isBurnParticipant = (m: any) => {
+        if (!m.burn || c.type !== 'group') return true;
+        return m.sender === username || m.burnTarget === username;
+      };
+      let lastMsgText = '';
+      if (last) {
+        if (last.burn && !isBurnParticipant(last)) {
+          lastMsgText = '[消息]';
+        } else if (last.burn && !(last.revealedBy || []).includes(username)) {
+          lastMsgText = `🔥 阅后即焚${last.burnTarget ? ' → ' + last.burnTarget : ''}`;
+        } else if (last.burn) {
+          lastMsgText = '[已焚毁]';
+        } else if (last.encrypted) {
+          lastMsgText = '[加密消息]';
+        } else {
+          lastMsgText = last.content;
+        }
+      }
       return {
         id: c.id,
         type: c.type,
@@ -39,9 +65,7 @@ export class ChatService {
         members: c.members,
         owner: c.owner,
         createdAt: c.createdAt,
-        lastMessage: last
-          ? (last.burn && !(last.revealedBy || []).includes(username) ? `🔥 阅后即焚${last.burnTarget ? ' → ' + last.burnTarget : ''}` : last.burn ? '[已焚毁]' : last.encrypted ? '[加密消息]' : last.content)
-          : '',
+        lastMessage: lastMsgText,
         lastMessageAt: last?.createdAt || '',
         lastSender: last?.sender || '',
         unread,
@@ -410,6 +434,7 @@ export class ChatService {
     const isSender = username ? m.sender === username : false;
     // 发送者始终可见内容；接收者需揭示后才可见
     const displayContent = m.burn && !isSender && !revealedForMe ? '' : content;
+    const canSeeTarget = m.burn && m.burnTarget ? (isSender || m.burnTarget === username) : true;
     return {
       id: m.id,
       conversationId: m.conversationId,
@@ -419,7 +444,7 @@ export class ChatService {
       content: displayContent,
       burn: m.burn,
       burnSeconds: m.burnSeconds,
-      burnTarget: m.burnTarget || '',
+      burnTarget: canSeeTarget ? (m.burnTarget || '') : '',
       burnScheduled: m.burnScheduled,
       revealedBy,
       revealedForMe,

@@ -13,7 +13,7 @@ export class OrgController {
   getTree() {
     const departments = this.data.getCollectionItems('departments');
     const positions = this.data.getCollectionItems('orgPositions');
-    return this.buildTree(departments, positions);
+    return this.data.buildOrgTree(departments, positions);
   }
 
   @Get('departments')
@@ -51,7 +51,7 @@ export class OrgController {
   @Roles('super_admin')
   deleteDepartment(@Param('id') id: string) {
     const departments = this.data.getCollectionItems('departments');
-    const idsToDelete = this.getDescendantIds(id, departments);
+    const idsToDelete = this.data.getDescendantIds(id, departments);
     idsToDelete.push(id);
 
     // Delete positions in those departments
@@ -99,83 +99,5 @@ export class OrgController {
   @Roles('super_admin')
   deletePosition(@Param('id') id: string) {
     return this.data.deleteCollectionItem('orgPositions', id);
-  }
-
-  private buildTree(departments: any[], positions: any[]): any[] {
-    const users = this.data.getUsers().filter((u: any) => u.isActive !== false);
-    // 构建部门名称到部门的映射
-    const deptByName = new Map<string, any>();
-    for (const dept of departments) {
-      deptByName.set(dept.name, dept);
-    }
-    const map = new Map<string, any>();
-    const roots: any[] = [];
-
-    for (const dept of departments) {
-      // 统计该部门及子部门的成员（通过部门ID匹配）
-      const memberCount = this.countMembersInDept(dept.id, departments, users);
-      const members = this.getMembersInDept(dept.id, departments, users);
-      map.set(dept.id, {
-        ...dept,
-        children: [],
-        positions: positions.filter((p: any) => p.departmentId === dept.id),
-        memberCount,
-        members: members.slice(0, 50),
-      });
-    }
-
-    for (const dept of departments) {
-      const node = map.get(dept.id)!;
-      if (dept.parentId && map.has(dept.parentId)) {
-        map.get(dept.parentId)!.children.push(node);
-      } else {
-        roots.push(node);
-      }
-    }
-
-    return roots;
-  }
-
-  // 递归统计部门及子部门的成员数（通过部门ID匹配）
-  private countMembersInDept(deptId: string, departments: any[], users: any[]): number {
-    const dept = departments.find((d: any) => d.id === deptId);
-    if (!dept) return 0;
-    const directMembers = users.filter((u: any) => u.department === dept.name).length;
-    const childDepts = departments.filter((d: any) => d.parentId === deptId);
-    let total = directMembers;
-    for (const child of childDepts) {
-      total += this.countMembersInDept(child.id, departments, users);
-    }
-    return total;
-  }
-
-  // 递归获取部门及子部门的成员列表（通过部门ID匹配）
-  private getMembersInDept(deptId: string, departments: any[], users: any[]): any[] {
-    const dept = departments.find((d: any) => d.id === deptId);
-    if (!dept) return [];
-    const directMembers = users.filter((u: any) => u.department === dept.name).map((u: any) => ({
-      username: u.username,
-      name: u.name,
-      position: u.position,
-      role: u.role,
-      isHead: u.isHead,
-      isDeputy: u.isDeputy,
-    }));
-    const children = departments.filter((d: any) => d.parentId === deptId);
-    let allMembers = [...directMembers];
-    for (const child of children) {
-      allMembers = allMembers.concat(this.getMembersInDept(child.id, departments, users));
-    }
-    return allMembers;
-  }
-
-  private getDescendantIds(parentId: string, departments: any[]): string[] {
-    const children = departments.filter((d) => d.parentId === parentId);
-    const ids: string[] = [];
-    for (const child of children) {
-      ids.push(child.id);
-      ids.push(...this.getDescendantIds(child.id, departments));
-    }
-    return ids;
   }
 }

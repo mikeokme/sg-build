@@ -48,106 +48,21 @@ export class ChatController {
       }));
   }
 
-  // 通讯录：按五大组返回（集团总部、业务部门、分子公司、项目部、全体人员）
+  // 通讯录：复用组织架构树数据，保证与组织架构模块完全一致
   @Get('contacts')
   getContacts(@Req() req: AuthedRequest) {
-    const me = this.username(req);
-    const users = this.dataService.getUsers().filter((u) => u.username !== me && u.isActive !== false);
     const departments = this.dataService.getCollectionItems('departments');
+    const positions = this.dataService.getCollectionItems('orgPositions');
+    const tree = this.dataService.buildOrgTree(departments, positions);
 
-    // 五大组ID
-    const GROUP_IDS = ['hq', 'biz', 'sub', 'proj'];
-    const GROUP_NAMES: Record<string, string> = { hq: '集团总部', biz: '业务部门', sub: '分子公司', proj: '项目部' };
-
-    // 部门层级映射
-    const deptMap = new Map<string, any>();
-    for (const d of departments) {
-      deptMap.set(d.id, { ...d, members: [] as any[] });
-    }
-
-    // 将用户分配到部门
-    for (const u of users) {
-      const deptName = u.department || '未分配';
-      let found = false;
-      for (const [, dept] of deptMap) {
-        if (dept.name === deptName) {
-          dept.members.push({
-            username: u.username,
-            name: u.name || u.username,
-            role: u.role,
-            position: u.position || '',
-            phone: u.phone || '',
-            isHead: !!u.isHead,
-            isDeputy: !!u.isDeputy,
-            avatar: u.avatar || '',
-          });
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        const tempId = '_temp_' + deptName;
-        if (!deptMap.has(tempId)) {
-          deptMap.set(tempId, { id: tempId, name: deptName, code: '', parentId: null, leader: '', members: [] });
-        }
-        deptMap.get(tempId)!.members.push({
-          username: u.username, name: u.name || u.username, role: u.role,
-          position: u.position || '', phone: u.phone || '',
-          isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
-        });
-      }
-    }
-
-    // 为每个部门找负责人和副职
-    const getDeptLeader = (deptId: string) => {
-      const dept = deptMap.get(deptId);
-      if (!dept) return { leader: '', deputy: '' };
-      const head = dept.members.find((m: any) => m.isHead);
-      const dep = dept.members.find((m: any) => m.isDeputy);
-      return { leader: head?.username || '', deputy: dep?.username || '' };
-    };
-
-    // 构建子部门
-    const buildChildren = (parentId: string) => {
-      return Array.from(deptMap.values())
-        .filter((d) => d.parentId === parentId && d.members.length > 0)
-        .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
-        .map((d) => {
-          const { leader, deputy } = getDeptLeader(d.id);
-          return {
-            id: d.id, name: d.name, code: d.code,
-            leader: leader || d.leader, deputy,
-            memberCount: d.members.length,
-            members: d.members.sort((a: any, b: any) => (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0) || (b.isDeputy ? 1 : 0) - (a.isDeputy ? 1 : 0)),
-          };
-        });
-    };
-
-    // 构建五大组
-    const result: any[] = [];
-    for (const groupId of GROUP_IDS) {
-      const children = buildChildren(groupId);
-      if (children.length === 0) continue;
-      const totalMembers = children.reduce((sum, c) => sum + c.memberCount, 0);
-      result.push({
-        id: groupId,
-        name: GROUP_NAMES[groupId],
-        code: groupId.toUpperCase(),
-        isGroup: true,
-        leader: '',
-        memberCount: totalMembers,
-        members: [],
-        children,
-      });
-    }
-
-    // 全体人员（虚拟组）
-    const allMembers = users.map((u) => ({
+    // 添加全体人员虚拟组
+    const users = this.dataService.getUsers().filter((u: any) => u.isActive !== false);
+    const allMembers = users.map((u: any) => ({
       username: u.username, name: u.name || u.username, role: u.role,
       position: u.position || '', phone: u.phone || '',
       department: u.department || '', isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
     }));
-    result.push({
+    tree.push({
       id: '_all',
       name: '全体人员',
       code: 'ALL',
@@ -159,13 +74,7 @@ export class ChatController {
       children: [],
     });
 
-    // 未分配用户
-    const unassigned = deptMap.get('_temp_未分配');
-    if (unassigned && unassigned.members.length > 0) {
-      result.unshift({ id: '_unassigned', name: '未分配部门', code: '', leader: '', memberCount: unassigned.members.length, members: unassigned.members, children: [] });
-    }
-
-    return result;
+    return tree;
   }
 
   // 发起/进入单聊
