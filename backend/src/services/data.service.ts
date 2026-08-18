@@ -48,252 +48,237 @@ export const DEFAULT_SETTINGS = {
 function seed(): { users: any[]; collections: Record<string, any[]>; settings: Record<string, any>; conversations: any[]; chatMessages: any[] } {
   const collections: Record<string, any[]> = {};
 
-  // 聊天群组 + 消息
+  // 聊天群组 + 消息（动态生成）
   const now = Date.now();
   const d = 86400000;
   const h = 3600000;
-    const conversations = [
-    // ── 部门群（category: 'department'）──
-    { id: 'dg_group', type: 'group', name: '集团公司群', category: 'department', departmentId: 'group', members: ['admin','manager','张伟','周芳','郑敏','马行政','林助理','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务','李明','钱人事','陈工','林工','刘市场','韩市场','杨市场','许投标','何投标','吕客服','施客服','梁质量','宋质量','吴刚','总工程师','总会计师','总经济师','赵子乙','钱子乙','孙子乙','李子乙','周子乙','吴一公司','周一公司','郑一公司','冯一公司','陈一公司','褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司','杨三公司','朱三公司','秦三公司','尤三公司','许三公司'], admins: ['manager','张伟'], owner: 'admin' },
-    { id: 'dg_board', type: 'group', name: '董事会群', category: 'department', departmentId: 'board', members: ['admin'], admins: [], owner: 'admin' },
-    { id: 'dg_gm', type: 'group', name: '总经理办公室群', category: 'department', departmentId: 'gm-office', members: ['admin','manager','张伟'], admins: ['manager'], owner: 'admin' },
-    { id: 'dg_office', type: 'group', name: '办公室群', category: 'department', departmentId: 'office', members: ['周芳','郑敏','马行政','林助理'], admins: ['郑敏'], owner: '周芳' },
-    { id: 'dg_dgm-a', type: 'group', name: '副总经理A群', category: 'department', departmentId: 'dgm-a', members: ['张伟','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'], admins: ['王磊','赵丽','刘工','马师傅','张经理'], owner: '张伟' },
-    { id: 'dg_dgm-b', type: 'group', name: '副总经理B群', category: 'department', departmentId: 'dgm-b', members: ['李明','钱人事','陈工','林工'], admins: ['李明'], owner: '李明' },
-    { id: 'dg_dgm-c', type: 'group', name: '副总经理C群', category: 'department', departmentId: 'dgm-c', members: ['刘市场','韩市场','杨市场','许投标','何投标','吕客服','施客服','梁质量','宋质量','吴刚'], admins: ['刘市场','吕客服'], owner: '刘市场' },
-    { id: 'dg_eng', type: 'group', name: '工程管理部群', category: 'department', departmentId: 'eng-mgmt', members: ['admin','王磊'], admins: [], owner: '王磊' },
-    { id: 'dg_fin', type: 'group', name: '财务部群', category: 'department', departmentId: 'finance', members: ['admin','赵丽','赵会计','周出纳'], admins: ['赵会计'], owner: '赵丽' },
-    { id: 'dg_saf', type: 'group', name: '安全生产部群', category: 'department', departmentId: 'safety', members: ['admin','孙强','何安全','高安全'], admins: ['何安全'], owner: '孙强' },
-    { id: 'dg_con', type: 'group', name: '合同管理部群', category: 'department', departmentId: 'contract', members: ['admin','朱商务','秦商务'], admins: [], owner: '朱商务' },
-    { id: 'dg_hr', type: 'group', name: '人力资源部群', category: 'department', departmentId: 'hr', members: ['admin','李明','钱人事'], admins: [], owner: '李明' },
-    { id: 'dg_aud', type: 'group', name: '审计部群', category: 'department', departmentId: 'audit', members: ['admin','陈工','林工'], admins: [], owner: '陈工' },
-    { id: 'dg_chief', type: 'group', name: '三总师群', category: 'department', departmentId: 'chief-eng', members: ['admin','总工程师','总会计师','总经济师'], admins: ['总工程师'], owner: '总工程师' },
-    { id: 'dg_mkt', type: 'group', name: '市场开发部群', category: 'department', departmentId: 'market-dev', members: ['admin','刘市场','韩市场','杨市场','许投标','何投标'], admins: ['韩市场'], owner: '刘市场' },
-    { id: 'dg_ops', type: 'group', name: '运维部群', category: 'department', departmentId: 'ops', members: ['admin','吕客服','施客服','梁质量','宋质量','吴刚'], admins: ['吴刚'], owner: '吕客服' },
-    { id: 'dg_proj-a', type: 'group', name: '项目部A群', category: 'department', departmentId: 'proj-a', members: ['admin','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量'], admins: ['张副1','李技术1'], owner: '刘工' },
-    { id: 'dg_proj-b', type: 'group', name: '项目部B群', category: 'department', departmentId: 'proj-b', members: ['admin','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量'], admins: ['张副2','李技术2'], owner: '马师傅' },
-    { id: 'dg_proj-c', type: 'group', name: '项目部C群', category: 'department', departmentId: 'proj-c', members: ['admin','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'], admins: ['李技术3'], owner: '张经理' },
-    { id: 'dg_ba', type: 'group', name: '分公司A群', category: 'department', departmentId: 'branch-a', members: ['admin','钱建国','孙一','周一','吴一','郑一'], admins: ['孙一'], owner: '钱建国' },
-    { id: 'dg_bb', type: 'group', name: '分公司B群', category: 'department', departmentId: 'branch-b', members: ['admin','陈国强','孙二','周二','吴二','郑二'], admins: ['孙二'], owner: '陈国强' },
-    { id: 'dg_bc', type: 'group', name: '分公司C群', category: 'department', departmentId: 'branch-c', members: ['admin','周海涛','孙三','周三','吴三','郑三'], admins: ['孙三'], owner: '周海涛' },
-    { id: 'dg_sa', type: 'group', name: '子公司甲群', category: 'department', departmentId: 'sub-alpha', members: ['admin','孙建国','孙四','周四','吴四','郑四'], admins: ['孙四'], owner: '孙建国' },
-    { id: 'dg_sb', type: 'group', name: '子公司乙群', category: 'department', departmentId: 'sub-beta', members: ['admin','赵子乙','钱子乙','孙子乙','李子乙','周子乙'], admins: ['钱子乙'], owner: '赵子乙' },
-    { id: 'dg_co1', type: 'group', name: '一公司群', category: 'department', departmentId: 'co-1', members: ['admin','吴一公司','周一公司','郑一公司','冯一公司','陈一公司'], admins: ['周一公司'], owner: '吴一公司' },
-    { id: 'dg_co2', type: 'group', name: '二公司群', category: 'department', departmentId: 'co-2', members: ['admin','褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司'], admins: ['卫二公司'], owner: '褚二公司' },
-    { id: 'dg_co3', type: 'group', name: '三公司群', category: 'department', departmentId: 'co-3', members: ['admin','杨三公司','朱三公司','秦三公司','尤三公司','许三公司'], admins: ['朱三公司'], owner: '杨三公司' },
-    // ── 普通群聊 ──
-    { id: 'g4', type: 'group', name: '安全管理群', members: ['admin', '孙强', '吴刚', '何安全', '高安全'], admins: ['孙强'], owner: 'admin' },
-    { id: 'g5', type: 'group', name: '综合事务群', members: ['admin', 'manager', '周芳', '郑敏', '马行政'], admins: ['manager'], owner: 'admin' },
-    // 单聊
-    { id: 's1', type: 'single', name: '孙强', members: ['admin', '孙强', '吴刚'], owner: '孙强' },
-    { id: 's2', type: 'single', name: '张伟', members: ['admin', '张伟', '赵丽'], owner: '张伟' },
-    { id: 's3', type: 'single', name: '刘市场', members: ['admin', '刘市场', '钱建国'], owner: '刘市场' },
-    { id: 's4', type: 'single', name: '周芳', members: ['admin', '周芳', '郑敏'], owner: '周芳' },
-    { id: 's5', type: 'single', name: '李明', members: ['admin', '李明', '赵丽'], owner: '李明' },
+  const conversations: any[] = [];
+  const chatMessages: any[] = [];
+  let msgId = 1;
+
+  // 用户列表（用于生成消息）
+  const allUsers = [
+    'admin','manager','张伟','周芳','郑敏','马行政','林助理','王磊','赵丽','孙强','何安全','高安全',
+    '朱商务','秦商务','李明','钱人事','陈工','林工','刘市场','韩市场','杨市场','许投标','何投标',
+    '吕客服','施客服','梁质量','宋质量','吴刚','总工程师','总会计师','总经济师',
+    '赵子乙','钱子乙','孙子乙','李子乙','周子乙','吴一公司','周一公司','郑一公司','冯一公司','陈一公司',
+    '褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司','杨三公司','朱三公司','秦三公司','尤三公司','许三公司',
+    '钱建国','孙一','周二','吴一','郑一','陈国强','孙二','周三','吴二','郑二',
+    '周海涛','孙三','周四','吴三','郑三','孙建国','孙四','孙四','周四','吴四','郑四',
+    '刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量',
+    '马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2',
+    '张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量',
+    '王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'
   ];
-    const chatMessages = [
-    // ══════════════════════════════════════════════
-    //  项目部A（清河水库除险加固工程）
-    // ══════════════════════════════════════════════
-    { id: 'pa1', conversationId: 'dg_proj-a', sender: '刘工', content: '清河水库除险加固工程主体坝体浇筑安排在下周一，请各岗位做好准备', type: 'text', readBy: ['刘工','张副1','李技术1'], createdAt: new Date(now - d * 6).toISOString() },
-    { id: 'pa2', conversationId: 'dg_proj-a', sender: '张副1', content: '收到，我提前准备好坝体混凝土配合比报告', type: 'text', readBy: ['刘工','张副1'], createdAt: new Date(now - d * 6 + h * 2).toISOString() },
-    { id: 'pa3', conversationId: 'dg_proj-a', sender: '李技术1', content: '技术方案已经过水利厅专家组审核，没问题', type: 'text', readBy: ['刘工','李技术1'], createdAt: new Date(now - d * 5).toISOString() },
-    { id: 'pa4', conversationId: 'dg_proj-a', sender: '王施工1', content: '现场防渗墙施工已完成，等待验收', type: 'text', readBy: ['王施工1'], createdAt: new Date(now - d * 4).toISOString() },
-    { id: 'pa5', conversationId: 'dg_proj-a', sender: '赵质量1', content: '放水涵管浇筑计划已排好，明天开始', type: 'text', readBy: ['赵质量1'], createdAt: new Date(now - d * 3).toISOString() },
-    { id: 'pa6', conversationId: 'dg_proj-a', sender: '钱安全1', content: '安全巡查发现坝肩有渗水点，已上报', type: 'text', readBy: ['刘工','钱安全1'], createdAt: new Date(now - d * 2).toISOString() },
-    { id: 'pa7', conversationId: 'dg_proj-a', sender: '孙材料1', content: '水泥钢筋已进场，验收合格入库', type: 'text', readBy: ['孙材料1'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'pa8', conversationId: 'dg_proj-a', sender: '刘工', content: '验收通过，进度良好，继续推进', type: 'text', readBy: ['刘工'], createdAt: new Date(now - h * 8).toISOString() },
-    // 项目部A — 阅后即焚消息
-    { id: 'pa_f1', conversationId: 'dg_proj-a', sender: '刘工', content: '张副，坝体渗透系数数据先别上报，等我复核后再报水利厅', type: 'text', burn: true, burnSeconds: 30, burnTarget: '张副1', readBy: ['刘工'], createdAt: new Date(now - h * 6).toISOString() },
-    { id: 'pa_f2', conversationId: 'dg_proj-a', sender: '张副1', content: '刘工，清河水库二期预算有调整，具体内容私聊，此消息阅后即焚', type: 'text', burn: true, burnSeconds: 60, burnTarget: '刘工', readBy: ['张副1'], createdAt: new Date(now - h * 3).toISOString() },
-    { id: 'pa_f3', conversationId: 'dg_proj-a', sender: '李技术1', content: '刘工，防渗墙那个检测报告数据有点问题，你看看是不是要改', type: 'text', burn: true, burnSeconds: 30, burnTarget: '刘工', readBy: ['李技术1'], createdAt: new Date(now - h * 1).toISOString() },
-    // 项目部A — 加密消息
-    { id: 'pa_e1', conversationId: 'dg_proj-a', sender: '刘工', content: '水库除险加固总预算：总投资6800万，专项资金已到位', type: 'text', encrypted: true, readBy: ['刘工'], createdAt: new Date(now - d * 3).toISOString() },
 
-    // ══════════════════════════════════════════════
-    //  项目部B（南水北调支线渠系工程）
-    // ══════════════════════════════════════════════
-    { id: 'pb1', conversationId: 'dg_proj-b', sender: '马师傅', content: '南水北调支线渠系工程渠道开挖已完成80%', type: 'text', readBy: ['马师傅','张副2'], createdAt: new Date(now - d * 5).toISOString() },
-    { id: 'pb2', conversationId: 'dg_proj-b', sender: '张副2', content: '渠道衬砌施工即将开始，预制板已进场', type: 'text', readBy: ['马师傅','张副2'], createdAt: new Date(now - d * 4).toISOString() },
-    { id: 'pb3', conversationId: 'dg_proj-b', sender: '李技术2', content: '渡槽结构设计已完成，等设计院确认', type: 'text', readBy: ['李技术2'], createdAt: new Date(now - d * 3).toISOString() },
-    { id: 'pb4', conversationId: 'dg_proj-b', sender: '王施工2', content: '渠道土方运输路线已确定，预计下周进场', type: 'text', readBy: ['王施工2'], createdAt: new Date(now - d * 2).toISOString() },
-    { id: 'pb5', conversationId: 'dg_proj-b', sender: '赵质量2', content: '节制闸基坑开挖方案已报监理审批', type: 'text', readBy: ['赵质量2'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'pb6', conversationId: 'dg_proj-b', sender: '钱安全2', content: '水质监测点已布设完毕，开始实时监测', type: 'text', readBy: ['钱安全2'], createdAt: new Date(now - h * 10).toISOString() },
-    { id: 'pb7', conversationId: 'dg_proj-b', sender: '孙材料2', content: '预制板到场2000块，质量合格', type: 'text', readBy: ['孙材料2'], createdAt: new Date(now - h * 6).toISOString() },
-    { id: 'pb8', conversationId: 'dg_proj-b', sender: '马师傅', content: '渠道衬砌明天开始，全员6点到场', type: 'text', readBy: ['马师傅'], createdAt: new Date(now - h * 2).toISOString() },
-    // 项目部B — 阅后即焚消息
-    { id: 'pb_f1', conversationId: 'dg_proj-b', sender: '马师傅', content: '业主那边透露二期延伸段预算可增加到2亿，别往外说', type: 'text', burn: true, burnSeconds: 60, burnTarget: '张副2', readBy: ['马师傅'], createdAt: new Date(now - h * 8).toISOString() },
-    { id: 'pb_f2', conversationId: 'dg_proj-b', sender: '张副2', content: '渠道衬砌分包报价有3家，最低价是1200万', type: 'text', burn: true, burnSeconds: 30, burnTarget: '马师傅', readBy: ['张副2'], createdAt: new Date(now - h * 4).toISOString() },
-    { id: 'pb_f3', conversationId: 'dg_proj-b', sender: '李技术2', content: '渡槽那个变更签证金额可能要调，先别跟监理说', type: 'text', burn: true, burnSeconds: 30, burnTarget: '马师傅', readBy: ['李技术2'], createdAt: new Date(now - h * 1).toISOString() },
+  // 随机消息模板
+  const msgTemplates: Record<string, string[]> = {
+    hq: ['今日工作汇报已完成', '下周会议安排已发至邮箱', '集团年度预算已审批通过', '各部门负责人请按时提交月报', '安全例会定于周五下午三点'],
+    dept: ['安全生产检查将于本周五进行', '新员工培训计划已更新', '合同审批流程优化完成', '财务报销截止时间为本周五', '质量检测报告已出'],
+    proj: ['施工进度日报已提交', '材料进场验收合格', '安全技术交底已完成', '监理例会明天上午9点', '基坑监测数据正常'],
+    sub: ['分公司月度总结已汇总', '人员考勤系统已上线', '本地项目进展顺利', '办公设备已采购到位', '资质材料已整理完毕'],
+    co: ['一公司本周产值统计完成', '材料采购计划已提交', '施工质量抽检合格', '安全巡检已完成', '月度考勤已核对'],
+    custom: ['收到，马上处理', '好的，没问题', '这件事需要协调一下', '方案已发群里了', '请相关负责人确认'],
+  };
 
-    // ══════════════════════════════════════════════
-    //  项目部C（流域治理 + 农田水利 + 水文监测 + 生态廊道 + 山区水库）
-    // ══════════════════════════════════════════════
-    // — 流域治理 —
-    { id: 'pc1', conversationId: 'dg_proj-c', sender: '张经理', content: '项目部C本月在建项目4个，请各项目经理报送进度', type: 'text', readBy: ['张经理','李经理','孙经理','周经理','吴经理'], createdAt: new Date(now - d * 3).toISOString() },
-    { id: 'pc2', conversationId: 'dg_proj-c', sender: '李经理', content: '流域治理工程河道疏浚方案已通过评审', type: 'text', readBy: ['李经理'], createdAt: new Date(now - d * 2).toISOString() },
-    { id: 'pc3', conversationId: 'dg_proj-c', sender: '李技术3', content: '护岸工程设计变更已完成，等业主确认', type: 'text', readBy: ['李技术3'], createdAt: new Date(now - d * 2 + h * 3).toISOString() },
-    { id: 'pc4', conversationId: 'dg_proj-c', sender: '张经理', content: '很好，准备上报水利局的施工图审查', type: 'text', readBy: ['张经理'], createdAt: new Date(now - d * 1).toISOString() },
-    // — 农田水利 —
-    { id: 'pc5', conversationId: 'dg_proj-c', sender: '孙经理', content: '农田水利灌溉工程渠道衬砌已通过验收', type: 'text', readBy: ['孙经理'], createdAt: new Date(now - d * 1 + h * 2).toISOString() },
-    { id: 'pc6', conversationId: 'dg_proj-c', sender: '张测量', content: '量水设施安装已完成，开始通水试验', type: 'text', readBy: ['张测量'], createdAt: new Date(now - h * 10).toISOString() },
-    // — 水文监测 —
-    { id: 'pc7', conversationId: 'dg_proj-c', sender: '周经理', content: '跨河大桥水文监测站基础施工已完成', type: 'text', readBy: ['周经理'], createdAt: new Date(now - h * 8).toISOString() },
-    { id: 'pc8', conversationId: 'dg_proj-c', sender: '周施工', content: '水位计、雨量计已采购，下周到货安装', type: 'text', readBy: ['周施工'], createdAt: new Date(now - h * 6).toISOString() },
-    // — 生态廊道 —
-    { id: 'pc9', conversationId: 'dg_proj-c', sender: '吴经理', content: '滨江生态廊道工程植被恢复方案已定', type: 'text', readBy: ['吴经理'], createdAt: new Date(now - h * 5).toISOString() },
-    { id: 'pc10', conversationId: 'dg_proj-c', sender: '吴采购', content: '生态护坡材料已到场，准备施工', type: 'text', readBy: ['吴采购'], createdAt: new Date(now - h * 4).toISOString() },
-    // — 山区水库 —
-    { id: 'pc11', conversationId: 'dg_proj-c', sender: '郑施工', content: '溢洪道结构计算已完成，等设计院确认', type: 'text', readBy: ['郑施工'], createdAt: new Date(now - h * 3).toISOString() },
-    { id: 'pc12', conversationId: 'dg_proj-c', sender: '陈安全', content: '山区水库基坑开挖安全专项方案已报批', type: 'text', readBy: ['陈安全'], createdAt: new Date(now - h * 2).toISOString() },
-    { id: 'pc13', conversationId: 'dg_proj-c', sender: '赵质量3', content: '流域治理护岸混凝土试块强度合格', type: 'text', readBy: ['赵质量3'], createdAt: new Date(now - h * 1).toISOString() },
-    // 项目部C — 阅后即焚消息
-    { id: 'pc_f1', conversationId: 'dg_proj-c', sender: '张经理', content: '河道采砂许可证审批有变，具体数字先别对外透露', type: 'text', burn: true, burnSeconds: 15, burnTarget: '李技术3', readBy: ['张经理'], createdAt: new Date(now - h * 7).toISOString() },
-    { id: 'pc_f2', conversationId: 'dg_proj-c', sender: '李经理', content: '流域治理那个分包队结算有水分，你帮我先压一下', type: 'text', burn: true, burnSeconds: 30, burnTarget: '张经理', readBy: ['李经理'], createdAt: new Date(now - h * 5).toISOString() },
-    { id: 'pc_f3', conversationId: 'dg_proj-c', sender: '孙经理', content: '农田水利变更签证金额120万，业主口头同意了', type: 'text', burn: true, burnSeconds: 30, burnTarget: '张经理', readBy: ['孙经理'], createdAt: new Date(now - h * 3).toISOString() },
-    { id: 'pc_f4', conversationId: 'dg_proj-c', sender: '周经理', content: '水文监测站那个设备采购价比市场价高15%，你心里有数', type: 'text', burn: true, burnSeconds: 30, burnTarget: '张经理', readBy: ['周经理'], createdAt: new Date(now - h * 2).toISOString() },
-    { id: 'pc_f5', conversationId: 'dg_proj-c', sender: '吴经理', content: '生态廊道苗木供应商报价有回扣空间，具体面谈', type: 'text', burn: true, burnSeconds: 60, burnTarget: '张经理', readBy: ['吴经理'], createdAt: new Date(now - h * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  集团公司群消息
-    // ══════════════════════════════════════════════
-    { id: 'dg1', conversationId: 'dg_group', sender: 'admin', content: '集团公司各位同事，本周五下午召开季度总结会', type: 'text', readBy: ['admin','manager','张伟'], createdAt: new Date(now - d * 2).toISOString() },
-    { id: 'dg2', conversationId: 'dg_group', sender: 'manager', content: '收到，我准备汇报材料', type: 'text', readBy: ['admin','manager'], createdAt: new Date(now - d * 2 + h).toISOString() },
-    { id: 'dg3', conversationId: 'dg_group', sender: '张伟', content: '总经理办公室已将会议议程发给各部门', type: 'text', readBy: ['admin','张伟'], createdAt: new Date(now - d * 2 + h * 2).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  副总经理A群消息
-    // ══════════════════════════════════════════════
-    { id: 'da1', conversationId: 'dg_dgm-a', sender: '张伟', content: '各项目部本月进度报表请于25日前提交', type: 'text', readBy: ['张伟','刘工','马师傅'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'da2', conversationId: 'dg_dgm-a', sender: '刘工', content: '项目部A进度正常，已提交', type: 'text', readBy: ['刘工'], createdAt: new Date(now - d * 1 + h * 2).toISOString() },
-    { id: 'da3', conversationId: 'dg_dgm-a', sender: '马师傅', content: '项目部B渠道衬砌施工进入关键期', type: 'text', readBy: ['马师傅'], createdAt: new Date(now - h * 12).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  安全管理群消息
-    // ══════════════════════════════════════════════
-    { id: 'sm1', conversationId: 'g4', sender: '孙强', content: '本月水利工程施工安全检查发现4项隐患', type: 'text', readBy: ['admin','孙强','吴刚'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'sm2', conversationId: 'g4', sender: '何安全', content: '清河水库坝肩渗水点已设置监测仪器', type: 'text', readBy: ['admin','何安全'], createdAt: new Date(now - h * 8).toISOString() },
-    { id: 'sm3', conversationId: 'g4', sender: '高安全', content: '南水北调渠道基坑临边防护已整改完毕', type: 'text', readBy: ['高安全'], createdAt: new Date(now - h * 4).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  分公司A群消息
-    // ══════════════════════════════════════════════
-    { id: 'ba1', conversationId: 'dg_ba', sender: '钱建国', content: '分公司A本月产值目标800万，目前进度70%', type: 'text', readBy: ['钱建国','孙一'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'ba2', conversationId: 'dg_ba', sender: '孙一', content: '安全质量检查已安排，明天开始', type: 'text', readBy: ['孙一'], createdAt: new Date(now - h * 8).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  分公司B群消息
-    // ══════════════════════════════════════════════
-    { id: 'bb1', conversationId: 'dg_bb', sender: '陈国强', content: '分公司B审计资料已准备完毕', type: 'text', readBy: ['陈国强','孙二'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'bb2', conversationId: 'dg_bb', sender: '孙二', content: '项目进度报告已提交', type: 'text', readBy: ['孙二'], createdAt: new Date(now - h * 6).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  分公司C群消息
-    // ══════════════════════════════════════════════
-    { id: 'bc1', conversationId: 'dg_bc', sender: '周海涛', content: '分公司C本月施工计划已下发', type: 'text', readBy: ['周海涛','孙三'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'bc2', conversationId: 'dg_bc', sender: '孙三', content: '设备进场验收完成', type: 'text', readBy: ['孙三'], createdAt: new Date(now - h * 5).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  子公司甲群消息
-    // ══════════════════════════════════════════════
-    { id: 'sa1', conversationId: 'dg_sa', sender: '孙建国', content: '子公司甲年度目标已完成75%', type: 'text', readBy: ['孙建国','孙四'], createdAt: new Date(now - d * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  子公司乙群消息
-    // ══════════════════════════════════════════════
-    { id: 'sb1', conversationId: 'dg_sb', sender: '赵子乙', content: '子公司乙新业务拓展方案已上报集团', type: 'text', readBy: ['赵子乙','钱子乙'], createdAt: new Date(now - d * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  一公司群消息
-    // ══════════════════════════════════════════════
-    { id: 'co1_1', conversationId: 'dg_co1', sender: '吴一公司', content: '一公司本月产值目标600万，进度65%', type: 'text', readBy: ['吴一公司','周一公司'], createdAt: new Date(now - d * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  二公司群消息
-    // ══════════════════════════════════════════════
-    { id: 'co2_1', conversationId: 'dg_co2', sender: '褚二公司', content: '二公司本月产值目标500万，进度60%', type: 'text', readBy: ['褚二公司','卫二公司'], createdAt: new Date(now - d * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  三公司群消息
-    // ══════════════════════════════════════════════
-    { id: 'co3_1', conversationId: 'dg_co3', sender: '杨三公司', content: '三公司本月产值目标400万，进度55%', type: 'text', readBy: ['杨三公司','朱三公司'], createdAt: new Date(now - d * 1).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  综合事务群消息
-    // ══════════════════════════════════════════════
-    { id: 'za1', conversationId: 'g5', sender: 'manager', content: '下周一下午2点全员例会，请准时参加', type: 'text', readBy: ['admin','manager','周芳'], createdAt: new Date(now - d * 1).toISOString() },
-    { id: 'za2', conversationId: 'g5', sender: '周芳', content: '报销审批流程已更新，请大家注意新规定', type: 'text', readBy: ['admin','周芳'], createdAt: new Date(now - h * 3).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  单聊消息
-    // ══════════════════════════════════════════════
-    { id: 's1m1', conversationId: 's1', sender: '孙强', content: '吴刚，清河水库坝肩渗水点需要重点监测', type: 'text', readBy: ['孙强','吴刚'], createdAt: new Date(now - d * 3).toISOString() },
-    { id: 's1m2', conversationId: 's1', sender: '吴刚', content: '好的，我上午过去，带上渗压计', type: 'text', readBy: ['孙强','吴刚'], createdAt: new Date(now - d * 3 + h).toISOString() },
-    // 孙强发给admin的阅后即焚
-    { id: 's1m_burn1', conversationId: 's1', sender: '孙强', content: 'admin，清河水库那次渗漏事故的责任人名单我先不发，等上级下来再说', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['孙强'], createdAt: new Date(now - d * 2).toISOString() },
-    // admin发给孙强的阅后即焚
-    { id: 's1m_burn2', conversationId: 's1', sender: 'admin', content: '孙强，上次安全检查发现的4项隐患，第3项是资质问题，先别公开通报', type: 'text', burn: true, burnSeconds: 60, burnTarget: '孙强', readBy: ['admin'], createdAt: new Date(now - d * 1).toISOString() },
-    // 张伟发给admin的阅后即焚
-    { id: 's2m_burn1', conversationId: 's2', sender: '张伟', content: 'admin，张伟涛的投标报价有异常，单价比市场价低20%，你心里有数', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['张伟'], createdAt: new Date(now - d * 1 + h * 3).toISOString() },
-    // admin发给张伟的阅后即焚
-    { id: 's2m_burn2', conversationId: 's2', sender: 'admin', content: '张伟，流域治理那个项目的业主关系你要稳住，具体细节电话说', type: 'text', burn: true, burnSeconds: 60, burnTarget: '张伟', readBy: ['admin'], createdAt: new Date(now - h * 8).toISOString() },
-    // 刘市场发给admin的阅后即焚
-    { id: 's3m_burn1', conversationId: 's3', sender: '刘市场', content: 'admin，南水北调那个渠道衬砌的分包队报价有问题，1200万是底线，不能再降了', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['刘市场'], createdAt: new Date(now - h * 6).toISOString() },
-    // admin发给刘市场的阅后即焚
-    { id: 's3m_burn2', conversationId: 's3', sender: 'admin', content: '刘市场，下个月市场部要跟进3个新项目，预算已经批了，具体数字你别跟别人说', type: 'text', burn: true, burnSeconds: 45, burnTarget: '刘市场', readBy: ['admin'], createdAt: new Date(now - h * 4).toISOString() },
-    // 钱建国发给admin的阅后即焚
-    { id: 's3m_burn3', conversationId: 's3', sender: '钱建国', content: 'admin，分公司A的安全生产费挪用了一部分，大概80万，我准备补上但还没批下来', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['钱建国'], createdAt: new Date(now - h * 2).toISOString() },
-    // admin发给钱建国的阅后即焚
-    { id: 's3m_burn4', conversationId: 's3', sender: 'admin', content: '钱建国，分公司A的那个分包队结算有水分，你先压着，我让审计部去查', type: 'text', burn: true, burnSeconds: 60, burnTarget: '钱建国', readBy: ['admin'], createdAt: new Date(now - h).toISOString() },
-    // 周芳发给admin的阅后即焚
-    { id: 's4m_burn1', conversationId: 's4', sender: '周芳', content: 'admin，办公室采购的办公用品发票有问题，金额对不上，我先压着没报财务', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['周芳'], createdAt: new Date(now - h * 5).toISOString() },
-    // admin发给周芳的阅后即焚
-    { id: 's4m_burn2', conversationId: 's4', sender: 'admin', content: '周芳，办公室那个采购单你帮我重新审核一下，有些项目要删掉', type: 'text', burn: true, burnSeconds: 45, burnTarget: '周芳', readBy: ['admin'], createdAt: new Date(now - h * 2).toISOString() },
-    // 李明发给admin的阅后即焚
-    { id: 's5m_burn1', conversationId: 's5', sender: '李明', content: 'admin，人力资源部这个月的社保基数要调整，涉及成本增加约15万，你先别看这份报告', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['李明'], createdAt: new Date(now - h * 7).toISOString() },
-    // admin发给李明的阅后即焚
-    { id: 's5m_burn2', conversationId: 's5', sender: 'admin', content: '李明，下季度的人员编制方案先别发，我打算缩减技术岗，具体方案晚点通知你', type: 'text', burn: true, burnSeconds: 60, burnTarget: '李明', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  发给吴刚的阅后即焚消息
-    // ══════════════════════════════════════════════
-    // 孙强发给吴刚的阅后即焚
-    { id: 'wg_s1', conversationId: 's1', sender: '孙强', content: '吴刚，清河水库那次事故的质量检测报告我有保留，数据有点问题，你要小心', type: 'text', burn: true, burnSeconds: 30, burnTarget: '吴刚', readBy: ['孙强'], createdAt: new Date(now - d * 2 + h * 5).toISOString() },
-    // admin发给吴刚的阅后即焚
-    { id: 'wg_s2', conversationId: 's1', sender: 'admin', content: '吴刚，质量管理部那个抽查报告先别急着发，有几个问题还没核实清楚', type: 'text', burn: true, burnSeconds: 60, burnTarget: '吴刚', readBy: ['admin'], createdAt: new Date(now - d * 1 + h * 2).toISOString() },
-    // 吴一发给吴刚的阅后即焚（分公司人员发给总部质量部门）
-    { id: 'wg_s3', conversationId: 's1', sender: '周一公司', content: '吴刚，一公司这边有个质量验收通过了，但监理那边有点意见，你帮我们打个招呼', type: 'text', burn: true, burnSeconds: 30, burnTarget: '吴刚', readBy: ['周一公司'], createdAt: new Date(now - h * 6).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  发给admin的群聊阅后即焚消息
-    // ══════════════════════════════════════════════
-    // 副总经理A群里的阅后即焚
-    { id: 'dgda_burn1', conversationId: 'dg_dgm-a', sender: '张伟', content: '各位，总经理办公室有个内部调整的消息，大家可以私下交流，但别在群里说', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['张伟'], createdAt: new Date(now - d * 1 + h * 4).toISOString() },
-    // 副总经理B群里的阅后即焚
-    { id: 'dgdb_burn1', conversationId: 'dg_dgm-b', sender: '李明', content: '审计部发现了几个问题，涉及资金流向，我会单独汇报给总经理', type: 'text', burn: true, burnSeconds: 60, burnTarget: 'admin', readBy: ['李明'], createdAt: new Date(now - h * 10).toISOString() },
-    // 副总经理C群里的阅后即焚
-    { id: 'dgdc_burn1', conversationId: 'dg_dgm-c', sender: '刘市场', content: '市场部接到了一个意向订单，金额很大，但还没定，大家先别外传', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'admin', readBy: ['刘市场'], createdAt: new Date(now - h * 8).toISOString() },
-    // 集团公司群里的阅后即焚
-    { id: 'dgg_burn1', conversationId: 'dg_group', sender: 'manager', content: 'admin，集团下周有个重要会议，议题涉及人事调整，具体内容会后再通知大家', type: 'text', burn: true, burnSeconds: 45, burnTarget: 'admin', readBy: ['manager'], createdAt: new Date(now - h * 5).toISOString() },
-
-    // ══════════════════════════════════════════════
-    //  admin发给各群的阅后即焚消息
-    // ══════════════════════════════════════════════
-    // admin在安全管理群发的阅后即焚
-    { id: 'adm_g4_burn1', conversationId: 'g4', sender: 'admin', content: '孙强，上次的隐患整改报告你先别发出去，有几个数据需要再核实', type: 'text', burn: true, burnSeconds: 30, burnTarget: '孙强', readBy: ['admin'], createdAt: new Date(now - h * 7).toISOString() },
-    // admin在综合事务群发的阅后即焚
-    { id: 'adm_g5_burn1', conversationId: 'g5', sender: 'admin', content: '各位，下周的例会取消，改为各部门内部总结，具体安排另行通知', type: 'text', burn: true, burnSeconds: 60, burnTarget: 'manager', readBy: ['admin'], createdAt: new Date(now - h * 4).toISOString() },
-    // admin在项目部A群发的阅后即焚
-    { id: 'adm_pa_burn1', conversationId: 'dg_proj-a', sender: 'admin', content: '刘工，清河水库那个渗水点的监测数据有异常，你先别上报，等我复核', type: 'text', burn: true, burnSeconds: 30, burnTarget: '刘工', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
-    // admin在项目部B群发的阅后即焚
-    { id: 'adm_pb_burn1', conversationId: 'dg_proj-b', sender: 'admin', content: '马师傅，南水北调那个渠道衬砌的分包报价，我有异议，你先别签合同', type: 'text', burn: true, burnSeconds: 45, burnTarget: '马师傅', readBy: ['admin'], createdAt: new Date(now - h * 2).toISOString() },
-    // admin在项目部C群发的阅后即焚
-    { id: 'adm_pc_burn1', conversationId: 'dg_proj-c', sender: 'admin', content: '张经理，项目部C有几个分包结算有问题，审计部下周会介入调查', type: 'text', burn: true, burnSeconds: 60, burnTarget: '张经理', readBy: ['admin'], createdAt: new Date(now - h).toISOString() },
-    // admin在分公司A群发的阅后即焚
-    { id: 'adm_ba_burn1', conversationId: 'dg_ba', sender: 'admin', content: '钱建国，分公司A的安全检查记录有缺失，你要补上，别让大家知道是我说的', type: 'text', burn: true, burnSeconds: 30, burnTarget: '钱建国', readBy: ['admin'], createdAt: new Date(now - h * 6).toISOString() },
-    // admin在子公司甲群发的阅后即焚
-    { id: 'adm_sa_burn1', conversationId: 'dg_sa', sender: 'admin', content: '孙建国，子公司甲的资质年审材料有问题，重新准备一下，别让人知道是哪里错了', type: 'text', burn: true, burnSeconds: 45, burnTarget: '孙建国', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
+  // ── 集团工作组 ──
+  const hqGroups = [
+    { id: 'gw_board', name: '董事会群', departmentId: 'board', members: ['admin'] },
+    { id: 'gw_gm', name: '总经理办公室群', departmentId: 'gm-office', members: ['admin','manager','张伟'] },
+    { id: 'gw_office', name: '办公室群', departmentId: 'office', members: ['周芳','郑敏','马行政','林助理'] },
+    { id: 'gw_dgm-a', name: '副总经理A群', departmentId: 'dgm-a', members: ['张伟','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务'] },
+    { id: 'gw_dgm-b', name: '副总经理B群', departmentId: 'dgm-b', members: ['李明','钱人事','陈工','林工'] },
+    { id: 'gw_chief', name: '三总师群', departmentId: 'chief-eng', members: ['admin','总工程师','总会计师','总经济师'] },
   ];
+
+  for (const g of hqGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 5 + Math.floor(Math.random() * 8); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.hq[Math.floor(Math.random() * msgTemplates.hq.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 3)),
+        createdAt: new Date(now - (8 - i) * h * 3).toISOString()
+      });
+    }
+  }
+
+  // ── 分子公司组 ──
+  const subGroups = [
+    { id: 'gs_ba', name: '分公司A群', departmentId: 'branch-a', members: ['admin','钱建国','孙一','周一','吴一','郑一'] },
+    { id: 'gs_bb', name: '分公司B群', departmentId: 'branch-b', members: ['admin','陈国强','孙二','周二','吴二','郑二'] },
+    { id: 'gs_bc', name: '分公司C群', departmentId: 'branch-c', members: ['admin','周海涛','孙三','周三','吴三','郑三'] },
+    { id: 'gs_sa', name: '子公司甲群', departmentId: 'sub-alpha', members: ['admin','孙建国','孙四','周四','吴四','郑四'] },
+    { id: 'gs_sb', name: '子公司乙群', departmentId: 'sub-beta', members: ['admin','赵子乙','钱子乙','孙子乙','李子乙','周子乙'] },
+  ];
+
+  for (const g of subGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 4 + Math.floor(Math.random() * 6); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.sub[Math.floor(Math.random() * msgTemplates.sub.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (6 - i) * h * 4).toISOString()
+      });
+    }
+  }
+
+  // ── 项目部组 ──
+  const projGroups = [
+    { id: 'gp_proj-a', name: '项目部A群', departmentId: 'proj-a', members: ['admin','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量'] },
+    { id: 'gp_proj-b', name: '项目部B群', departmentId: 'proj-b', members: ['admin','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量'] },
+    { id: 'gp_proj-c', name: '项目部C群', departmentId: 'proj-c', members: ['admin','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'] },
+  ];
+
+  for (const g of projGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 8 + Math.floor(Math.random() * 10); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.proj[Math.floor(Math.random() * msgTemplates.proj.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 4)),
+        createdAt: new Date(now - (10 - i) * h * 2).toISOString()
+      });
+    }
+    // 添加阅后即焚消息
+    if (Math.random() > 0.3) {
+      const burnSender = g.members[Math.floor(Math.random() * g.members.length)];
+      const burnTarget = g.members[Math.floor(Math.random() * (g.members.length - 1)) + 1];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender: burnSender,
+        content: '紧急通知，请相关人员私信沟通', type: 'text', burn: true, burnSeconds: 30, burnTarget,
+        readBy: [burnSender, burnTarget],
+        createdAt: new Date(now - h * 2).toISOString()
+      });
+    }
+  }
+
+  // ── 集团部门组 ──
+  const deptGroups = [
+    { id: 'gd_eng', name: '工程管理部群', departmentId: 'eng-mgmt', members: ['admin','王磊'] },
+    { id: 'gd_fin', name: '财务部群', departmentId: 'finance', members: ['admin','赵丽','赵会计','周出纳'] },
+    { id: 'gd_saf', name: '安全生产部群', departmentId: 'safety', members: ['admin','孙强','何安全','高安全'] },
+    { id: 'gd_hr', name: '人力资源部群', departmentId: 'hr', members: ['admin','李明','钱人事'] },
+    { id: 'gd_mkt', name: '市场开发部群', departmentId: 'market-dev', members: ['admin','刘市场','韩市场','杨市场'] },
+    { id: 'gd_ops', name: '运维部群', departmentId: 'ops', members: ['admin','吕客服','施客服','梁质量','宋质量','吴刚'] },
+  ];
+
+  for (const g of deptGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 6); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.dept[Math.floor(Math.random() * msgTemplates.dept.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (5 - i) * h * 5).toISOString()
+      });
+    }
+  }
+
+  // ── 号码公司组 ──
+  const coGroups = [
+    { id: 'gc_co1', name: '一公司群', departmentId: 'co-1', members: ['admin','吴一公司','周一公司','郑一公司','冯一公司','陈一公司'] },
+    { id: 'gc_co2', name: '二公司群', departmentId: 'co-2', members: ['admin','褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司'] },
+    { id: 'gc_co3', name: '三公司群', departmentId: 'co-3', members: ['admin','杨三公司','朱三公司','秦三公司','尤三公司','许三公司'] },
+  ];
+
+  for (const g of coGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 4 + Math.floor(Math.random() * 5); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.co[Math.floor(Math.random() * msgTemplates.co.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 3)),
+        createdAt: new Date(now - (4 - i) * h * 6).toISOString()
+      });
+    }
+  }
+
+  // ── 自建群 ──
+  const customGroups = [
+    { id: 'gc_safety', name: '安全管理群', members: ['admin','孙强','吴刚','何安全','高安全'] },
+    { id: 'gc_affairs', name: '综合事务群', members: ['admin','manager','周芳','郑敏','马行政'] },
+    { id: 'gc_quality', name: '质量管控群', members: ['admin','梁质量','宋质量','钱安全1','钱安全2','郑质量'] },
+  ];
+
+  for (const g of customGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name,
+      members: g.members, admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 20 * d).toISOString()
+    });
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 4); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.custom[Math.floor(Math.random() * msgTemplates.custom.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (3 - i) * h * 8).toISOString()
+      });
+    }
+  }
+
+  // ── 单聊 ──
+  const singlePairs = [
+    { id: 'gs1', name: '张伟', members: ['admin','张伟','赵丽'] },
+    { id: 'gs2', name: '孙强', members: ['admin','孙强','何安全'] },
+    { id: 'gs3', name: '刘工', members: ['admin','刘工','张副1'] },
+    { id: 'gs4', name: '王磊', members: ['admin','王磊','赵丽'] },
+    { id: 'gs5', name: '李明', members: ['admin','李明','钱人事'] },
+  ];
+
+  for (const s of singlePairs) {
+    conversations.push({
+      id: s.id, type: 'single', name: s.name,
+      members: s.members, owner: s.members[1],
+      createdAt: new Date(now - Math.random() * 15 * d).toISOString()
+    });
+    for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
+      const sender = s.members[Math.random() > 0.5 ? 1 : 2];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: s.id, sender,
+        content: '收到，马上处理', type: 'text',
+        readBy: [sender],
+        createdAt: new Date(now - (2 - i) * h * 10).toISOString()
+      });
+    }
+  }
+
+  // 按会话ID排序消息
+  chatMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  console.log(`[Seed] 生成 ${conversations.length} 个会话，${chatMessages.length} 条消息`);
 
 
 
