@@ -208,7 +208,7 @@ export default function OrgChartPage() {
   const [posDialogOpen, setPosDialogOpen] = useState(false);
   const [editingPos, setEditingPos] = useState<Position | null>(null);
   const [posDeptId, setPosDeptId] = useState<string>('');
-  const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set(['d1']));
+  const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
 
   // Form states
   const [formName, setFormName] = useState('');
