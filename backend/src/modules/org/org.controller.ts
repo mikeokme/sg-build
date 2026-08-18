@@ -112,9 +112,9 @@ export class OrgController {
     const roots: any[] = [];
 
     for (const dept of departments) {
-      // 统计该部门及子部门的成员（通过部门名称匹配）
-      const memberCount = this.countMembersInDept(dept.name, departments, users);
-      const members = this.getMembersInDept(dept.name, departments, users);
+      // 统计该部门及子部门的成员（通过部门ID匹配）
+      const memberCount = this.countMembersInDept(dept.id, departments, users);
+      const members = this.getMembersInDept(dept.id, departments, users);
       map.set(dept.id, {
         ...dept,
         children: [],
@@ -136,20 +136,24 @@ export class OrgController {
     return roots;
   }
 
-  // 递归统计部门及子部门的成员数（通过部门名称匹配）
-  private countMembersInDept(deptName: string, departments: any[], users: any[]): number {
-    const directMembers = users.filter((u: any) => u.department === deptName).length;
-    const childDepts = departments.filter((d: any) => d.parentId === deptName);
+  // 递归统计部门及子部门的成员数（通过部门ID匹配）
+  private countMembersInDept(deptId: string, departments: any[], users: any[]): number {
+    const dept = departments.find((d: any) => d.id === deptId);
+    if (!dept) return 0;
+    const directMembers = users.filter((u: any) => u.department === dept.name).length;
+    const childDepts = departments.filter((d: any) => d.parentId === deptId);
     let total = directMembers;
     for (const child of childDepts) {
-      total += this.countMembersInDept(child.name, departments, users);
+      total += this.countMembersInDept(child.id, departments, users);
     }
     return total;
   }
 
-  // 递归获取部门及子部门的成员列表
-  private getMembersInDept(deptName: string, departments: any[], users: any[]): any[] {
-    const directMembers = users.filter((u: any) => u.department === deptName).map((u: any) => ({
+  // 递归获取部门及子部门的成员列表（通过部门ID匹配）
+  private getMembersInDept(deptId: string, departments: any[], users: any[]): any[] {
+    const dept = departments.find((d: any) => d.id === deptId);
+    if (!dept) return [];
+    const directMembers = users.filter((u: any) => u.department === dept.name).map((u: any) => ({
       username: u.username,
       name: u.name,
       position: u.position,
@@ -157,10 +161,10 @@ export class OrgController {
       isHead: u.isHead,
       isDeputy: u.isDeputy,
     }));
-    const children = departments.filter((d) => d.parentId === deptName);
+    const children = departments.filter((d: any) => d.parentId === deptId);
     let allMembers = [...directMembers];
     for (const child of children) {
-      allMembers = allMembers.concat(this.getMembersInDept(child.name, departments, users));
+      allMembers = allMembers.concat(this.getMembersInDept(child.id, departments, users));
     }
     return allMembers;
   }
