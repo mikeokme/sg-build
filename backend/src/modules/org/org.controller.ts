@@ -102,14 +102,20 @@ export class OrgController {
   }
 
   private buildTree(departments: any[], positions: any[]): any[] {
+    const users = this.data.getUsers().filter((u: any) => u.isActive !== false);
     const map = new Map<string, any>();
     const roots: any[] = [];
 
     for (const dept of departments) {
+      // 统计该部门及子部门的成员
+      const memberCount = this.countMembersInDept(dept.id, departments, users);
+      const members = this.getMembersInDept(dept.id, departments, users);
       map.set(dept.id, {
         ...dept,
         children: [],
-        positions: positions.filter((p) => p.departmentId === dept.id),
+        positions: positions.filter((p: any) => p.departmentId === dept.id),
+        memberCount,
+        members: members.slice(0, 50), // 限制返回数量
       });
     }
 
@@ -123,6 +129,35 @@ export class OrgController {
     }
 
     return roots;
+  }
+
+  // 递归统计部门及子部门的成员数
+  private countMembersInDept(deptId: string, departments: any[], users: any[]): number {
+    const directMembers = users.filter((u: any) => u.department === deptId).length;
+    const children = departments.filter((d) => d.parentId === deptId);
+    let total = directMembers;
+    for (const child of children) {
+      total += this.countMembersInDept(child.id, departments, users);
+    }
+    return total;
+  }
+
+  // 递归获取部门及子部门的成员列表
+  private getMembersInDept(deptId: string, departments: any[], users: any[]): any[] {
+    const directMembers = users.filter((u: any) => u.department === deptId).map((u: any) => ({
+      username: u.username,
+      name: u.name,
+      position: u.position,
+      role: u.role,
+      isHead: u.isHead,
+      isDeputy: u.isDeputy,
+    }));
+    const children = departments.filter((d) => d.parentId === deptId);
+    let allMembers = [...directMembers];
+    for (const child of children) {
+      allMembers = allMembers.concat(this.getMembersInDept(child.id, departments, users));
+    }
+    return allMembers;
   }
 
   private getDescendantIds(parentId: string, departments: any[]): string[] {

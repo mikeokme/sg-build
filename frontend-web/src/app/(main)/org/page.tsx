@@ -229,16 +229,6 @@ export default function OrgChartPage() {
       if (res.ok) {
         const tree = await res.json();
         setDepartments(tree);
-        // 默认展开所有部门
-        const allIds = new Set<string>();
-        const collect = (list: any[]) => {
-          for (const d of list) {
-            allIds.add(d.id);
-            if (d.children?.length) collect(d.children);
-          }
-        };
-        collect(tree);
-        setExpandedDepts(allIds);
       }
     } catch (e) {
       console.error('Failed to fetch org tree', e);
