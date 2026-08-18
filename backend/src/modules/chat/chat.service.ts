@@ -168,11 +168,17 @@ export class ChatService {
     const c = this.dataService.getConversation(conversationId);
     if (!c) return { error: '会话不存在' };
     if (!c.members.includes(username)) return { error: '无权访问该会话' };
+    const senderRole = this.dataService.getUserByUsername(username)?.role || '';
     const messages = this.dataService.getChatMessages(conversationId)
       .filter((m) => {
         // 群聊阅后即焚：只显示发给自己的或自己发的
         if (m.burn && m.burnTarget && c.type === 'group') {
           return m.sender === username || m.burnTarget === username;
+        }
+        // 超级管理员在群里发的消息，其他成员不可见
+        const sender = this.dataService.getUserByUsername(m.sender);
+        if (sender?.role === 'super_admin' && senderRole !== 'super_admin' && m.sender !== username) {
+          return false;
         }
         return true;
       })

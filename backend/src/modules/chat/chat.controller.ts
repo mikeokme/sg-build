@@ -48,12 +48,16 @@ export class ChatController {
       }));
   }
 
-  // 通讯录：按部门分组返回
+  // 通讯录：按五大组返回（集团总部、业务部门、分子公司、项目部、全体人员）
   @Get('contacts')
   getContacts(@Req() req: AuthedRequest) {
     const me = this.username(req);
     const users = this.dataService.getUsers().filter((u) => u.username !== me && u.isActive !== false);
     const departments = this.dataService.getCollectionItems('departments');
+
+    // 五大组ID
+    const GROUP_IDS = ['hq', 'biz', 'sub', 'proj'];
+    const GROUP_NAMES: Record<string, string> = { hq: '集团总部', biz: '业务部门', sub: '分子公司', proj: '项目部' };
 
     // 部门层级映射
     const deptMap = new Map<string, any>();
@@ -64,7 +68,6 @@ export class ChatController {
     // 将用户分配到部门
     for (const u of users) {
       const deptName = u.department || '未分配';
-      // 找到对应部门
       let found = false;
       for (const [, dept] of deptMap) {
         if (dept.name === deptName) {
@@ -83,91 +86,80 @@ export class ChatController {
         }
       }
       if (!found) {
-        // 创建临时部门
         const tempId = '_temp_' + deptName;
         if (!deptMap.has(tempId)) {
           deptMap.set(tempId, { id: tempId, name: deptName, code: '', parentId: null, leader: '', members: [] });
         }
         deptMap.get(tempId)!.members.push({
-          username: u.username,
-          name: u.name || u.username,
-          role: u.role,
-          position: u.position || '',
-          phone: u.phone || '',
-          isHead: !!u.isHead,
-          isDeputy: !!u.isDeputy,
-          avatar: u.avatar || '',
+          username: u.username, name: u.name || u.username, role: u.role,
+          position: u.position || '', phone: u.phone || '',
+          isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
         });
       }
     }
 
-    // 构建层级树（只保留有成员的部门）
+    // 为每个部门找负责人和副职
+    const getDeptLeader = (deptId: string) => {
+      const dept = deptMap.get(deptId);
+      if (!dept) return { leader: '', deputy: '' };
+      const head = dept.members.find((m: any) => m.isHead);
+      const dep = dept.members.find((m: any) => m.isDeputy);
+      return { leader: head?.username || '', deputy: dep?.username || '' };
+    };
+
+    // 构建子部门
+    const buildChildren = (parentId: string) => {
+      return Array.from(deptMap.values())
+        .filter((d) => d.parentId === parentId && d.members.length > 0)
+        .sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99))
+        .map((d) => {
+          const { leader, deputy } = getDeptLeader(d.id);
+          return {
+            id: d.id, name: d.name, code: d.code,
+            leader: leader || d.leader, deputy,
+            memberCount: d.members.length,
+            members: d.members.sort((a: any, b: any) => (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0) || (b.isDeputy ? 1 : 0) - (a.isDeputy ? 1 : 0)),
+          };
+        });
+    };
+
+    // 构建五大组
     const result: any[] = [];
-    for (const [, dept] of deptMap) {
-      if (dept.members.length === 0 && dept.id !== 'd1') continue; // 跳过空部门（保留集团总部）
-      if (dept.id === 'd1') continue; // 跳过集团总部节点本身
-      // 只保留直属部门（parentId === 'd1'）和子部门
-      if (dept.parentId === 'd1' || dept.id.startsWith('_temp_')) {
-        const children = Array.from(deptMap.values())
-          .filter((d) => d.parentId === dept.id && d.members.length > 0)
-          .map((d) => ({ id: d.id, name: d.name, code: d.code, leader: d.leader, members: d.members }));
-        result.push({
-          id: dept.id,
-          name: dept.name,
-          code: dept.code,
-          leader: dept.leader,
-          memberCount: dept.members.length,
-          members: dept.members.sort((a: any, b: any) => (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0) || (b.isDeputy ? 1 : 0) - (a.isDeputy ? 1 : 0)),
-          children,
-        });
-      }
-    }
-
-    // 按 sortOrder 排序
-    result.sort((a, b) => {
-      const deptA = departments.find((d) => d.id === a.id);
-      const deptB = departments.find((d) => d.id === b.id);
-      return (deptA?.sortOrder ?? 99) - (deptB?.sortOrder ?? 99);
-    });
-
-    // 收集项目部组成员（去重）
-    const projectConvMembers = new Map<string, any>();
-    const projectConvs = this.dataService.getConversations().filter((c: any) => c.category === 'project');
-    for (const conv of projectConvs) {
-      for (const username of conv.members) {
-        if (!projectConvMembers.has(username)) {
-          const user = users.find((u: any) => u.username === username);
-          if (user) {
-            projectConvMembers.set(username, {
-              username: user.username,
-              name: user.name || user.username,
-              role: user.role,
-              position: user.position || '',
-              phone: user.phone || '',
-              isHead: !!user.isHead,
-              isDeputy: !!user.isDeputy,
-              avatar: user.avatar || '',
-            });
-          }
-        }
-      }
-    }
-    // 将项目部组插入到市场部(d8)之后
-    const projectGroupMembers = Array.from(projectConvMembers.values());
-    const marketIndex = result.findIndex((d) => d.id === 'd8');
-    if (marketIndex >= 0 && projectGroupMembers.length > 0) {
-      result.splice(marketIndex + 1, 0, {
-        id: '_project_group',
-        name: '项目部组',
-        code: 'XM-GROUP',
+    for (const groupId of GROUP_IDS) {
+      const children = buildChildren(groupId);
+      if (children.length === 0) continue;
+      const totalMembers = children.reduce((sum, c) => sum + c.memberCount, 0);
+      result.push({
+        id: groupId,
+        name: GROUP_NAMES[groupId],
+        code: groupId.toUpperCase(),
+        isGroup: true,
         leader: '',
-        memberCount: projectGroupMembers.length,
-        members: projectGroupMembers.sort((a: any, b: any) => (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0) || (b.isDeputy ? 1 : 0) - (a.isDeputy ? 1 : 0)),
-        children: [],
+        memberCount: totalMembers,
+        members: [],
+        children,
       });
     }
 
-    // 也把未分配的用户放到最前面
+    // 全体人员（虚拟组）
+    const allMembers = users.map((u) => ({
+      username: u.username, name: u.name || u.username, role: u.role,
+      position: u.position || '', phone: u.phone || '',
+      department: u.department || '', isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
+    }));
+    result.push({
+      id: '_all',
+      name: '全体人员',
+      code: 'ALL',
+      isGroup: true,
+      isVirtual: true,
+      leader: '',
+      memberCount: allMembers.length,
+      members: allMembers.sort((a: any, b: any) => (a.department || '').localeCompare(b.department || '') || (b.isHead ? 1 : 0) - (a.isHead ? 1 : 0)),
+      children: [],
+    });
+
+    // 未分配用户
     const unassigned = deptMap.get('_temp_未分配');
     if (unassigned && unassigned.members.length > 0) {
       result.unshift({ id: '_unassigned', name: '未分配部门', code: '', leader: '', memberCount: unassigned.members.length, members: unassigned.members, children: [] });
