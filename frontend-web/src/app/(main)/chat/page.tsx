@@ -180,23 +180,36 @@ export default function ChatPage() {
     return deptName;
   }, [deptContacts]);
 
-  // 焚毁倒计时：messageId -> remaining seconds
-  const [burnCountdowns, setBurnCountdowns] = useState<Map<string, number>>(new Map());
   const countdownRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // ── 启动倒计时 ──
+  // ── 全局倒计时：每秒根据 burnRevealedAt 计算剩余时间 ──
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (!m.burn || !m.burnRevealedAt || m.burnScheduled) return m;
+          const elapsed = (Date.now() - new Date(m.burnRevealedAt).getTime()) / 1000;
+          const remaining = Math.max(0, (m.burnSeconds || 10) - elapsed);
+          if (remaining <= 0) {
+            changed = true;
+            return null as any;
+          }
+          return m;
+        }).filter(Boolean);
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ── 启动倒计时（本地UI用） ──
   const startBurnCountdown = useCallback((messageId: string, seconds: number) => {
     const old = countdownRefs.current.get(messageId);
     if (old) clearInterval(old);
-    setBurnCountdowns((prev) => { const next = new Map(prev); next.set(messageId, seconds); return next; });
     let remaining = seconds;
     const timer = setInterval(() => {
       remaining--;
-      setBurnCountdowns((prev) => {
-        const next = new Map(prev);
-        if (remaining <= 0) next.delete(messageId); else next.set(messageId, remaining);
-        return next;
-      });
       if (remaining <= 0) {
         clearInterval(timer);
         countdownRefs.current.delete(messageId);
@@ -228,17 +241,15 @@ export default function ChatPage() {
 
     s.on('chat:revealed', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
-        // 更新消息的 revealedBy 列表
+        // 更新消息的 revealedBy 列表和 burnRevealedAt
         setMessages((prev) => prev.map((m) =>
           m.id === data.messageId
-            ? { ...m, revealedBy: data.revealedBy, revealedForMe: data.revealedBy.includes(user.username), content: data.content || m.content }
+            ? { ...m, revealedBy: data.revealedBy, revealedForMe: data.revealedBy.includes(user.username), content: data.content || m.content, burnRevealedAt: data.burnRevealedAt || m.burnRevealedAt }
             : m
         ));
         // 如果是当前用户揭示的，启动倒计时
         if (data.revealedByUser === user.username) {
           startBurnCountdown(data.messageId, data.seconds);
-        } else if (data.isFirstReveal) {
-          // 其他人首次揭示：不启动我的倒计时，只更新状态
         }
       }
       fetchConvs();
@@ -249,7 +260,7 @@ export default function ChatPage() {
         // 只有已揭示的用户才启动倒计时
         setMessages((prev) => {
           const msg = prev.find((m) => m.id === data.messageId);
-          if (msg?.revealedForMe) {
+          if (msg?.revealedForMe && !msg.burnRevealedAt) {
             startBurnCountdown(data.messageId, data.seconds);
           }
           return prev.map((m) => m.id === data.messageId ? { ...m, burnScheduled: true } : m);
@@ -260,7 +271,6 @@ export default function ChatPage() {
     s.on('chat:burned', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
         setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
-        setBurnCountdowns((prev) => { const next = new Map(prev); next.delete(data.messageId); return next; });
         const timer = countdownRefs.current.get(data.messageId);
         if (timer) { clearInterval(timer); countdownRefs.current.delete(data.messageId); }
       }
@@ -409,7 +419,7 @@ export default function ChatPage() {
         if (d.messages) {
           setMessages(d.messages);
           d.messages.forEach((m: any) => {
-            if (m.burn && m.revealedForMe && m.burnScheduled) {
+            if (m.burn && m.revealedForMe && m.burnRevealedAt) {
               startBurnCountdown(m.id, m.burnSeconds || 10);
             }
           });
@@ -887,7 +897,6 @@ export default function ChatPage() {
             {messages.map((m) => {
               const isMine = m.sender === me?.username;
               const readCount = (m.readBy || []).filter((r: string) => r !== m.sender).length;
-              const countdown = burnCountdowns.get(m.id);
               // 发送者始终看到内容；接收者需揭示后才看到
               const isBurnHidden = m.burn && !m.revealedForMe && !isMine;
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
@@ -961,17 +970,22 @@ export default function ChatPage() {
                             {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-amber-400" /> : <Check className="w-3 h-3 text-amber-400" />)}
                           </div>
                         </div>
-                        {/* 倒计时进度条 */}
-                        {countdown !== undefined && countdown > 0 && (
-                          <div className="flex items-center gap-2 mt-1 ml-1">
-                            <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(countdown / (m.burnSeconds || 10)) * 100}%` }} />
+                        {/* 倒计时进度条：基于 burnRevealedAt 计算 */}
+                        {m.burnRevealedAt && (() => {
+                          const elapsed = (Date.now() - new Date(m.burnRevealedAt).getTime()) / 1000;
+                          const remaining = Math.max(0, (m.burnSeconds || 10) - elapsed);
+                          if (remaining <= 0) return null;
+                          return (
+                            <div className="flex items-center gap-2 mt-1 ml-1">
+                              <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(remaining / (m.burnSeconds || 10)) * 100}%` }} />
+                              </div>
+                              <span className="text-[10px] text-orange-500 font-mono tabular-nums">{Math.ceil(remaining)}s</span>
                             </div>
-                            <span className="text-[10px] text-orange-500 font-mono tabular-nums">{countdown}s</span>
-                          </div>
-                        )}
+                          );
+                        })()}
                         {/* 发送者：即时焚毁按钮 */}
-                        {isMine && !countdown && (
+                        {isMine && !m.burnRevealedAt && (
                           <div className="flex justify-end mt-1">
                             <button onClick={() => burnNow(m.id)}
                               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 text-[10px] font-medium transition-colors">
