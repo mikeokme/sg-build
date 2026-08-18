@@ -366,7 +366,7 @@ export default function OrgChartPage() {
               <span className="truncate flex-1" onClick={() => {
                 // Center view on this department
               }}>{dept.name}</span>
-              <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.positions?.length || 0}</Badge>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.memberCount || 0}人</Badge>
             </div>
             {expandedDepts.has(dept.id) && dept.children?.length > 0 && (
               <DeptList depts={dept.children} depth={depth + 1} />
@@ -388,7 +388,7 @@ export default function OrgChartPage() {
 
   const totalPositions = useMemo(() => {
     function count(dept: Department): number {
-      let n = dept.positions?.length || 0;
+      let n = dept.memberCount || 0;
       for (const child of dept.children || []) n += count(child);
       return n;
     }
