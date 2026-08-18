@@ -212,6 +212,18 @@ export class ChatController {
     return this.chatService.removeMember(id, username, this.username(req));
   }
 
+  // 设置/取消管理员
+  @Put('conversations/:id/admins/:username')
+  setAdmin(@Param('id') id: string, @Param('username') username: string, @Req() req: AuthedRequest) {
+    return this.chatService.setAdmin(id, username, this.username(req));
+  }
+
+  // 转让群主
+  @Put('conversations/:id/transfer-owner')
+  transferOwner(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { username: string }) {
+    return this.chatService.transferOwner(id, body?.username || '', this.username(req));
+  }
+
   // 通过 REST 发送（备用；实时消息走 WebSocket）
   @Post('conversations/:id/messages')
   sendMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: any) {

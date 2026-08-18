@@ -31,6 +31,64 @@ const ROLE_LEVELS: Record<string, number> = {
   super_admin: 100, high_admin: 80, general_admin: 60, employee: 40, outsource: 10,
 };
 
+function MemberItem({ gm, isGroupAdmin, isGroupOwner, me, onChat, onSetAdmin, onRemove, onTransfer, onInfoClick }: {
+  gm: any; isGroupAdmin: boolean; isGroupOwner: boolean; me: any;
+  onChat: (u: string) => void; onSetAdmin: (u: string) => void; onRemove: (u: string) => void; onTransfer: (u: string) => void;
+  onInfoClick: (e: React.MouseEvent, m: any) => void;
+}) {
+  const [showActions, setShowActions] = useState(false);
+  return (
+    <div
+      onClick={(e) => onInfoClick(e, gm)}
+      onDoubleClick={() => onChat(gm.username)}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+      className="flex items-center gap-2.5 px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer select-none group"
+    >
+      <div className="relative flex-shrink-0">
+        <Avatar className="w-9 h-9">
+          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{gm.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+        </Avatar>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium text-gray-800 truncate">{gm.name}</span>
+          {gm.isOwner && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded font-medium">群主</span>}
+          {gm.isAdmin && !gm.isOwner && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded font-medium">管理员</span>}
+        </div>
+        <p className="text-[10px] text-gray-400 truncate">{gm.position || gm.department || ''}</p>
+      </div>
+      {/* 操作按钮 */}
+      {showActions && isGroupAdmin && (
+        <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => onChat(gm.username)} className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all" title="发消息">
+            <MessageCircle className="w-3.5 h-3.5" />
+          </button>
+          {isGroupOwner && !gm.isOwner && (
+            <>
+              <button onClick={() => onSetAdmin(gm.username)} className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-all" title={gm.isAdmin ? '取消管理员' : '设为管理员'}>
+                <Shield className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => onTransfer(gm.username)} className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-purple-500 hover:bg-purple-50 transition-all" title="转让群主">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l0 14M5 9l7 7 7-7"/></svg>
+              </button>
+              <button onClick={() => onRemove(gm.username)} className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="移除成员">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+          {isGroupOwner && gm.isOwner && null}
+          {!isGroupOwner && gm.isAdmin && me?.username !== gm.username && (
+            <button onClick={() => onRemove(gm.username)} className="w-6 h-6 rounded flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="移除成员">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const router = useRouter();
 
@@ -302,6 +360,32 @@ export default function ChatPage() {
     } catch {}
   };
 
+  const setAdminToggle = async (username: string) => {
+    if (!selectedId) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/${selectedId}/admins/${username}`, {
+        method: 'PUT', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchGroupMembers(selectedId);
+    } catch {}
+  };
+
+  const transferOwner = async (username: string) => {
+    if (!selectedId || !confirm(`确定要将群主转让给 ${username} 吗？`)) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE}/chat/conversations/${selectedId}/transfer-owner`, {
+        method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (res.ok) {
+        fetchGroupMembers(selectedId);
+        fetchConvs();
+      }
+    } catch {}
+  };
+
   useEffect(() => { fetchConvs(); }, [fetchConvs]);
 
   useEffect(() => {
@@ -416,8 +500,9 @@ export default function ChatPage() {
   const otherUserData = otherUsername ? userMap.get(otherUsername) : null;
   const otherUserName = otherUserData?.name || otherUsername;
   const isGroupAdmin = selectedConv?.type === 'group' && me && (
-    selectedConv.owner === me.username || (ROLE_LEVELS[me.role] || 0) >= 60
+    selectedConv.owner === me.username || (selectedConv.admins || []).includes(me.username) || (ROLE_LEVELS[me.role] || 0) >= 60
   );
+  const isGroupOwner = selectedConv?.owner === me?.username;
   const typingList = Array.from(typingUsers.entries()).filter(([u, t]) => Date.now() - t < 4000).map(([u]) => u);
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
   const projectConvs = filteredConvs.filter((c) => c.type === 'group' && c.category === 'project');
@@ -893,51 +978,84 @@ export default function ChatPage() {
           </div>
           </div>
 
-          {/* 群成员管理面板 */}
+          {/* 群成员管理面板（钉钉风格） */}
           {showGroupInfo && selectedConv?.type === 'group' && (
-            <div ref={groupInfoRef} className="w-64 border-l border-gray-200 flex flex-col bg-gray-50 flex-shrink-0">
-              <div className="p-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />群成员</h3>
-                {isGroupAdmin && (
-                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setSelectedMembersToAdd([]); setAddMemberSearch(''); setShowAddMembersDialog(true); }}>
-                    <UserPlus className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                {groupMembers.filter((gm) => gm.role !== 'super_admin').map((gm: any) => (
-                  <div key={gm.username}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setMemberInfoPos({ x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 220) });
-                      setMemberInfo(memberInfo?.username === gm.username ? null : gm);
-                    }}
-                    onDoubleClick={(e) => { e.stopPropagation(); openSingle(gm.username); }}
-                    className="flex items-center gap-2.5 px-3 py-2 border-b border-gray-100 hover:bg-white group/member transition-colors cursor-pointer select-none"
-                  >
-                    <div className="relative flex-shrink-0">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{gm.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="text-sm font-medium text-gray-800 truncate">{gm.name}</span>
-                        {gm.isOwner && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">群主</span>}
-                      </div>
-                      <p className="text-[10px] text-gray-400 truncate">{ROLE_LABELS[gm.role] || gm.role} · {gm.department || '未分配'}</p>
-                    </div>
-                    {isGroupAdmin && !gm.isOwner && me?.username !== gm.username && (
-                      <button onClick={(e) => { e.stopPropagation(); removeMemberFromGroup(gm.username); }}
-                        className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/member:opacity-100 transition-all flex-shrink-0" title="移除成员">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+            <div ref={groupInfoRef} className="w-72 border-l border-gray-200 flex flex-col bg-white flex-shrink-0">
+              {/* 群信息头部 */}
+              <div className="p-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-12 h-12">
+                    <AvatarFallback className="bg-emerald-100 text-emerald-600 text-lg"><Users className="w-5 h-5" /></AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{selectedConv.name}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{groupMembers.length} 人</p>
                   </div>
-                ))}
+                </div>
+              </div>
+
+              {/* 操作按钮区 */}
+              {isGroupAdmin && (
+                <div className="px-4 py-2 border-b border-gray-100 flex gap-2">
+                  <button onClick={() => { setSelectedMembersToAdd([]); setAddMemberSearch(''); setShowAddMembersDialog(true); }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors">
+                    <UserPlus className="w-3.5 h-3.5" />添加
+                  </button>
+                </div>
+              )}
+
+              {/* 成员列表 */}
+              <div className="flex-1 overflow-y-auto">
                 {groupMembers.length === 0 && (
                   <div className="text-center text-gray-400 py-8 text-xs">暂无成员信息</div>
+                )}
+
+                {/* 群主 */}
+                {groupMembers.filter((gm) => gm.isOwner).length > 0 && (
+                  <div>
+                    <div className="px-4 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">群主</div>
+                    {groupMembers.filter((gm) => gm.isOwner).map((gm: any) => (
+                      <MemberItem key={gm.username} gm={gm} isGroupAdmin={isGroupAdmin} isGroupOwner={isGroupOwner} me={me}
+                        onChat={openSingle} onSetAdmin={setAdminToggle} onRemove={removeMemberFromGroup} onTransfer={transferOwner}
+                        onInfoClick={(e, m) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMemberInfoPos({ x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 220) });
+                          setMemberInfo(memberInfo?.username === m.username ? null : m);
+                        }} />
+                    ))}
+                  </div>
+                )}
+
+                {/* 管理员 */}
+                {groupMembers.filter((gm) => gm.isAdmin && !gm.isOwner).length > 0 && (
+                  <div>
+                    <div className="px-4 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">管理员</div>
+                    {groupMembers.filter((gm) => gm.isAdmin && !gm.isOwner).map((gm: any) => (
+                      <MemberItem key={gm.username} gm={gm} isGroupAdmin={isGroupAdmin} isGroupOwner={isGroupOwner} me={me}
+                        onChat={openSingle} onSetAdmin={setAdminToggle} onRemove={removeMemberFromGroup} onTransfer={transferOwner}
+                        onInfoClick={(e, m) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMemberInfoPos({ x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 220) });
+                          setMemberInfo(memberInfo?.username === m.username ? null : m);
+                        }} />
+                    ))}
+                  </div>
+                )}
+
+                {/* 普通成员 */}
+                {groupMembers.filter((gm) => !gm.isAdmin && !gm.isOwner).length > 0 && (
+                  <div>
+                    <div className="px-4 py-1.5 bg-gray-50 text-[10px] text-gray-400 font-medium">成员</div>
+                    {groupMembers.filter((gm) => !gm.isAdmin && !gm.isOwner).map((gm: any) => (
+                      <MemberItem key={gm.username} gm={gm} isGroupAdmin={isGroupAdmin} isGroupOwner={isGroupOwner} me={me}
+                        onChat={openSingle} onSetAdmin={setAdminToggle} onRemove={removeMemberFromGroup} onTransfer={transferOwner}
+                        onInfoClick={(e, m) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMemberInfoPos({ x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 220) });
+                          setMemberInfo(memberInfo?.username === m.username ? null : m);
+                        }} />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

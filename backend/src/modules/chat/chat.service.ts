@@ -68,6 +68,7 @@ export class ChatService {
     if (!c) throw new ForbiddenException('会话不存在');
     if (c.type !== 'group') throw new ForbiddenException('仅群聊支持成员管理');
     if (!c.members.includes(requester)) throw new ForbiddenException('无权查看该群成员');
+    const admins = c.admins || [];
     return c.members.map((username: string) => {
       const u = this.dataService.getUserByUsername(username);
       return {
@@ -77,7 +78,9 @@ export class ChatService {
         department: u?.department || '',
         position: u?.position || '',
         avatar: u?.avatar || '',
+        phone: u?.phone || '',
         isOwner: c.owner === username,
+        isAdmin: admins.includes(username) || c.owner === username,
       };
     });
   }
@@ -160,6 +163,45 @@ export class ChatService {
       });
     }
     return { ok: true, members: updated?.members || [] };
+  }
+
+  setAdmin(conversationId: string, targetUsername: string, requester: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (c.type !== 'group') throw new ForbiddenException('仅群聊支持此操作');
+    if (!c.members.includes(requester)) throw new ForbiddenException('无权操作该群');
+    if (targetUsername === c.owner) throw new ForbiddenException('群主无需设置管理员');
+    const isOwner = c.owner === requester;
+    if (!isOwner) throw new ForbiddenException('仅群主可设置管理员');
+    if (!c.members.includes(targetUsername)) throw new ForbiddenException('该用户不在群中');
+    if (!c.admins) c.admins = [];
+    const idx = c.admins.indexOf(targetUsername);
+    if (idx >= 0) {
+      c.admins.splice(idx, 1);
+    } else {
+      c.admins.push(targetUsername);
+    }
+    this.dataService.updateConversation(conversationId, { admins: c.admins });
+    const action = idx >= 0 ? 'cancel_admin' : 'set_admin';
+    this.emit('chat:members-changed', { conversationId, members: c.members, action, target: targetUsername, by: requester });
+    return { ok: true, admins: c.admins, action };
+  }
+
+  transferOwner(conversationId: string, targetUsername: string, requester: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (c.type !== 'group') throw new ForbiddenException('仅群聊支持此操作');
+    if (c.owner !== requester) throw new ForbiddenException('仅群主可转让群主');
+    if (targetUsername === requester) throw new ForbiddenException('不能转让给自己');
+    if (!c.members.includes(targetUsername)) throw new ForbiddenException('该用户不在群中');
+    const oldOwner = c.owner;
+    c.owner = targetUsername;
+    if (!c.admins) c.admins = [];
+    // 新群主加入管理员列表，旧群主保留在管理员列表
+    if (!c.admins.includes(targetUsername)) c.admins.push(targetUsername);
+    this.dataService.updateConversation(conversationId, { owner: c.owner, admins: c.admins });
+    this.emit('chat:members-changed', { conversationId, members: c.members, action: 'transfer_owner', target: targetUsername, from: oldOwner, by: requester });
+    return { ok: true, owner: c.owner, admins: c.admins };
   }
 
   // ── 消息 ──
