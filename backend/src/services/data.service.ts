@@ -82,47 +82,116 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'g4', type: 'group', name: '安全管理群', members: ['admin', 'test5', 'test7', 'test55', 'test56'], admins: ['test5'], owner: 'admin', createdAt: new Date(now - 86400000 * 2).toISOString() },
     { id: 'g5', type: 'group', name: '综合事务群', members: ['admin', 'manager', 'test6', 'test8', 'test49'], admins: ['manager'], owner: 'admin', createdAt: new Date(now - 86400000 * 1).toISOString() },
     // 单聊
-    { id: 's1', type: 'single', name: 'test5', members: ['test5', 'test7'], owner: 'test5', createdAt: new Date(now - 86400000 * 4).toISOString() },
-    { id: 's2', type: 'single', name: 'test1', members: ['test1', 'test4'], owner: 'test1', createdAt: new Date(now - 86400000 * 3).toISOString() },
-    { id: 's3', type: 'single', name: 'test9', members: ['test9', 'test10'], owner: 'test9', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 's4', type: 'single', name: 'test6', members: ['test6', 'test8'], owner: 'test6', createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 's5', type: 'single', name: 'test2', members: ['test2', 'test4'], owner: 'test2', createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 's1', type: 'single', name: 'test5', members: ['admin', 'test5', 'test7'], owner: 'test5', createdAt: new Date(now - 86400000 * 4).toISOString() },
+    { id: 's2', type: 'single', name: 'test1', members: ['admin', 'test1', 'test4'], owner: 'test1', createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 's3', type: 'single', name: 'test9', members: ['admin', 'test9', 'test10'], owner: 'test9', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's4', type: 'single', name: 'test6', members: ['admin', 'test6', 'test8'], owner: 'test6', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 's5', type: 'single', name: 'test2', members: ['admin', 'test2', 'test4'], owner: 'test2', createdAt: new Date(now - 3600000 * 12).toISOString() },
   ];
 
   const chatMessages = [
-    // ── 部门群消息 ──
+    // ── 集团总部群消息 ──
     { id: 'dgm1', conversationId: 'dg_hq', sender: 'admin', content: '集团总部各位同事，本周五下午召开季度总结会', type: 'text', readBy: ['admin','manager','test1'], createdAt: new Date(now - 86400000 * 2).toISOString() },
     { id: 'dgm2', conversationId: 'dg_hq', sender: 'manager', content: '收到，我准备汇报材料', type: 'text', readBy: ['admin','manager'], createdAt: new Date(now - 86400000 * 2 + 600000).toISOString() },
-    { id: 'dgm3', conversationId: 'dg_biz', sender: 'test9', content: '业务部门本月新签合同3份，总额2.8亿', type: 'text', readBy: ['test9','test59'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm4', conversationId: 'dg_sub', sender: 'test10', content: '各子公司注意：下月启动年度审计', type: 'text', readBy: ['test10','test71'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm5', conversationId: 'dg_proj', sender: 'test86', content: '项目部本月在建项目7个，请各项目经理报送进度', type: 'text', readBy: ['test86','test92'], createdAt: new Date(now - 3600000 * 12).toISOString() },
-    { id: 'dgm6', conversationId: 'dg_hq_fin', sender: 'test4', content: '财务部：请各位同事8月25日前完成报销', type: 'text', readBy: ['test4'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm7', conversationId: 'dg_hq_saf', sender: 'test5', content: '安全月检查结果已出，发现2项隐患需整改', type: 'text', readBy: ['test5','test55'], createdAt: new Date(now - 3600000 * 8).toISOString() },
-    { id: 'dgm8', conversationId: 'dg_sub1', sender: 'test10', content: '一公司本月产值目标1200万，进度如何？', type: 'text', readBy: ['test10'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'dgm9', conversationId: 'dg_sub2', sender: 'test71', content: '二公司滨江大桥项目进度正常', type: 'text', readBy: ['test71'], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    { id: 'dgm3', conversationId: 'dg_hq', sender: 'test1', content: '总裁办已将会议议程发给各部门', type: 'text', readBy: ['admin','test1'], createdAt: new Date(now - 86400000 * 2 + 1200000).toISOString() },
+    { id: 'dgm4', conversationId: 'dg_hq', sender: 'admin', content: '请各部门负责人提前准备PPT汇报', type: 'encrypted', readBy: ['admin','manager','test1'], encrypted: true, createdAt: new Date(now - 86400000 * 2 + 1800000).toISOString() },
+    // ── 业务部门群消息 ──
+    { id: 'dgm5', conversationId: 'dg_biz', sender: 'test9', content: '业务部门本月新签合同3份，总额2.8亿', type: 'text', readBy: ['test9','test59'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm6', conversationId: 'dg_biz', sender: 'test59', content: '市场部的同事们辛苦了，继续加油', type: 'text', readBy: ['test59'], createdAt: new Date(now - 86400000 * 1 + 600000).toISOString() },
+    // ── 分子公司群消息 ──
+    { id: 'dgm7', conversationId: 'dg_sub', sender: 'test10', content: '各子公司注意：下月启动年度审计', type: 'text', readBy: ['test10','test71'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm8', conversationId: 'dg_sub', sender: 'test71', content: '二公司审计资料已准备完毕', type: 'text', readBy: ['test71'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    // ── 项目部群消息 ──
+    { id: 'dgm9', conversationId: 'dg_proj', sender: 'test86', content: '项目部本月在建项目7个，请各项目经理报送进度', type: 'text', readBy: ['test86','test92'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 'dgm10', conversationId: 'dg_proj', sender: 'test92', content: '滨江大桥项目进度正常，预计月底前完成桩基施工', type: 'text', readBy: ['test92'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    // ── 部门子群消息 ──
+    { id: 'dgm11', conversationId: 'dg_hq_fin', sender: 'test4', content: '财务部：请各位同事8月25日前完成报销', type: 'text', readBy: ['test4'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'dgm12', conversationId: 'dg_hq_saf', sender: 'test5', content: '安全月检查结果已出，发现2项隐患需整改', type: 'text', readBy: ['test5','test55'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    { id: 'dgm13', conversationId: 'dg_hq_qua', sender: 'test7', content: '质量部：上周抽查发现3处质量问题，已下发整改通知', type: 'text', readBy: ['test7','test57'], createdAt: new Date(now - 3600000 * 6).toISOString() },
     // ── 城南地铁站项目群 ──
     { id: 'cm1', conversationId: 'g1', sender: 'admin', content: '各位，城南地铁站主体结构验收安排在下周三', type: 'text', readBy: ['admin','test86','test87'], createdAt: new Date(now - 86400000 * 6).toISOString() },
     { id: 'cm2', conversationId: 'g1', sender: 'test86', content: '收到，我提前准备好验收资料', type: 'text', readBy: ['admin','test86'], createdAt: new Date(now - 86400000 * 6 + 600000).toISOString() },
     { id: 'cm3', conversationId: 'g1', sender: 'test87', content: '技术方案已经过监理审核，没问题', type: 'text', readBy: ['admin','test87'], createdAt: new Date(now - 86400000 * 5).toISOString() },
     { id: 'cm4', conversationId: 'g1', sender: 'test88', content: '现场钢筋绑扎已完成，等待验收', type: 'text', readBy: ['admin','test88'], createdAt: new Date(now - 86400000 * 4).toISOString() },
+    { id: 'cm5', conversationId: 'g1', sender: 'test89', content: '混凝土浇筑计划已排好，明天开始', type: 'text', readBy: ['test89'], createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'cm6', conversationId: 'g1', sender: 'admin', content: '验收通过，进度良好，继续推进', type: 'text', readBy: ['admin'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    // 城南地铁站群阅后即焚消息
+    { id: 'cm_f1', conversationId: 'g1', sender: 'admin', content: 'test86，验收数据先别提交，等我确认后再报', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'test86', readBy: ['admin'], createdAt: new Date(now - 3600000 * 3).toISOString() },
+    // 城南地铁站群加密消息
+    { id: 'cm_e1', conversationId: 'g1', sender: 'test86', content: '项目成本预算：总投入8500万，分包合同已签', type: 'text', encrypted: true, readBy: ['test86'], createdAt: new Date(now - 3600000 * 2).toISOString() },
     // ── 滨江大桥项目群 ──
     { id: 'cm7', conversationId: 'g2', sender: 'test92', content: '滨江大桥桩基检测报告已出，全部合格', type: 'text', readBy: ['admin','test92'], createdAt: new Date(now - 86400000 * 4).toISOString() },
     { id: 'cm8', conversationId: 'g2', sender: 'test93', content: '好的，下一步墩柱施工准备', type: 'text', readBy: ['admin','test93'], createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'cm9', conversationId: 'g2', sender: 'test94', content: '模板进场，可以开始墩柱施工', type: 'text', readBy: ['test94'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'cm10', conversationId: 'g2', sender: 'test95', content: '电焊作业已完成，质量检查通过', type: 'text', readBy: ['test95'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    // 滨江大桥群阅后即焚消息
+    { id: 'cm_f2', conversationId: 'g2', sender: 'test92', content: '业主那边透露预算可以到1.3亿，别往外说', type: 'text', burn: true, burnSeconds: 60, burnTarget: 'test93', readBy: ['test92'], createdAt: new Date(now - 3600000 * 5).toISOString() },
+    { id: 'cm_f3', conversationId: 'g2', sender: 'test93', content: '分包报价有3家，最低价是850万', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'test92', readBy: ['test93'], createdAt: new Date(now - 3600000 * 2).toISOString() },
+    // ── 地铁3号线项目群 ──
+    { id: 'cm11', conversationId: 'g3', sender: 'test98', content: '3号线二期地质勘察报告已完成', type: 'text', readBy: ['admin','test98','test99'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'cm12', conversationId: 'g3', sender: 'test99', content: '投资估算已编制完成，总预算约98亿', type: 'text', readBy: ['admin','test99'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm13', conversationId: 'g3', sender: 'admin', content: '很好，准备上报集团审批', type: 'text', readBy: ['admin','test98'], createdAt: new Date(now - 3600000 * 5).toISOString() },
+    // 地铁3号线群阅后即焚消息
+    { id: 'cm_f4', conversationId: 'g3', sender: 'test98', content: '投标预算调整到95亿，别跟其他人说具体数字', type: 'text', burn: true, burnSeconds: 15, burnTarget: 'test99', readBy: ['test98'], createdAt: new Date(now - 3600000 * 1).toISOString() },
+    // ── 城北道路群 ──
+    { id: 'cm14', conversationId: 'g6', sender: 'test101', content: '城北道路改造施工方案已通过专家评审', type: 'text', readBy: ['admin','test101'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm15', conversationId: 'g6', sender: 'test102', content: '测量放线已完成，坐标已复核', type: 'text', readBy: ['test102'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    // ── 高铁站群 ──
+    { id: 'cm16', conversationId: 'g7', sender: 'test103', content: '高铁站基坑开挖方案已报监理审批', type: 'text', readBy: ['admin','test103'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm17', conversationId: 'g7', sender: 'test104', content: '土方运输路线已确定，预计下周进场', type: 'text', readBy: ['test104'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    // ── 城南商业群 ──
+    { id: 'cm18', conversationId: 'g8', sender: 'test105', content: '城南商业综合体模板采购清单已提交', type: 'text', readBy: ['admin','test105'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm19', conversationId: 'g8', sender: 'test106', content: '供应商报价已收到，比价表整理中', type: 'text', readBy: ['test106'], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    // ── 城北学校群 ──
+    { id: 'cm20', conversationId: 'g9', sender: 'test107', content: '城北学校扩建地勘报告已出，场地条件良好', type: 'text', readBy: ['admin','test107'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'cm21', conversationId: 'g9', sender: 'test108', content: '教学楼结构计算已完成，等设计院确认', type: 'text', readBy: ['test108'], createdAt: new Date(now - 3600000 * 5).toISOString() },
     // ── 安全管理群 ──
-    { id: 'cm14', conversationId: 'g4', sender: 'test5', content: '本月安全检查发现3项隐患，已下发整改通知', type: 'text', readBy: ['admin','test5'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg1', conversationId: 'g4', sender: 'test5', content: '本月安全检查发现3项隐患，已下发整改通知', type: 'text', readBy: ['admin','test5','test7'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg2', conversationId: 'g4', sender: 'test7', content: '质量管理部已配合完成安全检查', type: 'text', readBy: ['test7'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    { id: 'smg3', conversationId: 'g4', sender: 'test55', content: '城南站基坑临边防护已修复完毕', type: 'text', readBy: ['admin','test55'], createdAt: new Date(now - 3600000 * 4).toISOString() },
+    { id: 'smg4', conversationId: 'g4', sender: 'test56', content: '滨江大桥高处作业安全带配发到位', type: 'text', readBy: ['test56'], createdAt: new Date(now - 3600000 * 2).toISOString() },
+    // 安全管理群阅后即焚
+    { id: 'smg_f1', conversationId: 'g4', sender: 'test5', content: '上个月的安全事故报告先别公开，等调查清楚再说', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'test7', readBy: ['test5'], createdAt: new Date(now - 3600000 * 1).toISOString() },
     // ── 综合事务群 ──
-    { id: 'cm17', conversationId: 'g5', sender: 'manager', content: '下周一下午2点全员例会，请准时参加', type: 'text', readBy: ['admin','manager'], createdAt: new Date(now - 86400000 * 1).toISOString() },
-    // ── 单聊 ──
-    { id: 'sm1', conversationId: 's1', sender: 'test5', content: '吴刚，明天城南站有个高处作业，你去检查一下', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 5).toISOString() },
-    { id: 'sm2', conversationId: 's1', sender: 'test7', content: '好的，我上午过去', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 4).toISOString() },
-    { id: 'sm6', conversationId: 's2', sender: 'test1', content: '赵丽，3号线的投标报价你核对了吗？', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 6).toISOString() },
-    { id: 'sm7', conversationId: 's2', sender: 'test4', content: '核对了，总价没问题', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 5).toISOString() },
-    { id: 'sm11', conversationId: 's3', sender: 'test9', content: '马师傅，明天几点到场？', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 8).toISOString() },
-    { id: 'sm12', conversationId: 's3', sender: 'test10', content: '早上7点，钢筋班组全员到', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 7).toISOString() },
-    { id: 'sm15', conversationId: 's4', sender: 'test6', content: '郑敏，这个月办公用品采购单你帮我审一下', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 10).toISOString() },
-    { id: 'sm16', conversationId: 's4', sender: 'test8', content: '好的，发过来我看看', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 9).toISOString() },
-    { id: 'sm18', conversationId: 's5', sender: 'test2', content: '赵丽，城北道路那个变更签证的费用什么时候能批？', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 12).toISOString() },
-    { id: 'sm19', conversationId: 's5', sender: 'test4', content: '财务这边已经审核完了，等总经理签字', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 11).toISOString() },
+    { id: 'smg5', conversationId: 'g5', sender: 'manager', content: '下周一下午2点全员例会，请准时参加', type: 'text', readBy: ['admin','manager','test6'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'smg6', conversationId: 'g5', sender: 'test8', content: '会议室已预定，第三会议室', type: 'text', readBy: ['admin','test8'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 'smg7', conversationId: 'g5', sender: 'test6', content: '报销审批流程已更新，请大家注意新规定', type: 'text', readBy: ['admin','test6'], createdAt: new Date(now - 3600000 * 3).toISOString() },
+    // ── 单聊：test5 ↔ test7（安全员交流） ──
+    { id: 's1m1', conversationId: 's1', sender: 'test5', content: '吴刚，明天城南站有个高处作业，你去检查一下', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 5).toISOString() },
+    { id: 's1m2', conversationId: 's1', sender: 'test7', content: '好的，我上午过去，需要带什么资料？', type: 'text', readBy: ['test5','test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 4).toISOString() },
+    { id: 's1m3', conversationId: 's1', sender: 'test5', content: '带上检查表和整改通知书模板', type: 'text', readBy: ['test5'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 3).toISOString() },
+    { id: 's1m4', conversationId: 's1', sender: 'test7', content: '收到', type: 'text', readBy: ['test7'], createdAt: new Date(now - 86400000 * 3 - 3600000 * 2).toISOString() },
+    // 单聊阅后即焚
+    { id: 's1m5', conversationId: 's1', sender: 'test5', content: '上次那个安全隐患的处理结果别在外面说，内部掌握', type: 'text', burn: true, burnSeconds: 30, readBy: [], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's1m6', conversationId: 's1', sender: 'test7', content: '明白，我会注意', type: 'text', readBy: ['test7'], createdAt: new Date(now - 86400000 * 2 + 3600000).toISOString() },
+    // ── 单聊：test1 ↔ test4（商务沟通） ──
+    { id: 's2m1', conversationId: 's2', sender: 'test1', content: '赵丽，3号线的投标报价你核对了吗？', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 6).toISOString() },
+    { id: 's2m2', conversationId: 's2', sender: 'test4', content: '核对了，总价没问题，分包部分我调了一下', type: 'text', readBy: ['test1','test4'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 5).toISOString() },
+    { id: 's2m3', conversationId: 's2', sender: 'test1', content: '好，那我明天提交', type: 'text', readBy: ['test1'], createdAt: new Date(now - 86400000 * 2 - 3600000 * 4).toISOString() },
+    // 单聊阅后即焚
+    { id: 's2m4', conversationId: 's2', sender: 'test1', content: '业主那边透露预算可以到105亿，你心里有数就行', type: 'text', burn: true, burnSeconds: 60, readBy: [], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 's2m5', conversationId: 's2', sender: 'test4', content: '明白，我按这个数来谈', type: 'text', readBy: ['test4'], createdAt: new Date(now - 86400000 * 2 + 3600000).toISOString() },
+    // ── 单聊：test9 ↔ test10（外协工人） ──
+    { id: 's3m1', conversationId: 's3', sender: 'test9', content: '马师傅，明天几点到场？', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 8).toISOString() },
+    { id: 's3m2', conversationId: 's3', sender: 'test10', content: '早上7点，钢筋班组全员到', type: 'text', readBy: ['test9','test10'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 7).toISOString() },
+    { id: 's3m3', conversationId: 's3', sender: 'test9', content: '好，注意安全帽和反光背心都要带', type: 'text', readBy: ['test9'], createdAt: new Date(now - 86400000 * 1 - 3600000 * 6).toISOString() },
+    // 单聊阅后即焚
+    { id: 's3m4', conversationId: 's3', sender: 'test10', content: '上次那个量方的事，帮我多报了2方，别跟别人讲', type: 'text', burn: true, burnSeconds: 15, readBy: [], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    // ── 单聊：test6 ↔ test8（物资与行政） ──
+    { id: 's4m1', conversationId: 's4', sender: 'test6', content: '郑敏，这个月办公用品采购单你帮我审一下', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 's4m2', conversationId: 's4', sender: 'test8', content: '好的，发过来我看看', type: 'text', readBy: ['test6','test8'], createdAt: new Date(now - 3600000 * 9).toISOString() },
+    { id: 's4m3', conversationId: 's4', sender: 'test6', content: '已经发到你邮箱了', type: 'text', readBy: ['test6'], createdAt: new Date(now - 3600000 * 8).toISOString() },
+    // ── 单聊：test2 ↔ test4（技术与财务） ──
+    { id: 's5m1', conversationId: 's5', sender: 'test2', content: '赵丽，城北道路那个变更签证的费用什么时候能批？', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 12).toISOString() },
+    { id: 's5m2', conversationId: 's5', sender: 'test4', content: '财务这边已经审核完了，等总经理签字', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 11).toISOString() },
+    { id: 's5m3', conversationId: 's5', sender: 'test2', content: '大概什么时候能到账？', type: 'text', readBy: ['test2'], createdAt: new Date(now - 3600000 * 10).toISOString() },
+    { id: 's5m4', conversationId: 's5', sender: 'test4', content: '签字完3个工作日内付款', type: 'text', readBy: ['test2','test4'], createdAt: new Date(now - 3600000 * 9).toISOString() },
+    // 单聊阅后即焚
+    { id: 's5m5', conversationId: 's5', sender: 'test2', content: '那个分包队的结算单你帮我先压一下，别急着付', type: 'text', burn: true, burnSeconds: 30, readBy: [], createdAt: new Date(now - 3600000 * 6).toISOString() },
+    // ── 加密消息测试 ──
+    { id: 'em1', conversationId: 's1', sender: 'test5', content: '安全检查发现重大隐患，详情电话沟通', type: 'text', encrypted: true, readBy: ['test5'], createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'em2', conversationId: 's2', sender: 'test1', content: '投标底价95亿，不能泄露', type: 'text', encrypted: true, readBy: ['test1'], createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'em3', conversationId: 'g1', sender: 'test86', content: '项目成本控制目标：利润率不低于8%', type: 'text', encrypted: true, readBy: ['test86'], createdAt: new Date(now - 3600000 * 4).toISOString() },
   ];
 
   collections['suppliers'] = [
