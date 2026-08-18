@@ -119,6 +119,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'cm7', conversationId: 'g1', sender: 'admin', content: '验收通过，进度良好，继续推进', type: 'text', readBy: ['admin'], createdAt: new Date(now - 86400000 * 1).toISOString() },
     // 清河水库群阅后即焚消息
     { id: 'cm_f1', conversationId: 'g1', sender: 'admin', content: 'test86，坝体渗透系数数据先别上报，等我复核后再报水利厅', type: 'text', burn: true, burnSeconds: 30, burnTarget: 'test86', readBy: ['admin'], createdAt: new Date(now - 3600000 * 3).toISOString() },
+    // 清河水库群阅后即焚消息（发给admin）
+    { id: 'cm_f5', conversationId: 'g1', sender: 'test86', content: 'admin，南水北调项目二期预算有调整，具体内容私聊，此消息阅后即焚', type: 'text', burn: true, burnSeconds: 60, burnTarget: 'admin', readBy: ['test86'], createdAt: new Date(now - 3600000 * 1).toISOString() },
     // 清河水库群加密消息
     { id: 'cm_e1', conversationId: 'g1', sender: 'test86', content: '水库除险加固总预算：总投资6800万，专项资金已到位', type: 'text', encrypted: true, readBy: ['test86'], createdAt: new Date(now - 3600000 * 4).toISOString() },
     // ── 南水北调项目群 ──

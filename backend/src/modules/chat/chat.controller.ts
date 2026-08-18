@@ -257,4 +257,10 @@ export class ChatController {
     this.dataService.logAudit({ action: '删除联系人', module: 'chat/contacts', operator: this.username(req), role: me?.role, detail: { target: username } });
     return { message: `已删除用户${username}` };
   }
+
+  // 揭示阅后即焚消息
+  @Post('conversations/:id/reveal/:messageId')
+  revealMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest) {
+    return this.chatService.revealMessage(this.username(req), id, messageId);
+  }
 }
