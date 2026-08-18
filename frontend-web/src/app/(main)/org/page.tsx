@@ -37,6 +37,8 @@ interface Department {
   sortOrder: number;
   children: Department[];
   positions: Position[];
+  memberCount?: number;
+  members?: Array<{ username: string; name: string; position: string; role: string; isHead?: boolean; isDeputy?: boolean }>;
 }
 
 interface Position {
@@ -358,18 +360,37 @@ export default function OrgChartPage() {
             <div
               className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-gray-100 rounded cursor-pointer text-sm"
               style={{ paddingLeft: `${depth * 16 + 8}px` }}
+              onClick={() => setExpandedDepts((prev) => {
+                const next = new Set(prev);
+                if (next.has(dept.id)) next.delete(dept.id);
+                else next.add(dept.id);
+                return next;
+              })}
             >
-              {dept.children?.length > 0 ? (
+              {(dept.children?.length || 0) > 0 || (dept.members?.length || 0) > 0 ? (
                 expandedDepts.has(dept.id) ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />
               ) : <div className="w-3.5" />}
               <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span className="truncate flex-1" onClick={() => {
-                // Center view on this department
-              }}>{dept.name}</span>
+              <span className="truncate flex-1">{dept.name}</span>
               <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.memberCount || 0}人</Badge>
             </div>
-            {expandedDepts.has(dept.id) && dept.children?.length > 0 && (
-              <DeptList depts={dept.children} depth={depth + 1} />
+            {expandedDepts.has(dept.id) && (
+              <div>
+                {dept.members?.map((m) => (
+                  <div key={m.username} className="flex items-center gap-2 px-2 py-1 pl-8 hover:bg-gray-50 rounded text-xs">
+                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
+                      {m.name?.[0] || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium">{m.name}</span>
+                      <span className="text-gray-400 ml-1">{m.position}</span>
+                    </div>
+                    {m.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 rounded">负责人</span>}
+                    {m.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 rounded">副职</span>}
+                  </div>
+                ))}
+                {dept.children?.length > 0 && <DeptList depts={dept.children} depth={depth + 1} />}
+              </div>
             )}
           </div>
         ))}
