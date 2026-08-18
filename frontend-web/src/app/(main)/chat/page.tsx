@@ -31,6 +31,26 @@ const ROLE_LEVELS: Record<string, number> = {
   super_admin: 100, high_admin: 80, general_admin: 60, employee: 40, outsource: 10,
 };
 
+function formatTime(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return time;
+  if (isYesterday) return '昨天 ' + time;
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + time;
+}
+
+function formatMsgTime(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
 function MemberItem({ gm, isGroupAdmin, isGroupOwner, me, onChat, onSetAdmin, onRemove, onTransfer, onInfoClick }: {
   gm: any; isGroupAdmin: boolean; isGroupOwner: boolean; me: any;
   onChat: (u: string) => void; onSetAdmin: (u: string) => void; onRemove: (u: string) => void; onTransfer: (u: string) => void;
@@ -579,7 +599,7 @@ export default function ChatPage() {
                          <div className="flex-1 min-w-0">
                            <div className="flex items-center justify-between">
                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
                            </div>
                            <div className="flex items-center gap-1 mt-0.5">
                              <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
@@ -620,7 +640,7 @@ export default function ChatPage() {
                          <div className="flex-1 min-w-0">
                            <div className="flex items-center justify-between">
                              <span className="text-sm font-medium text-gray-900 truncate">{displayName}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
@@ -655,7 +675,7 @@ export default function ChatPage() {
                          <div className="flex-1 min-w-0">
                            <div className="flex items-center justify-between">
                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
                            </div>
                            <div className="flex items-center gap-1 mt-0.5">
                              <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
@@ -937,7 +957,7 @@ export default function ChatPage() {
                           </div>
                           <p className="break-words">{m.content}</p>
                           <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-                            <span className="text-[10px] text-amber-500">{new Date(m.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[10px] text-amber-500">{formatMsgTime(m.createdAt)}</span>
                             {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-amber-400" /> : <Check className="w-3 h-3 text-amber-400" />)}
                           </div>
                         </div>
@@ -970,7 +990,7 @@ export default function ChatPage() {
                           {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">已加密</span></div>)}
                           <p className="break-words">{m.content}</p>
                           <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-                            <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{new Date(m.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt)}</span>
                             {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-blue-100" /> : <Check className="w-3 h-3 text-blue-100" />)}
                           </div>
                         </div>
