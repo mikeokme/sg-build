@@ -72,13 +72,13 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'dg_sub4',    type: 'group', name: '四公司群',     category: 'department', departmentId: 'sub4', members: ['test81','test82','test83','test84','test85'], admins: ['test82'], owner: 'test81', createdAt: new Date(now - 86400000 * 7).toISOString() },
     // ── 水利项目部群（category: 'project'）──
     // 项目部群：项目经理为群主，副经理+技术负责人为管理员，五大员为成员
-    { id: 'g1', type: 'group', name: '清河水库群', category: 'project', projectId: 'p1', members: ['admin','test86','test87','test88','test89','test90','test91'], admins: ['test87','test88'], owner: 'test86', createdAt: new Date(now - 86400000 * 7).toISOString() },
-    { id: 'g2', type: 'group', name: '南水北调群', category: 'project', projectId: 'p2', members: ['admin','test92','test93','test94','test95','test96','test97'], admins: ['test93','test94'], owner: 'test92', createdAt: new Date(now - 86400000 * 5).toISOString() },
-    { id: 'g3', type: 'group', name: '流域治理群', category: 'project', projectId: 'p4', members: ['admin','test98','test99','test100'], admins: ['test99'], owner: 'test98', createdAt: new Date(now - 86400000 * 3).toISOString() },
-    { id: 'g6', type: 'group', name: '农田水利群', category: 'project', projectId: 'p5', members: ['admin','test101','test102'], admins: [], owner: 'test101', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 'g7', type: 'group', name: '水文监测群', category: 'project', projectId: 'p8', members: ['admin','test103','test104'], admins: [], owner: 'test103', createdAt: new Date(now - 86400000 * 2).toISOString() },
-    { id: 'g8', type: 'group', name: '生态廊道群', category: 'project', projectId: 'p9', members: ['admin','test105','test106'], admins: [], owner: 'test105', createdAt: new Date(now - 86400000 * 1).toISOString() },
-    { id: 'g9', type: 'group', name: '山区水库群', category: 'project', projectId: 'p11', members: ['admin','test107','test108'], admins: [], owner: 'test107', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'g1', type: 'group', name: '清河水库群', category: 'project', projectId: 'p1', members: ['admin','test86','test87','test88','test89','test90','test91','test109','test110'], admins: ['test87','test88'], owner: 'test86', createdAt: new Date(now - 86400000 * 7).toISOString() },
+    { id: 'g2', type: 'group', name: '南水北调群', category: 'project', projectId: 'p2', members: ['admin','test92','test93','test94','test95','test96','test97','test111','test112'], admins: ['test93','test94'], owner: 'test92', createdAt: new Date(now - 86400000 * 5).toISOString() },
+    { id: 'g3', type: 'group', name: '流域治理群', category: 'project', projectId: 'p4', members: ['admin','test98','test99','test100','test113','test114'], admins: ['test99'], owner: 'test98', createdAt: new Date(now - 86400000 * 3).toISOString() },
+    { id: 'g6', type: 'group', name: '农田水利群', category: 'project', projectId: 'p5', members: ['admin','test101','test102','test115','test116'], admins: [], owner: 'test101', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'g7', type: 'group', name: '水文监测群', category: 'project', projectId: 'p8', members: ['admin','test103','test104','test117'], admins: [], owner: 'test103', createdAt: new Date(now - 86400000 * 2).toISOString() },
+    { id: 'g8', type: 'group', name: '生态廊道群', category: 'project', projectId: 'p9', members: ['admin','test105','test106','test118'], admins: [], owner: 'test105', createdAt: new Date(now - 86400000 * 1).toISOString() },
+    { id: 'g9', type: 'group', name: '山区水库群', category: 'project', projectId: 'p11', members: ['admin','test107','test108','test119'], admins: [], owner: 'test107', createdAt: new Date(now - 86400000 * 1).toISOString() },
     // ── 普通群聊 ──
     { id: 'g4', type: 'group', name: '安全管理群', members: ['admin', 'test5', 'test7', 'test55', 'test56'], admins: ['test5'], owner: 'admin', createdAt: new Date(now - 86400000 * 2).toISOString() },
     { id: 'g5', type: 'group', name: '综合事务群', members: ['admin', 'manager', 'test6', 'test8', 'test49'], admins: ['manager'], owner: 'admin', createdAt: new Date(now - 86400000 * 1).toISOString() },
