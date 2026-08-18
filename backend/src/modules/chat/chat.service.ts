@@ -61,6 +61,7 @@ export class ChatService {
         type: c.type,
         name: c.name,
         category: c.category || '',
+        departmentId: c.departmentId || '',
         projectId: c.projectId || '',
         members: c.members,
         owner: c.owner,

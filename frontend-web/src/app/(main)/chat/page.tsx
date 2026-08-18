@@ -545,17 +545,12 @@ export default function ChatPage() {
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
   const groupAll = filteredConvs.filter((c) => c.type === 'group');
-  // 1.2.1 集团业务群：总部/高管层级
   const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
   const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
-  // 1.2.2 部门工作群：职能部门 department
-  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || '') && !(c.departmentId || '').startsWith('proj-') && !(c.departmentId || '').startsWith('branch-') && !(c.departmentId || '').startsWith('sub-') && !(c.departmentId || '').startsWith('co-'));
-  // 1.2.3 分子公司群
+  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
   const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-') || (c.departmentId || '').startsWith('co-'));
-  // 1.2.4 项目部群
   const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
-  // 1.2.5 自建群：无 category
-  const customConvs = groupAll.filter((c) => !c.category);
+  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c));
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-white rounded-xl border border-gray-200 overflow-hidden">
