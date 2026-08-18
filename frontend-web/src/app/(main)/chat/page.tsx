@@ -143,7 +143,7 @@ export default function ChatPage() {
   // 通讯录 tab：'messages' | 'contacts'
   const [leftTab, setLeftTab] = useState<'messages' | 'contacts'>('messages');
   const [contactSearch, setContactSearch] = useState('');
-  const [convSections, setConvSections] = useState<Record<string, boolean>>({ single: false, hq: false, dept: false, sub: false, proj: false, custom: false });
+  const [convSections, setConvSections] = useState<Record<string, boolean>>({ single: false, hq: false, sub: false, proj: false, dept: false, co: false, custom: false });
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
@@ -545,12 +545,19 @@ export default function ChatPage() {
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
   const groupAll = filteredConvs.filter((c) => c.type === 'group');
+  // 集团工作组：总部及高管层级
   const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
   const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
-  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
-  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-') || (c.departmentId || '').startsWith('co-'));
+  // 分子公司组：分公司(sub-*) + 子公司(branch-*)
+  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-'));
+  // 项目部组：工程项目部
   const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
-  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c));
+  // 集团部门组：职能部门（category=department，非总部层级）
+  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
+  // 号码公司组：一二三公司(co-*)
+  const coConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('co-'));
+  // 自建群
+  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c) && !coConvs.includes(c));
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -644,14 +651,14 @@ export default function ChatPage() {
                     <span className="text-xs font-bold text-gray-700">群聊</span>
                     <span className="text-[10px] text-gray-400">{groupAll.length}</span>
                   </div>
-                  {/* 1.2.1 集团业务群 */}
+                  {/* 1.2.1 集团工作组 */}
                   {hqConvs.length > 0 && (
                     <div>
                       <div onClick={() => setConvSections((p) => ({ ...p, hq: !p.hq }))}
                         className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
                         <span className={`text-[10px] text-gray-400 transition-transform ${convSections.hq !== false ? 'rotate-90' : ''}`}>▶</span>
                         <span className="text-[10px]">🏛</span>
-                        <span className="text-[11px] font-medium text-gray-500">集团业务群</span>
+                        <span className="text-[11px] font-medium text-gray-500">集团工作组</span>
                         <span className="text-[10px] text-gray-400">{hqConvs.length}</span>
                       </div>
                       {convSections.hq !== false && hqConvs.map((c) => (
@@ -670,40 +677,14 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
-                  {/* 1.2.2 部门工作群 */}
-                  {deptConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, dept: !p.dept }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.dept !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">📋</span>
-                        <span className="text-[11px] font-medium text-gray-500">部门工作群</span>
-                        <span className="text-[10px] text-gray-400">{deptConvs.length}</span>
-                      </div>
-                      {convSections.dept !== false && deptConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.3 分子公司群 */}
+                  {/* 1.2.2 分子公司组 */}
                   {subConvs.length > 0 && (
                     <div>
                       <div onClick={() => setConvSections((p) => ({ ...p, sub: !p.sub }))}
                         className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
                         <span className={`text-[10px] text-gray-400 transition-transform ${convSections.sub !== false ? 'rotate-90' : ''}`}>▶</span>
                         <span className="text-[10px]">🏢</span>
-                        <span className="text-[11px] font-medium text-gray-500">分子公司群</span>
+                        <span className="text-[11px] font-medium text-gray-500">分子公司组</span>
                         <span className="text-[10px] text-gray-400">{subConvs.length}</span>
                       </div>
                       {convSections.sub !== false && subConvs.map((c) => (
@@ -722,14 +703,14 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
-                  {/* 1.2.4 项目部群 */}
+                  {/* 1.2.3 项目部组 */}
                   {projConvs.length > 0 && (
                     <div>
                       <div onClick={() => setConvSections((p) => ({ ...p, proj: !p.proj }))}
                         className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
                         <span className={`text-[10px] text-gray-400 transition-transform ${convSections.proj !== false ? 'rotate-90' : ''}`}>▶</span>
                         <span className="text-[10px]">🏗</span>
-                        <span className="text-[11px] font-medium text-gray-500">项目部群</span>
+                        <span className="text-[11px] font-medium text-gray-500">项目部组</span>
                         <span className="text-[10px] text-gray-400">{projConvs.length}</span>
                       </div>
                       {convSections.proj !== false && projConvs.map((c) => (
@@ -748,7 +729,59 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
-                  {/* 1.2.5 自建群 */}
+                  {/* 1.2.4 集团部门组 */}
+                  {deptConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, dept: !p.dept }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.dept !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">📋</span>
+                        <span className="text-[11px] font-medium text-gray-500">集团部门组</span>
+                        <span className="text-[10px] text-gray-400">{deptConvs.length}</span>
+                      </div>
+                      {convSections.dept !== false && deptConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.5 号码公司组 */}
+                  {coConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, co: !p.co }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.co !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">🏭</span>
+                        <span className="text-[11px] font-medium text-gray-500">号码公司组</span>
+                        <span className="text-[10px] text-gray-400">{coConvs.length}</span>
+                      </div>
+                      {convSections.co !== false && coConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-orange-100 text-orange-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.6 自建群 */}
                   {customConvs.length > 0 && (
                     <div>
                       <div onClick={() => setConvSections((p) => ({ ...p, custom: !p.custom }))}
