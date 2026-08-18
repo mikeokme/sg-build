@@ -314,24 +314,6 @@ export default function ChatPage() {
       if (res.ok) {
         const convs = await res.json();
         setConvs(convs);
-        // 从通讯录 API 获取项目部组数据
-        const contactsRes = await fetch(`${API_BASE}/chat/contacts`, { headers: { Authorization: `Bearer ${token}` } });
-        if (contactsRes.ok) {
-          const contacts = await contactsRes.json();
-          const projectGroup = contacts.find((c: any) => c.id === '_project_group');
-          if (projectGroup) {
-            setProjectGroups([{
-              id: '_project_group',
-              name: '项目部组',
-              projectId: '',
-              members: projectGroup.members
-            }]);
-          } else {
-            setProjectGroups([]);
-          }
-        }
-        // 默认折叠所有项目部组
-        setProjectGroupSections({ _project_group: false });
       }
     } catch {}
   }, []);
@@ -527,8 +509,8 @@ export default function ChatPage() {
   const isGroupOwner = selectedConv?.owner === me?.username;
   const typingList = Array.from(typingUsers.entries()).filter(([u, t]) => Date.now() - t < 4000).map(([u]) => u);
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const projectConvs = filteredConvs.filter((c) => c.type === 'group' && c.category === 'project');
-  const groupConvs = filteredConvs.filter((c) => c.type === 'group' && c.category !== 'project');
+  const projectConvs = filteredConvs.filter((c) => c.type === 'group' && (c.category === 'project' || (c.departmentId || '').startsWith('proj-')));
+  const groupConvs = filteredConvs.filter((c) => c.type === 'group' && c.category !== 'project' && !(c.departmentId || '').startsWith('proj-'));
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
 
   return (

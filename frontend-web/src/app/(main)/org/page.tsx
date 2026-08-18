@@ -10,15 +10,14 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
-  type OnNodesChange,
-  type OnConnect,
   applyNodeChanges,
   applyEdgeChanges,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
   Building2, Plus, Pencil, Trash2, ChevronDown, ChevronRight,
-  Users, Phone, X, Save, UserPlus, GripVertical, Search,
+  Users, X, Save, UserPlus, Search, LayoutGrid, List,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +38,7 @@ interface Department {
   positions: Position[];
   memberCount?: number;
   members?: Array<{ username: string; name: string; position: string; role: string; isHead?: boolean; isDeputy?: boolean }>;
+  directMembers?: Array<{ username: string; name: string; position: string; role: string; isHead?: boolean; isDeputy?: boolean }>;
 }
 
 interface Position {
@@ -57,63 +57,101 @@ function DepartmentNode({ data }: { data: any }) {
   const onEdit = data.onEdit;
   const onDelete = data.onDelete;
   const onAddPosition = data.onAddPosition;
+  const [membersExpanded, setMembersExpanded] = useState(false);
 
-  const levelColors: Record<number, string> = {
-    100: 'bg-gradient-to-br from-blue-600 to-blue-800',
-    80: 'bg-gradient-to-br from-blue-500 to-blue-700',
-    60: 'bg-gradient-to-br from-blue-400 to-blue-600',
-    40: 'bg-gradient-to-br from-blue-300 to-blue-500',
-  };
-
-  const topLevel = dept.positions?.length > 0
-    ? Math.max(...dept.positions.map((p: Position) => p.level))
-    : 40;
+  const hasChildren = (dept.children?.length || 0) > 0;
+  const hasMembers = (dept.directMembers?.length || 0) > 0;
+  const memberCount = dept.directMembers?.length || 0;
+  const leaderName = dept.leader || '';
+  const leaderInitial = leaderName[0] || '';
 
   return (
-    <div className={`rounded-xl shadow-lg border-2 border-white/20 min-w-[220px] ${levelColors[topLevel] || levelColors[40]} text-white`}>
-      <div className="px-4 py-3">
-        <div className="flex items-center gap-2 mb-1">
-          <Building2 className="w-4 h-4 opacity-80" />
-          <span className="font-bold text-sm">{dept.name}</span>
-        </div>
-        {dept.code && <p className="text-[10px] opacity-70 mb-1">{dept.code}</p>}
-        {dept.leader && (
-          <div className="flex items-center gap-1.5 mt-2 bg-white/10 rounded-lg px-2 py-1">
-            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
-              {dept.leader[0]}
-            </div>
-            <span className="text-xs">{dept.leader}</span>
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 min-w-[200px] max-w-[240px] hover:shadow-lg transition-shadow">
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4 text-blue-600" />
           </div>
-        )}
-        {dept.positions?.length > 0 && (
-          <div className="mt-2 space-y-0.5">
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm text-gray-900 truncate">{dept.name}</div>
+            {leaderName && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <div className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[8px] font-bold">
+                  {leaderInitial}
+                </div>
+                <span className="text-[10px] text-gray-500 truncate">{leaderName}</span>
+              </div>
+            )}
+          </div>
+          {memberCount > 0 && (
+            <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">{memberCount}人</Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Positions */}
+      {dept.positions && dept.positions.length > 0 && (
+        <div className="px-3 py-2 border-b border-gray-50">
+          <div className="space-y-0.5">
             {dept.positions.slice(0, 3).map((p: Position) => (
-              <div key={p.id} className="flex items-center gap-1 text-[10px] opacity-80">
-                <div className="w-1 h-1 rounded-full bg-white/60" />
-                <span>{p.name}</span>
-                <span className="opacity-50">L{p.level}</span>
+              <div key={p.id} className="flex items-center gap-1 text-[10px] text-gray-500">
+                <div className="w-1 h-1 rounded-full bg-gray-300 shrink-0" />
+                <span className="truncate">{p.name}</span>
+                <span className="text-gray-400 ml-auto shrink-0">L{p.level}</span>
               </div>
             ))}
             {dept.positions.length > 3 && (
-              <div className="text-[10px] opacity-60">+{dept.positions.length - 3} more</div>
+              <div className="text-[10px] text-gray-400">+{dept.positions.length - 3} 岗位</div>
             )}
           </div>
-        )}
-      </div>
-      <div className="flex border-t border-white/20">
-        <button onClick={() => onAdd(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] hover:bg-white/10 rounded-bl-xl transition flex items-center justify-center gap-1">
+        </div>
+      )}
+
+      {/* Members section */}
+      {hasMembers && (
+        <div className="px-3 py-2 border-b border-gray-50">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMembersExpanded(!membersExpanded); }}
+            className="flex items-center gap-1.5 w-full text-[10px] text-gray-500 hover:text-gray-700 transition"
+          >
+            <ChevronRight className={`w-3 h-3 transition-transform ${membersExpanded ? 'rotate-90' : ''}`} />
+            <Users className="w-3 h-3" />
+            <span>本级人员 ({memberCount})</span>
+          </button>
+          {membersExpanded && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {dept.directMembers!.slice(0, 12).map((m: any) => (
+                <div key={m.username} className="flex items-center gap-1 bg-gray-50 rounded-full px-1.5 py-0.5">
+                  <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold ${m.isHead ? 'bg-amber-400 text-amber-900' : m.isDeputy ? 'bg-blue-300 text-blue-900' : 'bg-gray-200 text-gray-600'}`}>
+                    {m.name?.[0] || 'U'}
+                  </div>
+                  <span className="text-[9px] text-gray-600">{m.name}</span>
+                </div>
+              ))}
+              {dept.directMembers!.length > 12 && (
+                <div className="text-[9px] text-gray-400 self-center">+{dept.directMembers!.length - 12}</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex border-t border-gray-100">
+        <button onClick={() => onAdd(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center gap-1">
           <Plus className="w-3 h-3" /> 子部门
         </button>
-        <div className="w-px bg-white/20" />
-        <button onClick={() => onAddPosition(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] hover:bg-white/10 transition flex items-center justify-center gap-1">
+        <div className="w-px bg-gray-100" />
+        <button onClick={() => onAddPosition(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center gap-1">
           <UserPlus className="w-3 h-3" /> 岗位
         </button>
-        <div className="w-px bg-white/20" />
-        <button onClick={() => onEdit(dept)} className="flex-1 px-2 py-1.5 text-[10px] hover:bg-white/10 transition flex items-center justify-center gap-1">
+        <div className="w-px bg-gray-100" />
+        <button onClick={() => onEdit(dept)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center">
           <Pencil className="w-3 h-3" />
         </button>
-        <div className="w-px bg-white/20" />
-        <button onClick={() => onDelete(dept)} className="flex-1 px-2 py-1.5 text-[10px] hover:bg-red-500/40 rounded-br-xl transition flex items-center justify-center gap-1">
+        <div className="w-px bg-gray-100" />
+        <button onClick={() => onDelete(dept)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
@@ -123,14 +161,14 @@ function DepartmentNode({ data }: { data: any }) {
 
 const nodeTypes: NodeTypes = { department: DepartmentNode };
 
-// ── Layout helper: tree to nodes/edges ──
+// ── Layout helper: tree to nodes/edges with management labels ──
 function layoutTree(departments: Department[], onAdd: any, onEdit: any, onDelete: any, onAddPosition: any): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  const NODE_W = 240;
-  const NODE_H = 160;
-  const H_GAP = 40;
-  const V_GAP = 80;
+  const NODE_W = 220;
+  const NODE_H = 180;
+  const H_GAP = 30;
+  const V_GAP = 60;
 
   function subtreeWidth(dept: Department): number {
     if (!dept.children || dept.children.length === 0) return NODE_W;
@@ -156,13 +194,19 @@ function layoutTree(departments: Department[], onAdd: any, onEdit: any, onDelete
     if (dept.children && dept.children.length > 0) {
       let childLeft = left;
       for (const child of dept.children) {
-        const childX = layout(child, depth + 1, childLeft);
+        layout(child, depth + 1, childLeft);
         edges.push({
           id: `${dept.id}-${child.id}`,
           source: dept.id,
           target: child.id,
           type: 'smoothstep',
-          style: { stroke: '#94a3b8', strokeWidth: 2 },
+          style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+          label: '管理',
+          labelStyle: { fill: '#94a3b8', fontSize: 10, fontWeight: 500 },
+          labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+          labelBgPadding: [4, 2] as [number, number],
+          labelBgBorderRadius: 4,
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 12, height: 12 },
         });
         childLeft += subtreeWidth(child) + H_GAP;
       }
@@ -202,6 +246,8 @@ export default function OrgChartPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'chart' | 'members'>('chart');
+  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
 
   // Dialog states
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
@@ -241,7 +287,7 @@ export default function OrgChartPage() {
 
   useEffect(() => { fetchTree(); }, [fetchTree]);
 
-  // Re-layout when departments or expanded state changes
+  // Re-layout when departments change
   useEffect(() => {
     const filtered = search
       ? departments.filter((d) => d.name.includes(search))
@@ -351,6 +397,20 @@ export default function OrgChartPage() {
     } catch {}
   }
 
+  // Find selected dept for members tab
+  const selectedDept = useMemo(() => {
+    if (!selectedDeptId) return departments[0] || null;
+    function find(depts: Department[]): Department | null {
+      for (const d of depts) {
+        if (d.id === selectedDeptId) return d;
+        const found = find(d.children || []);
+        if (found) return found;
+      }
+      return null;
+    }
+    return find(departments);
+  }, [departments, selectedDeptId]);
+
   // Sidebar department list
   function DeptList({ depts, depth = 0 }: { depts: Department[]; depth?: number }) {
     return (
@@ -358,39 +418,31 @@ export default function OrgChartPage() {
         {depts.map((dept) => (
           <div key={dept.id}>
             <div
-              className="flex items-center gap-1.5 py-1.5 px-2 hover:bg-gray-100 rounded cursor-pointer text-sm"
+              className={`flex items-center gap-1.5 py-1.5 px-2 rounded cursor-pointer text-sm transition-colors ${
+                selectedDeptId === dept.id
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'hover:bg-gray-100 text-gray-700'
+              }`}
               style={{ paddingLeft: `${depth * 16 + 8}px` }}
-              onClick={() => setExpandedDepts((prev) => {
-                const next = new Set(prev);
-                if (next.has(dept.id)) next.delete(dept.id);
-                else next.add(dept.id);
-                return next;
-              })}
+              onClick={() => {
+                setSelectedDeptId(dept.id);
+                setExpandedDepts((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(dept.id)) next.delete(dept.id);
+                  else next.add(dept.id);
+                  return next;
+                });
+              }}
             >
-              {(dept.children?.length || 0) > 0 || (dept.members?.length || 0) > 0 ? (
+              {(dept.children?.length || 0) > 0 ? (
                 expandedDepts.has(dept.id) ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />
               ) : <div className="w-3.5" />}
               <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span className="truncate flex-1">{dept.name}</span>
-              <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.memberCount || 0}人</Badge>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.memberCount || 0}</Badge>
             </div>
-            {expandedDepts.has(dept.id) && (
-              <div>
-                {dept.members?.map((m) => (
-                  <div key={m.username} className="flex items-center gap-2 px-2 py-1 pl-8 hover:bg-gray-50 rounded text-xs">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
-                      {m.name?.[0] || 'U'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-medium">{m.name}</span>
-                      <span className="text-gray-400 ml-1">{m.position}</span>
-                    </div>
-                    {m.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 rounded">负责人</span>}
-                    {m.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 rounded">副职</span>}
-                  </div>
-                ))}
-                {dept.children?.length > 0 && <DeptList depts={dept.children} depth={depth + 1} />}
-              </div>
+            {expandedDepts.has(dept.id) && dept.children?.length > 0 && (
+              <DeptList depts={dept.children} depth={depth + 1} />
             )}
           </div>
         ))}
@@ -407,14 +459,7 @@ export default function OrgChartPage() {
     return count(departments);
   }, [departments]);
 
-  const totalPositions = useMemo(() => {
-    function count(dept: Department): number {
-      let n = dept.memberCount || 0;
-      for (const child of dept.children || []) n += count(child);
-      return n;
-    }
-    return departments.length > 0 ? count(departments[0]) : 0;
-  }, [departments]);
+  const totalMembers = departments.length > 0 ? departments[0].memberCount || 0 : 0;
 
   if (loading) {
     return (
@@ -425,54 +470,186 @@ export default function OrgChartPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-7rem)] flex gap-4">
-      {/* Left sidebar: department tree + positions */}
-      <div className="w-72 flex-shrink-0 bg-white rounded-xl border shadow-sm flex flex-col overflow-hidden">
-        <div className="px-4 py-3 border-b">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-sm">组织架构</h3>
-            <Button size="sm" variant="ghost" onClick={() => handleAdd('d1')} className="h-7 text-xs">
-              <Plus className="w-3.5 h-3.5 mr-1" /> 新增
-            </Button>
+    <div className="h-[calc(100vh-7rem)] flex bg-gray-50">
+      {/* Left sidebar: Lark-style department tree */}
+      <div className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            <h3 className="font-semibold text-sm text-gray-900">组织架构</h3>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>{totalDepts} 部门</span>
-            <span>·</span>
-            <span>{totalPositions} 岗位</span>
+          <div className="text-xs text-gray-500">
+            共 {totalDepts} 个部门 · {totalMembers} 人
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-1">
+        <div className="flex-1 overflow-y-auto py-1">
           <DeptList depts={departments} />
+        </div>
+        <div className="p-3 border-t border-gray-100">
+          <Button size="sm" variant="outline" onClick={() => handleAdd('hq')} className="w-full text-xs h-8">
+            <Plus className="w-3.5 h-3.5 mr-1" /> 新建部门
+          </Button>
         </div>
       </div>
 
-      {/* Main canvas */}
-      <div className="flex-1 bg-white rounded-xl border shadow-sm overflow-hidden relative">
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜索部门..."
-              className="pl-8 h-8 w-48 text-xs"
-            />
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header with tabs */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>组织架构</span>
+              <span className="text-gray-300">›</span>
+              <span className="text-gray-900 font-medium">成员与部门</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setActiveTab('chart')}
+              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'chart'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4 mr-1.5 inline" />
+              图示
+            </button>
+            <button
+              onClick={() => setActiveTab('members')}
+              className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'members'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <List className="w-4 h-4 mr-1.5 inline" />
+              部门成员
+            </button>
           </div>
         </div>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          minZoom={0.3}
-          maxZoom={2}
-        >
-          <Controls className="!bottom-3 !left-3" />
-          <Background gap={20} />
-        </ReactFlow>
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'chart' ? (
+            /* ReactFlow diagram */
+            <div className="h-full relative">
+              <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="搜索部门..."
+                    className="pl-8 h-8 w-48 text-xs bg-white"
+                  />
+                </div>
+              </div>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                fitView
+                fitViewOptions={{ padding: 0.3 }}
+                minZoom={0.2}
+                maxZoom={2}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Controls className="!bottom-3 !left-3 !bg-white !shadow-md !rounded-lg !border !border-gray-200" />
+                <Background gap={20} color="#f1f5f9" />
+              </ReactFlow>
+            </div>
+          ) : (
+            /* Members list tab */
+            <div className="h-full overflow-auto p-6">
+              {selectedDept ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{selectedDept.name}</h3>
+                      <p className="text-xs text-gray-500">{selectedDept.directMembers?.length || 0} 名直属成员</p>
+                    </div>
+                  </div>
+                  {selectedDept.directMembers && selectedDept.directMembers.length > 0 ? (
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50">
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">姓名</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">职位</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">角色</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">状态</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedDept.directMembers.map((m: any) => (
+                            <tr key={m.username} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                                    m.isHead ? 'bg-amber-100 text-amber-700' : m.isDeputy ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {m.name?.[0] || 'U'}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">{m.name}</div>
+                                    <div className="text-xs text-gray-500">{m.username}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{m.position}</td>
+                              <td className="px-4 py-3">
+                                {m.isHead && <Badge className="bg-amber-100 text-amber-700 text-[10px]">负责人</Badge>}
+                                {m.isDeputy && <Badge className="bg-blue-100 text-blue-700 text-[10px]">副职</Badge>}
+                                {!m.isHead && !m.isDeputy && <span className="text-xs text-gray-400">-</span>}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">正常</Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-400 text-sm">该部门暂无直属成员</div>
+                  )}
+                  {selectedDept.children && selectedDept.children.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">下级部门</h4>
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                        {selectedDept.children.map((child) => (
+                          <div key={child.id} className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedDeptId(child.id)}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Building2 className="w-4 h-4 text-blue-500" />
+                              <span className="text-sm font-medium text-gray-900">{child.name}</span>
+                            </div>
+                            <div className="text-xs text-gray-500">{child.directMembers?.length || 0} 名直属成员</div>
+                            {child.leader && (
+                              <div className="flex items-center gap-1 mt-2">
+                                <div className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[8px] font-bold">
+                                  {child.leader[0]}
+                                </div>
+                                <span className="text-[10px] text-gray-500">{child.leader}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400 text-sm">请在左侧选择一个部门</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Department dialog */}
