@@ -287,9 +287,16 @@ export default function ChatPage() {
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
         setDeptContacts(list);
-        // 默认折叠所有部门
+        // 默认折叠所有部门和子部门
         const sections: Record<string, boolean> = {};
-        list.forEach((dept: any) => { sections[dept.id] = false; });
+        list.forEach((group: any) => {
+          sections[group.id] = false;
+          if (group.children) {
+            group.children.forEach((dept: any) => {
+              sections[dept.id] = false;
+            });
+          }
+        });
         setDeptSections(sections);
       })
       .catch(() => {});
