@@ -509,7 +509,7 @@ export default function ChatPage() {
     setSelectedId(conv.id);
     setShowGroupDialog(false); setGroupName(''); setNewGroupMembers([]); setGroupCategory('custom');
     // 自动展开对应分区
-    const sectionMap: Record<string, string> = { custom: 'custom', department: 'dept', project: 'proj', subsidiary: 'sub' };
+    const sectionMap: Record<string, string> = { department: 'dept', custom: 'custom', project: 'proj', subsidiary: 'sub' };
     setConvSections((prev) => ({ ...prev, [sectionMap[groupCategory] || 'custom']: true }));
     fetchConvs();
   };
@@ -545,15 +545,15 @@ export default function ChatPage() {
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
   const groupAll = filteredConvs.filter((c) => c.type === 'group');
-  // 1.2.1 集团业务群：总部级别 departmentId
-  const hqIds = ['hq', 'board', 'gm-office', 'dgm-a', 'dgm-b', 'dgm-c'];
-  const hqConvs = groupAll.filter((c) => c.category === 'department' && hqIds.includes(c.departmentId || ''));
-  // 1.2.2 部门工作群：其他 department（排除项目/分子公司）
+  // 1.2.1 集团业务群：总部/高管层级
+  const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
+  const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
+  // 1.2.2 部门工作群：职能部门 department
   const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || '') && !(c.departmentId || '').startsWith('proj-') && !(c.departmentId || '').startsWith('branch-') && !(c.departmentId || '').startsWith('sub-') && !(c.departmentId || '').startsWith('co-'));
   // 1.2.3 分子公司群
-  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-') || (c.departmentId || '').startsWith('co-') || c.category === 'subsidiary');
+  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-') || (c.departmentId || '').startsWith('co-'));
   // 1.2.4 项目部群
-  const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-') || c.category === 'project');
+  const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
   // 1.2.5 自建群：无 category
   const customConvs = groupAll.filter((c) => !c.category);
 
