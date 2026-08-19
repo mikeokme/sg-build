@@ -123,6 +123,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return this.chatService.revealMessage(username, body?.conversationId, body?.messageId);
   }
 
+  // 指定接收人加密：接收人用密码解密
+  @SubscribeMessage('chat:secret-reveal')
+  handleSecretReveal(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; messageId: string; password: string }) {
+    const username = client.data.username;
+    return this.chatService.revealSecret(username, body?.conversationId, body?.messageId, body?.password);
+  }
+
+  // 复制密码后自动销毁密码卡片
+  @SubscribeMessage('chat:secret-copied')
+  handleSecretCopied(@ConnectedSocket() client: Socket, @MessageBody() body: { cardId: string }) {
+    const username = client.data.username;
+    return this.chatService.destroySecretKey(username, body?.cardId);
+  }
+
   // 标记已读
   @SubscribeMessage('chat:read')
   handleRead(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string }) {

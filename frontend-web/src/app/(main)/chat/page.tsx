@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
-  Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact,
+  Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact, KeyRound,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -154,6 +154,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [encrypted, setEncrypted] = useState(false);
+  const [secretTarget, setSecretTarget] = useState('');
+  const [secretInputMsgId, setSecretInputMsgId] = useState<string | null>(null);
+  const [secretPasswordInput, setSecretPasswordInput] = useState('');
   const [burn, setBurn] = useState(false);
   const [burnSec, setBurnSec] = useState(10);
   const [burnTarget, setBurnTarget] = useState('');
@@ -333,6 +336,14 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       fetchConvs();
     });
 
+    // 指定接收人加密：接收人解密成功后更新消息内容
+    s.on('chat:secret-revealed', (data: any) => {
+      if (data.conversationId === selectedIdRef.current && data.message) {
+        setMessages((prev) => prev.map((m) => (m.id === data.message.id ? data.message : m)));
+      }
+      fetchConvs();
+    });
+
     s.on('chat:burning', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
         // 只有已揭示的用户才启动倒计时
@@ -397,7 +408,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
 
     s.on('chat:message-pinned', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
-        setMessages((prev) => prev.map((m) => ({ ...m, pinned: m.id === data.messageId })));
+        setMessages((prev) => prev.map((m) => ({ ...m, pinned: !!data.messageId && m.id === data.messageId })));
       }
       fetchConvs();
     });
@@ -619,7 +630,10 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   };
   const unpinMessage = async () => {
     if (!selectedId) return;
-    try { await api(`/chat/conversations/${selectedId}/pinned-message`, 'PUT', { messageId: null }); } catch {}
+    try {
+      await api(`/chat/conversations/${selectedId}/pinned-message`, 'PUT', { messageId: null });
+      fetchConvs();
+    } catch {}
   };
 
   useEffect(() => { fetchConvs(); }, [fetchConvs]);
@@ -678,6 +692,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       conversationId: selectedId, 
       content: input.trim(), 
       encrypted, 
+      secretTarget: encrypted && selectedConv?.type === 'group' ? secretTarget : undefined,
       burn, 
       burnSeconds: burn ? burnSec : undefined, 
       burnTarget: burn && selectedConv?.type === 'group' ? burnTarget : undefined,
@@ -686,7 +701,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
     });
     // 发送后清空草稿
     setPref(selectedId, { draft: '' });
-    setInput(''); setEncrypted(false); setBurn(false); setBurnTarget(''); setReplyTo(null); inputRef.current?.focus();
+    setInput(''); setEncrypted(false); setSecretTarget(''); setBurn(false); setBurnTarget(''); setReplyTo(null); inputRef.current?.focus();
   };
 
   const revealMessage = (messageId: string) => {
@@ -705,6 +720,24 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const burnNow = (messageId: string) => {
     if (!socket || !selectedId) return;
     socket.emit('chat:delete', { conversationId: selectedId, messageId });
+  };
+
+  // 指定接收人加密：用密码解密
+  const revealSecret = (messageId: string) => {
+    if (!socket || !selectedId || !secretPasswordInput.trim()) return;
+    socket.emit('chat:secret-reveal', {
+      conversationId: selectedId,
+      messageId,
+      password: secretPasswordInput.trim(),
+    });
+    setSecretInputMsgId(null);
+    setSecretPasswordInput('');
+  };
+
+  // 复制密码卡片后自动销毁
+  const copySecretKey = async (cardId: string, password: string) => {
+    try { await navigator.clipboard.writeText(password); } catch {}
+    if (socket) socket.emit('chat:secret-copied', { cardId });
   };
 
   const openSingle = async (username: string) => {
@@ -786,14 +819,16 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   };
 
   // 构建通用分组树（按 parentId 递归，层级不限）
+  // 自动升级：若某分组只有一个子分组且自身无直挂会话，则直接把该子分组提升为顶级，不显示多余的上级层级
   const buildGroupTree = (parentId: string | null): any[] =>
     chatGroups
       .filter((g: any) => (g.parentId ?? null) === parentId)
-      .map((g: any) => ({
-        ...g,
-        conversations: filteredConvs.filter((c: any) => getGroupForConv(c) === g.id),
-        children: buildGroupTree(g.id),
-      }));
+      .map((g: any) => {
+        const children = buildGroupTree(g.id);
+        const convs = filteredConvs.filter((c: any) => getGroupForConv(c) === g.id);
+        if (children.length === 1 && convs.length === 0) return children[0];
+        return { ...g, conversations: convs, children };
+      });
   const groupedTree = buildGroupTree(null);
   const countGroupConvs = (n: any): number =>
     n.conversations.length + (n.children || []).reduce((s: number, c: any) => s + countGroupConvs(c), 0);
@@ -1259,6 +1294,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               // 发送者始终看到内容；接收者需揭示后才看到
               const isBurnHidden = m.burn && !m.revealedForMe && !isMine;
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
+              const isSecretKeyCard = m.contentType === 'secret-key';
+              const isSecretLocked = m.encrypted && m.secretTarget && !isMine && !(m.secretRevealedBy || []).includes(me?.username);
 
               return (
                 <div key={m.id}>
@@ -1324,7 +1361,58 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       </div>
                     )}
 
-                    {isBurnHidden ? (
+                    {isSecretKeyCard ? (
+                      <div className={`px-3 py-2.5 rounded-2xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 text-sm ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow">
+                            <KeyRound className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-emerald-700">加密消息密码</p>
+                            <p className="text-xs font-mono text-emerald-800 break-all select-all">{m.content}</p>
+                            <p className="text-[9px] text-emerald-500 mt-0.5">复制后自动销毁</p>
+                          </div>
+                          <button onClick={() => copySecretKey(m.id, m.content)}
+                            className="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium transition-colors">
+                            复制密码
+                          </button>
+                        </div>
+                        <div className={`flex items-center gap-1 mt-1.5 ${isMine ? 'justify-end' : ''}`}>
+                          <span className="text-[10px] text-gray-400">{formatMsgTime(m.createdAt)}</span>
+                        </div>
+                      </div>
+
+                    ) : isSecretLocked ? (
+                      <div className={`px-3 py-2.5 rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50 text-sm ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center shadow">
+                            <Lock className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-purple-700">加密消息（指定接收人）</p>
+                            <p className="text-[10px] text-purple-400 mt-0.5">输入单聊收到的密码解密</p>
+                          </div>
+                        </div>
+                        {secretInputMsgId === m.id ? (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <Input autoFocus value={secretPasswordInput} onChange={(e) => setSecretPasswordInput(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') revealSecret(m.id); if (e.key === 'Escape') { setSecretInputMsgId(null); setSecretPasswordInput(''); } }}
+                              placeholder="输入密码" className="h-8 text-sm" />
+                            <Button size="sm" onClick={() => revealSecret(m.id)} disabled={!secretPasswordInput.trim()} className="h-8 px-3"><KeyRound className="w-3.5 h-3.5" />解密</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setSecretInputMsgId(null); setSecretPasswordInput(''); }} className="h-8 px-2"><X className="w-3.5 h-3.5" /></Button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setSecretInputMsgId(m.id)}
+                            className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium transition-colors">
+                            <KeyRound className="w-3.5 h-3.5" />输入密码查看
+                          </button>
+                        )}
+                        <div className={`flex items-center gap-1 mt-1.5 ${isMine ? 'justify-end' : ''}`}>
+                          <span className="text-[10px] text-gray-400">{formatMsgTime(m.createdAt)}</span>
+                        </div>
+                      </div>
+
+                    ) : isBurnHidden ? (
                       <div onClick={() => revealMessage(m.id)}
                         className="relative px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 border-2 border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 hover:border-amber-400 animate-pulse select-none">
                         <div className="flex items-center gap-3">
@@ -1403,7 +1491,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                                 <span>转发自 {userMap.get(m.forwardFrom.sender)?.name || m.forwardFrom.sender}</span>
                               </div>
                             )}
-                            {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">已加密</span></div>)}
+                            {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">{m.secretTarget ? `已加密 · 发送给 ${userMap.get(m.secretTarget)?.name || m.secretTarget}` : '已加密'}</span></div>)}
                             <p className="break-words">{m.content}</p>
                             <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
                               <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt)}</span>
@@ -1453,7 +1541,22 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
             )}
             <div className="flex items-center gap-2">
               <Button size="sm" variant="ghost" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="h-8 px-2" title="表情"><span className="text-lg">😊</span></Button>
-              <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密' : '开启加密'}><Lock className="w-3.5 h-3.5" /></Button>
+              <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密（需指定接收人）' : '开启加密（指定接收人）'}><Lock className="w-3.5 h-3.5" /></Button>
+              {encrypted && (
+                <>
+                  {selectedConv?.type === 'group' ? (
+                    <select value={secretTarget} onChange={(e) => setSecretTarget(e.target.value)} className="h-8 text-xs rounded-lg border border-purple-200 bg-purple-50 px-2 focus:outline-none max-w-[160px]">
+                      <option value="">选择接收人</option>
+                      {selectedConv.members.filter((m: string) => m !== me?.username).map((m: string) => {
+                        const user = userMap.get(m);
+                        return <option key={m} value={m}>{user?.name || m}</option>;
+                      })}
+                    </select>
+                  ) : (
+                    <span className="h-8 flex items-center px-2 rounded-lg bg-purple-50 text-[11px] text-purple-500 border border-purple-200">自动发给对方</span>
+                  )}
+                </>
+              )}
               <Button size="sm" variant={burn ? 'default' : 'ghost'} onClick={() => { setBurn(!burn); if (!burn) setEncrypted(true); }} className={`h-8 px-2 ${burn ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title={burn ? '已开启阅后即焚' : '开启阅后即焚'}><Flame className="w-3.5 h-3.5" /></Button>
               {burn && (
                 <>
@@ -1471,8 +1574,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                   )}
                 </>
               )}
-              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? '输入加密消息...' : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
-              <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
+              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? (selectedConv?.type === 'group' ? (secretTarget ? `输入加密消息（发送给 ${userMap.get(secretTarget)?.name || secretTarget}）...` : '请选择接收人...') : '输入加密消息...') : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
+              <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget) || (encrypted && selectedConv?.type === 'group' && !secretTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
             </div>
             {/* 表情选择器 */}
             {showEmojiPicker && (

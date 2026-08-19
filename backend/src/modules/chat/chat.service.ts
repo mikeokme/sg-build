@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { DataService, ROLE_LEVELS } from '../../services/data.service';
-import { encryptMessage, decryptMessage } from './chat-crypto';
+import { encryptMessage, decryptMessage, encryptWithPassword, decryptWithPassword, generateSecretPassword } from './chat-crypto';
 
 export type ChatEventFn = (event: string, payload: any) => void;
 
@@ -59,6 +59,11 @@ export class ChatService {
           const isSender = m.sender === username;
           if (!isTarget && !isSender) return false;
         }
+        if (m.encrypted && m.secretTarget && c.type === 'group') {
+          const isTarget = m.secretTarget === username;
+          const isSender = m.sender === username;
+          if (!isTarget && !isSender) return false;
+        }
         return true;
       }).length;
       const isBurnParticipant = (m: any) => {
@@ -67,14 +72,16 @@ export class ChatService {
       };
       let lastMsgText = '';
       if (last) {
-        if (last.burn && !isBurnParticipant(last)) {
+        if (last.contentType === 'secret-key') {
+          lastMsgText = '🔑 加密消息密码';
+        } else if (last.burn && !isBurnParticipant(last)) {
           lastMsgText = '[消息]';
         } else if (last.burn && !(last.revealedBy || []).includes(username)) {
           lastMsgText = `🔥 阅后即焚${last.burnTarget ? ' → ' + last.burnTarget : ''}`;
         } else if (last.burn) {
           lastMsgText = '[已焚毁]';
         } else if (last.encrypted) {
-          lastMsgText = '[加密消息]';
+          lastMsgText = '🔒 加密消息';
         } else {
           lastMsgText = last.content;
         }
@@ -359,6 +366,10 @@ export class ChatService {
         if (m.burn && m.burnTarget && c.type === 'group') {
           return m.sender === username || m.burnTarget === username;
         }
+        // 指定接收人加密消息：仅发送者和指定接收人可见
+        if (m.encrypted && m.secretTarget && c.type === 'group') {
+          return m.sender === username || m.secretTarget === username;
+        }
         // 超级管理员在群里发的消息，其他成员不可见
         const sender = this.dataService.getUserByUsername(m.sender);
         if (sender?.role === 'super_admin' && senderRole !== 'super_admin' && m.sender !== username) {
@@ -370,7 +381,7 @@ export class ChatService {
     return { messages };
   }
 
-  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; replyTo?: string; mention?: string[] }) {
+  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; secretTarget?: string; replyTo?: string; mention?: string[] }) {
     const c = this.dataService.getConversation(payload.conversationId);
     if (!c) return { error: '会话不存在' };
     if (!this.canAccess(username, c)) return { error: '无权发送消息' };
@@ -382,15 +393,22 @@ export class ChatService {
     const burnTarget = payload.burnTarget || '';
     const replyTo = payload.replyTo || '';
     const mention = payload.mention || [];
-    const stored = encrypted ? encryptMessage(c.id, content) : content;
-    
-    // 处理@提及
-    const mentionedUsers: string[] = [];
-    mention.forEach((m: string) => {
-      if (c.members.includes(m) && m !== username) {
-        mentionedUsers.push(m);
+
+    // 指定接收人加密：需要明确接收人（单聊自动为对方，群聊必须指定）
+    let secretTarget = '';
+    let secretPassword = '';
+    let stored = content;
+    if (encrypted) {
+      if (c.type === 'single') {
+        secretTarget = c.members.find((m: string) => m !== username) || '';
+      } else {
+        secretTarget = payload.secretTarget || '';
       }
-    });
+      if (!secretTarget || secretTarget === username) return { error: '请为加密消息指定接收人' };
+      if (!c.members.includes(secretTarget)) return { error: '指定的接收人不在会话中' };
+      secretPassword = generateSecretPassword();
+      stored = encryptWithPassword(secretPassword, content);
+    }
 
     const message = this.dataService.addChatMessage({
       conversationId: c.id,
@@ -398,25 +416,43 @@ export class ChatService {
       contentType: encrypted ? 'encrypted' : 'text',
       content: stored,
       encrypted,
+      secretTarget: encrypted ? secretTarget : '',
+      secretKey: encrypted && secretTarget ? secretPassword : '',
       burn,
       burnSeconds: burn ? (Number(payload.burnSeconds) || 10) : 0,
       burnTarget: c.type === 'group' ? burnTarget : '',
       replyTo,
-      mentionedUsers,
+      mentionedUsers: [],
       revealedBy: [],
       readBy: [username],
       createdAt: new Date().toISOString(),
     });
 
+    // 处理@提及
+    const mentionedUsers: string[] = [];
+    mention.forEach((m: string) => {
+      if (c.members.includes(m) && m !== username) {
+        mentionedUsers.push(m);
+      }
+    });
+    if (mentionedUsers.length) {
+      this.dataService.updateChatMessage(message.id, { mentionedUsers });
+    }
+
     this.dataService.updateConversation(c.id, { lastMessageAt: message.createdAt });
 
     const clientMsg = this.decorateForClient(message, c.id, username);
 
-    // 群聊阅后即焚：仅通知发送者和指定接收者
-    if (burn && burnTarget && c.type === 'group') {
-      this.emitToUsers('chat:message', { conversationId: c.id, message: clientMsg }, [username, burnTarget]);
+    // 群聊阅后即焚 / 指定接收人加密：仅通知发送者和指定接收者
+    if ((burn && burnTarget && c.type === 'group') || (encrypted && secretTarget && c.type === 'group')) {
+      this.emitToUsers('chat:message', { conversationId: c.id, message: clientMsg }, [username, secretTarget || burnTarget]);
     } else {
       this.emit('chat:message', { conversationId: c.id, message: clientMsg });
+    }
+
+    // 指定接收人加密：私发随机密码（发送者 ↔ 接收者的单聊卡片）
+    if (encrypted && secretTarget) {
+      this.sendSecretKeyCard(username, secretTarget, message.id, secretPassword);
     }
 
     // 通知被@的用户
@@ -430,6 +466,60 @@ export class ChatService {
     }
 
     return { message: clientMsg };
+  }
+
+  // 私发随机密码：在发送者与接收者之间的单聊创建一张密码卡片
+  private sendSecretKeyCard(fromUsername: string, toUsername: string, forMessageId: string, password: string) {
+    try {
+      const sc = this.dataService.getOrCreateSingleConversation(fromUsername, toUsername);
+      const card = this.dataService.addChatMessage({
+        conversationId: sc.id,
+        sender: fromUsername,
+        contentType: 'secret-key',
+        content: password,
+        secretFor: forMessageId,
+        readBy: [fromUsername],
+        createdAt: new Date().toISOString(),
+      });
+      this.dataService.updateConversation(sc.id, { lastMessageAt: card.createdAt });
+      const clientCard = this.decorateForClient(card, sc.id, fromUsername);
+      this.emitToUsers('chat:message', { conversationId: sc.id, message: clientCard }, [fromUsername, toUsername]);
+    } catch {}
+  }
+
+  // 指定接收人加密：接收人用密码解密
+  revealSecret(username: string, conversationId: string, messageId: string, password: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c || !this.canAccess(username, c)) return { error: '会话不存在或无权访问' };
+    const m = this.dataService.getChatMessage(messageId);
+    if (!m || m.conversationId !== conversationId) return { error: '消息不存在' };
+    if (!m.encrypted || !m.secretTarget) return { error: '该消息不是指定接收人加密消息' };
+    if (m.secretTarget !== username && m.sender !== username) return { error: '仅发送者和指定接收人可解密' };
+    const plain = decryptWithPassword(String(password || ''), m.content);
+    if (plain === '[密码错误或无法解密]') return { error: '密码错误' };
+    const revealedBy = m.secretRevealedBy || [];
+    if (!revealedBy.includes(username)) {
+      const next = [...revealedBy, username];
+      this.dataService.updateChatMessage(messageId, {
+        secretRevealedBy: next,
+        readBy: Array.from(new Set([...(m.readBy || []), username])),
+      });
+    }
+    const updated = this.dataService.getChatMessage(messageId);
+    const clientMsg = this.decorateForClient(updated, conversationId, username);
+    this.emitToUsers('chat:secret-revealed', { conversationId, message: clientMsg }, [m.sender, m.secretTarget]);
+    return { ok: true, message: clientMsg, content: plain };
+  }
+
+  // 复制密码后自动销毁密码卡片
+  destroySecretKey(username: string, cardId: string) {
+    const card = this.dataService.getChatMessage(cardId);
+    if (!card || card.contentType !== 'secret-key') return { ok: true };
+    const c = this.dataService.getConversation(card.conversationId);
+    if (!c || !c.members.includes(username)) return { error: '无权操作' };
+    this.dataService.deleteChatMessage(cardId);
+    this.emit('chat:deleted', { conversationId: card.conversationId, messageId: cardId, by: username });
+    return { ok: true };
   }
 
   // ── 揭示阅后即焚消息（点击火焰图标触发） ──
@@ -633,7 +723,21 @@ export class ChatService {
 
   // 发送给客户端的消息形态（per-user: 检查当前用户是否已揭示）
   private decorateForClient(m: any, conversationId: string, username?: string) {
-    const content = m.encrypted ? decryptMessage(conversationId, m.content) : m.content;
+    const isSecretKey = m.contentType === 'secret-key';
+    const isSecretEncrypted = m.encrypted && m.secretTarget;
+    // 密码卡片：明文展示密码（仅发送者与接收者的单聊中）
+    let content = isSecretKey ? m.content : m.content;
+    if (!isSecretKey) {
+      if (isSecretEncrypted) {
+        // 指定接收人加密：发送者可见；接收人解密后方可见
+        const isSender = username ? m.sender === username : false;
+        const isTarget = username ? m.secretTarget === username : false;
+        const revealed = username ? (m.secretRevealedBy || []).includes(username) : false;
+        content = (isSender || (isTarget && revealed)) ? decryptWithPassword(m.secretKey || '', m.content) : '🔒 加密消息';
+      } else {
+        content = m.encrypted ? decryptMessage(conversationId, m.content) : m.content;
+      }
+    }
     const revealedBy = m.revealedBy || [];
     const revealedForMe = username ? revealedBy.includes(username) : false;
     const isSender = username ? m.sender === username : false;
@@ -647,6 +751,9 @@ export class ChatService {
       contentType: m.contentType,
       encrypted: m.encrypted,
       content: displayContent,
+      secretTarget: m.secretTarget || '',
+      secretFor: m.secretFor || '',
+      secretRevealedBy: m.secretRevealedBy || [],
       burn: m.burn,
       burnSeconds: m.burnSeconds,
       burnTarget: canSeeTarget ? (m.burnTarget || '') : '',
