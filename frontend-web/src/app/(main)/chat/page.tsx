@@ -339,11 +339,11 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       .then((d) => {
         const groups = Array.isArray(d) ? d : [];
         setChatGroups(groups);
-        // 初始化分组展开状态（默认全部展开）
+        // 初始化分组展开状态（默认全部折叠）
         const sections: Record<string, boolean> = {};
-        groups.forEach((g: any) => { sections[g.id] = true; });
-        sections['chat_root'] = true;
-        sections['single'] = true;
+        groups.forEach((g: any) => { sections[g.id] = false; });
+        sections['chat_root'] = false;
+        sections['single'] = false;
         setConvSections(sections);
       })
       .catch(() => {});
@@ -565,8 +565,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
     for (const g of chatGroups) {
       if (g.departmentIds && g.departmentIds.includes(did)) return g.id;
     }
-    // 无 departmentId 的自建群归入临时群
-    return chatGroups.find((g: any) => g.id === 'sub_temp')?.id || 'sub_temp';
+    // 无 departmentId 的自建群归入其他群组
+    return chatGroups.find((g: any) => g.id === 'group_other')?.id || 'group_other';
   };
 
   // 构建通用分组树（按 parentId 递归，层级不限）
@@ -583,20 +583,6 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
     n.conversations.length + (n.children || []).reduce((s: number, c: any) => s + countGroupConvs(c), 0);
 
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
-  const groupAll = filteredConvs.filter((c) => c.type === 'group');
-  // 集团工作组：总部及高管层级
-  const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
-  const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
-  // 分子公司组：分公司(sub-*) + 子公司(branch-*)
-  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-'));
-  // 项目部组：工程项目部
-  const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
-  // 集团部门组：职能部门（category=department，非总部层级）
-  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
-  // 号码公司组：一二三公司(co-*)
-  const coConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('co-'));
-  // 自建群
-  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c) && !coConvs.includes(c));
 
   // 递归渲染分组树节点
   const renderGroupNode = (node: any, depth: number): React.ReactNode => {
