@@ -292,16 +292,69 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // admin在分公司A群发的阅后即焚
     { id: 'adm_ba_burn1', conversationId: 'dg_ba', sender: 'admin', content: '钱建国，分公司A的安全检查记录有缺失，你要补上，别让大家知道是我说的', type: 'text', burn: true, burnSeconds: 30, burnTarget: '钱建国', readBy: ['admin'], createdAt: new Date(now - h * 6).toISOString() },
     // admin在子公司甲群发的阅后即焚
-    { id: 'adm_sa_burn1', conversationId: 'dg_sa', sender: 'admin', content: '孙建国，子公司甲的资质年审材料有问题，重新准备一下，别让人知道是哪里错了', type: 'text', burn: true, burnSeconds: 45, burnTarget: '孙建国', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
+     { id: 'adm_sa_burn1', conversationId: 'dg_sa', sender: 'admin', content: '孙建国，子公司甲的资质年审材料有问题，重新准备一下，别让人知道是哪里错了', type: 'text', burn: true, burnSeconds: 45, burnTarget: '孙建国', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
   ];
 
-  // 聊天分组配置
+  // 聊天分组配置（三级结构）
+  // 一级：顶级分组（parentId=null）
+  // 二级：子类分组（parentId=一级ID）
+  // 三级：实际群聊匹配规则（parentId=二级ID）
   collections['chatGroups'] = [
-    { id: 'group_org', name: '集团组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团总部层级', departmentIds: ['board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'] },
-    { id: 'group_dept', name: '部门组', icon: '📋', color: 'purple', sortOrder: 1, description: '职能部门', departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops'] },
-    { id: 'group_project', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 2, description: '项目执行单元', departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
-    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 3, description: '分公司与子公司', departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
-    { id: 'group_temp', name: '其他临时组', icon: '💬', color: 'gray', sortOrder: 4, description: '其他自建群聊', departmentIds: [] },
+    // ═══ 一级：集团总部组 ═══
+    { id: 'group_exec', name: '集团总部组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团管理层群', parentId: null },
+
+    // 二级：副总群
+    { id: 'sub_dgm', name: '副总群', icon: '👔', color: 'blue', sortOrder: 0, description: '副总经理群', parentId: 'group_exec', departmentIds: ['dgm-a', 'dgm-b', 'dgm-c'] },
+    // 二级：三总师群
+    { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 1, description: '总工程师/会计师/经济师', parentId: 'group_exec', departmentIds: ['chief-eng'] },
+    // 二级：高管群
+    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'group_exec', departmentIds: ['board', 'gm-office'] },
+
+    // ═══ 一级：分子公司组 ═══
+    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null },
+
+    // 二级：分公司
+    { id: 'sub_branch', name: '分公司', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司群', parentId: 'group_branch', departmentIds: ['branch-a', 'branch-b', 'branch-c'] },
+    // 二级：子公司
+    { id: 'sub_sub', name: '子公司', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司群', parentId: 'group_branch', departmentIds: ['sub-alpha', 'sub-beta'] },
+    // 二级：一/二/三公司
+    { id: 'sub_co', name: '一/二/三公司', icon: '🏪', color: 'amber', sortOrder: 2, description: '直属公司群', parentId: 'group_branch', departmentIds: ['co-1', 'co-2', 'co-3'] },
+
+    // ═══ 一级：集团部门组 ═══
+    { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null },
+
+    // 二级：工程部群
+    { id: 'sub_eng', name: '工程管理部群', icon: '🔧', color: 'purple', sortOrder: 0, description: '工程管理', parentId: 'group_dept', departmentIds: ['eng-mgmt'] },
+    // 二级：财务部群
+    { id: 'sub_fin', name: '财务部群', icon: '💰', color: 'purple', sortOrder: 1, description: '财务管理', parentId: 'group_dept', departmentIds: ['finance'] },
+    // 二级：安全生产部群
+    { id: 'sub_safety', name: '安全生产部群', icon: '🛡️', color: 'purple', sortOrder: 2, description: '安全管理', parentId: 'group_dept', departmentIds: ['safety'] },
+    // 二级：合同管理部群
+    { id: 'sub_contract', name: '合同管理部群', icon: '📝', color: 'purple', sortOrder: 3, description: '合同管理', parentId: 'group_dept', departmentIds: ['contract'] },
+    // 二级：人力资源部群
+    { id: 'sub_hr', name: '人力资源部群', icon: '👥', color: 'purple', sortOrder: 4, description: '人力资源', parentId: 'group_dept', departmentIds: ['hr'] },
+    // 二级：审计部群
+    { id: 'sub_audit', name: '审计部群', icon: '🔍', color: 'purple', sortOrder: 5, description: '审计监督', parentId: 'group_dept', departmentIds: ['audit'] },
+    // 二级：市场开发部群
+    { id: 'sub_market', name: '市场开发部群', icon: '📈', color: 'purple', sortOrder: 6, description: '市场开发', parentId: 'group_dept', departmentIds: ['market-dev'] },
+    // 二级：运维部群
+    { id: 'sub_ops', name: '运维部群', icon: '⚡', color: 'purple', sortOrder: 7, description: '运维服务', parentId: 'group_dept', departmentIds: ['ops'] },
+
+    // ═══ 一级：项目部组 ═══
+    { id: 'group_proj', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 3, description: '项目执行单元', parentId: null },
+
+    // 二级：项目部群
+    { id: 'sub_proj', name: '项目部群', icon: '📁', color: 'emerald', sortOrder: 0, description: '项目部群', parentId: 'group_proj', departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
+
+    // ═══ 一级：其他群组 ═══
+    { id: 'group_other', name: '其他群组', icon: '💬', color: 'gray', sortOrder: 4, description: '其他自建群', parentId: null },
+
+    // 二级：临时群
+    { id: 'sub_temp', name: '临时群', icon: '⏱️', color: 'gray', sortOrder: 0, description: '临时创建的群聊', parentId: 'group_other', departmentIds: [] },
+    // 二级：食堂群（预留）
+    { id: 'sub_canteen', name: '食堂群', icon: '🍽️', color: 'gray', sortOrder: 1, description: '食堂相关群聊', parentId: 'group_other', departmentIds: [] },
+    // 二级：专项群（预留）
+    { id: 'sub_special', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 2, description: '专项工作群聊', parentId: 'group_other', departmentIds: [] },
   ];
 
 
