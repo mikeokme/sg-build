@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS = {
 function seed(): { users: any[]; collections: Record<string, any[]>; settings: Record<string, any>; conversations: any[]; chatMessages: any[] } {
   const collections: Record<string, any[]> = {};
 
-  // 聊天群组 + 消息
+  // 聊天群组 + 消息（动态生成）
   const now = Date.now();
   const d = 86400000;
   const h = 3600000;
@@ -372,7 +372,233 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // 二级：专项群子类
     { id: 'sub_special_parent', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 2, description: '专项工作群聊', parentId: 'group_other' },
     { id: 'sub_special', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 0, description: '专项群', parentId: 'sub_special_parent', departmentIds: [] },
+  const conversations: any[] = [];
+  const chatMessages: any[] = [];
+  let msgId = 1;
+
+  // 用户列表（用于生成消息）
+  const allUsers = [
+    'admin','manager','张伟','周芳','郑敏','马行政','林助理','王磊','赵丽','孙强','何安全','高安全',
+    '朱商务','秦商务','李明','钱人事','陈工','林工','刘市场','韩市场','杨市场','许投标','何投标',
+    '吕客服','施客服','梁质量','宋质量','吴刚','总工程师','总会计师','总经济师',
+    '赵子乙','钱子乙','孙子乙','李子乙','周子乙','吴一公司','周一公司','郑一公司','冯一公司','陈一公司',
+    '褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司','杨三公司','朱三公司','秦三公司','尤三公司','许三公司',
+    '钱建国','孙一','周二','吴一','郑一','陈国强','孙二','周三','吴二','郑二',
+    '周海涛','孙三','周四','吴三','郑三','孙建国','孙四','孙四','周四','吴四','郑四',
+    '刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量',
+    '马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2',
+    '张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量',
+    '王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'
   ];
+
+  // 随机消息模板
+  const msgTemplates: Record<string, string[]> = {
+    hq: ['今日工作汇报已完成', '下周会议安排已发至邮箱', '集团年度预算已审批通过', '各部门负责人请按时提交月报', '安全例会定于周五下午三点'],
+    dept: ['安全生产检查将于本周五进行', '新员工培训计划已更新', '合同审批流程优化完成', '财务报销截止时间为本周五', '质量检测报告已出'],
+    proj: ['施工进度日报已提交', '材料进场验收合格', '安全技术交底已完成', '监理例会明天上午9点', '基坑监测数据正常'],
+    sub: ['分公司月度总结已汇总', '人员考勤系统已上线', '本地项目进展顺利', '办公设备已采购到位', '资质材料已整理完毕'],
+    co: ['一公司本周产值统计完成', '材料采购计划已提交', '施工质量抽检合格', '安全巡检已完成', '月度考勤已核对'],
+    custom: ['收到，马上处理', '好的，没问题', '这件事需要协调一下', '方案已发群里了', '请相关负责人确认'],
+  };
+
+  // ── 集团工作组 ──
+  const hqGroups = [
+    { id: 'gw_board', name: '董事会群', departmentId: 'board', members: ['admin'] },
+    { id: 'gw_gm', name: '总经理办公室群', departmentId: 'gm-office', members: ['admin','manager','张伟'] },
+    { id: 'gw_office', name: '办公室群', departmentId: 'office', members: ['周芳','郑敏','马行政','林助理'] },
+    { id: 'gw_dgm-a', name: '副总经理A群', departmentId: 'dgm-a', members: ['张伟','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务'] },
+    { id: 'gw_dgm-b', name: '副总经理B群', departmentId: 'dgm-b', members: ['李明','钱人事','陈工','林工'] },
+    { id: 'gw_chief', name: '三总师群', departmentId: 'chief-eng', members: ['admin','总工程师','总会计师','总经济师'] },
+  ];
+
+  for (const g of hqGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 5 + Math.floor(Math.random() * 8); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.hq[Math.floor(Math.random() * msgTemplates.hq.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 3)),
+        createdAt: new Date(now - (8 - i) * h * 3).toISOString()
+      });
+    }
+  }
+
+  // ── 分子公司组 ──
+  const subGroups = [
+    { id: 'gs_ba', name: '分公司A群', departmentId: 'branch-a', members: ['admin','钱建国','孙一','周一','吴一','郑一'] },
+    { id: 'gs_bb', name: '分公司B群', departmentId: 'branch-b', members: ['admin','陈国强','孙二','周二','吴二','郑二'] },
+    { id: 'gs_bc', name: '分公司C群', departmentId: 'branch-c', members: ['admin','周海涛','孙三','周三','吴三','郑三'] },
+    { id: 'gs_sa', name: '子公司甲群', departmentId: 'sub-alpha', members: ['admin','孙建国','孙四','周四','吴四','郑四'] },
+    { id: 'gs_sb', name: '子公司乙群', departmentId: 'sub-beta', members: ['admin','赵子乙','钱子乙','孙子乙','李子乙','周子乙'] },
+  ];
+
+  for (const g of subGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 4 + Math.floor(Math.random() * 6); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.sub[Math.floor(Math.random() * msgTemplates.sub.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (6 - i) * h * 4).toISOString()
+      });
+    }
+  }
+
+  // ── 项目部组 ──
+  const projGroups = [
+    { id: 'gp_proj-a', name: '项目部A群', departmentId: 'proj-a', members: ['admin','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量'] },
+    { id: 'gp_proj-b', name: '项目部B群', departmentId: 'proj-b', members: ['admin','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量'] },
+    { id: 'gp_proj-c', name: '项目部C群', departmentId: 'proj-c', members: ['admin','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'] },
+  ];
+
+  for (const g of projGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 8 + Math.floor(Math.random() * 10); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.proj[Math.floor(Math.random() * msgTemplates.proj.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 4)),
+        createdAt: new Date(now - (10 - i) * h * 2).toISOString()
+      });
+    }
+    // 添加阅后即焚消息
+    if (Math.random() > 0.3) {
+      const burnSender = g.members[Math.floor(Math.random() * g.members.length)];
+      const burnTarget = g.members[Math.floor(Math.random() * (g.members.length - 1)) + 1];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender: burnSender,
+        content: '紧急通知，请相关人员私信沟通', type: 'text', burn: true, burnSeconds: 30, burnTarget,
+        readBy: [burnSender, burnTarget],
+        createdAt: new Date(now - h * 2).toISOString()
+      });
+    }
+  }
+
+  // ── 集团部门组 ──
+  const deptGroups = [
+    { id: 'gd_eng', name: '工程管理部群', departmentId: 'eng-mgmt', members: ['admin','王磊'] },
+    { id: 'gd_fin', name: '财务部群', departmentId: 'finance', members: ['admin','赵丽','赵会计','周出纳'] },
+    { id: 'gd_saf', name: '安全生产部群', departmentId: 'safety', members: ['admin','孙强','何安全','高安全'] },
+    { id: 'gd_hr', name: '人力资源部群', departmentId: 'hr', members: ['admin','李明','钱人事'] },
+    { id: 'gd_mkt', name: '市场开发部群', departmentId: 'market-dev', members: ['admin','刘市场','韩市场','杨市场'] },
+    { id: 'gd_ops', name: '运维部群', departmentId: 'ops', members: ['admin','吕客服','施客服','梁质量','宋质量','吴刚'] },
+  ];
+
+  for (const g of deptGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 6); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.dept[Math.floor(Math.random() * msgTemplates.dept.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (5 - i) * h * 5).toISOString()
+      });
+    }
+  }
+
+  // ── 号码公司组 ──
+  const coGroups = [
+    { id: 'gc_co1', name: '一公司群', departmentId: 'co-1', members: ['admin','吴一公司','周一公司','郑一公司','冯一公司','陈一公司'] },
+    { id: 'gc_co2', name: '二公司群', departmentId: 'co-2', members: ['admin','褚二公司','卫二公司','蒋二公司','沈二公司','韩二公司'] },
+    { id: 'gc_co3', name: '三公司群', departmentId: 'co-3', members: ['admin','杨三公司','朱三公司','秦三公司','尤三公司','许三公司'] },
+  ];
+
+  for (const g of coGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name, category: 'department',
+      departmentId: g.departmentId, members: g.members,
+      admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 30 * d).toISOString()
+    });
+    for (let i = 0; i < 4 + Math.floor(Math.random() * 5); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.co[Math.floor(Math.random() * msgTemplates.co.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 3)),
+        createdAt: new Date(now - (4 - i) * h * 6).toISOString()
+      });
+    }
+  }
+
+  // ── 自建群 ──
+  const customGroups = [
+    { id: 'gc_safety', name: '安全管理群', members: ['admin','孙强','吴刚','何安全','高安全'] },
+    { id: 'gc_affairs', name: '综合事务群', members: ['admin','manager','周芳','郑敏','马行政'] },
+    { id: 'gc_quality', name: '质量管控群', members: ['admin','梁质量','宋质量','钱安全1','钱安全2','郑质量'] },
+  ];
+
+  for (const g of customGroups) {
+    conversations.push({
+      id: g.id, type: 'group', name: g.name,
+      members: g.members, admins: [g.members[1] || g.members[0]], owner: g.members[0],
+      createdAt: new Date(now - Math.random() * 20 * d).toISOString()
+    });
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 4); i++) {
+      const sender = g.members[Math.floor(Math.random() * g.members.length)];
+      const content = msgTemplates.custom[Math.floor(Math.random() * msgTemplates.custom.length)];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: g.id, sender, content, type: 'text',
+        readBy: g.members.slice(0, 1 + Math.floor(Math.random() * 2)),
+        createdAt: new Date(now - (3 - i) * h * 8).toISOString()
+      });
+    }
+  }
+
+  // ── 单聊 ──
+  const singlePairs = [
+    { id: 'gs1', name: '张伟', members: ['admin','张伟','赵丽'] },
+    { id: 'gs2', name: '孙强', members: ['admin','孙强','何安全'] },
+    { id: 'gs3', name: '刘工', members: ['admin','刘工','张副1'] },
+    { id: 'gs4', name: '王磊', members: ['admin','王磊','赵丽'] },
+    { id: 'gs5', name: '李明', members: ['admin','李明','钱人事'] },
+  ];
+
+  for (const s of singlePairs) {
+    conversations.push({
+      id: s.id, type: 'single', name: s.name,
+      members: s.members, owner: s.members[1],
+      createdAt: new Date(now - Math.random() * 15 * d).toISOString()
+    });
+    for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
+      const sender = s.members[Math.random() > 0.5 ? 1 : 2];
+      chatMessages.push({
+        id: `msg${msgId++}`, conversationId: s.id, sender,
+        content: '收到，马上处理', type: 'text',
+        readBy: [sender],
+        createdAt: new Date(now - (2 - i) * h * 10).toISOString()
+      });
+    }
+  }
+
+  // 按会话ID排序消息
+  chatMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  console.log(`[Seed] 生成 ${conversations.length} 个会话，${chatMessages.length} 条消息`);
 
 
   collections['suppliers'] = [

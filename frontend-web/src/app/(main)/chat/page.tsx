@@ -31,6 +31,26 @@ const ROLE_LEVELS: Record<string, number> = {
   super_admin: 100, high_admin: 80, general_admin: 60, employee: 40, outsource: 10,
 };
 
+function formatTime(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return time;
+  if (isYesterday) return '昨天 ' + time;
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + time;
+}
+
+function formatMsgTime(dateStr: string) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
 function MemberItem({ gm, isGroupAdmin, isGroupOwner, me, onChat, onSetAdmin, onRemove, onTransfer, onInfoClick }: {
   gm: any; isGroupAdmin: boolean; isGroupOwner: boolean; me: any;
   onChat: (u: string) => void; onSetAdmin: (u: string) => void; onRemove: (u: string) => void; onTransfer: (u: string) => void;
@@ -110,6 +130,7 @@ export default function ChatPage() {
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showSingleDialog, setShowSingleDialog] = useState(false);
   const [groupName, setGroupName] = useState('');
+  const [groupCategory, setGroupCategory] = useState('custom');
   const [newGroupMembers, setNewGroupMembers] = useState<string[]>([]);
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,6 +144,7 @@ export default function ChatPage() {
   const [leftTab, setLeftTab] = useState<'messages' | 'contacts'>('messages');
   const [contactSearch, setContactSearch] = useState('');
   const [convSections, setConvSections] = useState<Record<string, boolean>>({});  const [chatGroups, setChatGroups] = useState<any[]>([]);
+  const [convSections, setConvSections] = useState<Record<string, boolean>>({ single: false, hq: false, sub: false, proj: false, dept: false, co: false, custom: false });
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
@@ -157,23 +179,36 @@ export default function ChatPage() {
     return deptName;
   }, [deptContacts]);
 
-  // 焚毁倒计时：messageId -> remaining seconds
-  const [burnCountdowns, setBurnCountdowns] = useState<Map<string, number>>(new Map());
   const countdownRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  // ── 启动倒计时 ──
+  // ── 全局倒计时：每秒根据 burnRevealedAt 计算剩余时间 ──
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          if (!m.burn || !m.burnRevealedAt || m.burnScheduled) return m;
+          const elapsed = (Date.now() - new Date(m.burnRevealedAt).getTime()) / 1000;
+          const remaining = Math.max(0, (m.burnSeconds || 10) - elapsed);
+          if (remaining <= 0) {
+            changed = true;
+            return null as any;
+          }
+          return m;
+        }).filter(Boolean);
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ── 启动倒计时（本地UI用） ──
   const startBurnCountdown = useCallback((messageId: string, seconds: number) => {
     const old = countdownRefs.current.get(messageId);
     if (old) clearInterval(old);
-    setBurnCountdowns((prev) => { const next = new Map(prev); next.set(messageId, seconds); return next; });
     let remaining = seconds;
     const timer = setInterval(() => {
       remaining--;
-      setBurnCountdowns((prev) => {
-        const next = new Map(prev);
-        if (remaining <= 0) next.delete(messageId); else next.set(messageId, remaining);
-        return next;
-      });
       if (remaining <= 0) {
         clearInterval(timer);
         countdownRefs.current.delete(messageId);
@@ -205,17 +240,15 @@ export default function ChatPage() {
 
     s.on('chat:revealed', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
-        // 更新消息的 revealedBy 列表
+        // 更新消息的 revealedBy 列表和 burnRevealedAt
         setMessages((prev) => prev.map((m) =>
           m.id === data.messageId
-            ? { ...m, revealedBy: data.revealedBy, revealedForMe: data.revealedBy.includes(user.username), content: data.content || m.content }
+            ? { ...m, revealedBy: data.revealedBy, revealedForMe: data.revealedBy.includes(user.username), content: data.content || m.content, burnRevealedAt: data.burnRevealedAt || m.burnRevealedAt }
             : m
         ));
         // 如果是当前用户揭示的，启动倒计时
         if (data.revealedByUser === user.username) {
           startBurnCountdown(data.messageId, data.seconds);
-        } else if (data.isFirstReveal) {
-          // 其他人首次揭示：不启动我的倒计时，只更新状态
         }
       }
       fetchConvs();
@@ -226,7 +259,7 @@ export default function ChatPage() {
         // 只有已揭示的用户才启动倒计时
         setMessages((prev) => {
           const msg = prev.find((m) => m.id === data.messageId);
-          if (msg?.revealedForMe) {
+          if (msg?.revealedForMe && !msg.burnRevealedAt) {
             startBurnCountdown(data.messageId, data.seconds);
           }
           return prev.map((m) => m.id === data.messageId ? { ...m, burnScheduled: true } : m);
@@ -237,7 +270,6 @@ export default function ChatPage() {
     s.on('chat:burned', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
         setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
-        setBurnCountdowns((prev) => { const next = new Map(prev); next.delete(data.messageId); return next; });
         const timer = countdownRefs.current.get(data.messageId);
         if (timer) { clearInterval(timer); countdownRefs.current.delete(data.messageId); }
       }
@@ -400,7 +432,7 @@ export default function ChatPage() {
         if (d.messages) {
           setMessages(d.messages);
           d.messages.forEach((m: any) => {
-            if (m.burn && m.revealedForMe && m.burnScheduled) {
+            if (m.burn && m.revealedForMe && m.burnRevealedAt) {
               startBurnCountdown(m.id, m.burnSeconds || 10);
             }
           });
@@ -483,11 +515,14 @@ export default function ChatPage() {
     const token = localStorage.getItem('token');
     const res = await fetch(`${API_BASE}/chat/conversations/group`, {
       method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: groupName, members: newGroupMembers }),
+      body: JSON.stringify({ name: groupName, members: newGroupMembers, category: groupCategory }),
     });
     const conv = await res.json();
     setSelectedId(conv.id);
-    setShowGroupDialog(false); setGroupName(''); setNewGroupMembers([]);
+    setShowGroupDialog(false); setGroupName(''); setNewGroupMembers([]); setGroupCategory('custom');
+    // 自动展开对应分区
+    const sectionMap: Record<string, string> = { department: 'dept', custom: 'custom', project: 'proj', subsidiary: 'sub' };
+    setConvSections((prev) => ({ ...prev, [sectionMap[groupCategory] || 'custom']: true }));
     fetchConvs();
   };
 
@@ -553,6 +588,20 @@ export default function ChatPage() {
   });
 
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
+  const groupAll = filteredConvs.filter((c) => c.type === 'group');
+  // 集团工作组：总部及高管层级
+  const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
+  const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
+  // 分子公司组：分公司(sub-*) + 子公司(branch-*)
+  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-'));
+  // 项目部组：工程项目部
+  const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
+  // 集团部门组：职能部门（category=department，非总部层级）
+  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
+  // 号码公司组：一二三公司(co-*)
+  const coConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('co-'));
+  // 自建群
+  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c) && !coConvs.includes(c));
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -678,6 +727,11 @@ export default function ChatPage() {
                 <div>
                   <div onClick={() => setConvSections((p) => ({ ...p, single: !p.single }))}
                     className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+              {/* ─── 1.1 单聊 ─── */}
+              {singleConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, single: !p.single }))}
+                    className="sticky top-0 z-10 flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
                     <span className={`text-[10px] text-gray-400 transition-transform ${convSections.single !== false ? 'rotate-90' : ''}`}>▶</span>
                     <MessageCircle className="w-3 h-3 text-blue-500" />
                     <span className="text-xs font-semibold text-gray-500">单聊</span>
@@ -702,6 +756,7 @@ export default function ChatPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-gray-900 truncate">{displayName}</span>
                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                            {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
@@ -712,6 +767,173 @@ export default function ChatPage() {
                     );
                   })}
                 </div>
+              )}
+              {/* ─── 1.2 群聊 ─── */}
+              {groupAll.length > 0 && (
+                <>
+                  {/* 1.2 群聊 总标题 */}
+                  <div className="sticky top-0 z-20 flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+                    <Users className="w-3 h-3 text-emerald-500" />
+                    <span className="text-xs font-bold text-gray-700">群聊</span>
+                    <span className="text-[10px] text-gray-400">{groupAll.length}</span>
+                  </div>
+                  {/* 1.2.1 集团工作组 */}
+                  {hqConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, hq: !p.hq }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.hq !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">🏛</span>
+                        <span className="text-[11px] font-medium text-gray-500">集团工作组</span>
+                        <span className="text-[10px] text-gray-400">{hqConvs.length}</span>
+                      </div>
+                      {convSections.hq !== false && hqConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-indigo-100 text-indigo-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.2 分子公司组 */}
+                  {subConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, sub: !p.sub }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.sub !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">🏢</span>
+                        <span className="text-[11px] font-medium text-gray-500">分子公司组</span>
+                        <span className="text-[10px] text-gray-400">{subConvs.length}</span>
+                      </div>
+                      {convSections.sub !== false && subConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-cyan-100 text-cyan-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.3 项目部组 */}
+                  {projConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, proj: !p.proj }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.proj !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">🏗</span>
+                        <span className="text-[11px] font-medium text-gray-500">项目部组</span>
+                        <span className="text-[10px] text-gray-400">{projConvs.length}</span>
+                      </div>
+                      {convSections.proj !== false && projConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-amber-100 text-amber-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.4 集团部门组 */}
+                  {deptConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, dept: !p.dept }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.dept !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">📋</span>
+                        <span className="text-[11px] font-medium text-gray-500">集团部门组</span>
+                        <span className="text-[10px] text-gray-400">{deptConvs.length}</span>
+                      </div>
+                      {convSections.dept !== false && deptConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.5 号码公司组 */}
+                  {coConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, co: !p.co }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.co !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">🏭</span>
+                        <span className="text-[11px] font-medium text-gray-500">号码公司组</span>
+                        <span className="text-[10px] text-gray-400">{coConvs.length}</span>
+                      </div>
+                      {convSections.co !== false && coConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-orange-100 text-orange-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* 1.2.6 自建群 */}
+                  {customConvs.length > 0 && (
+                    <div>
+                      <div onClick={() => setConvSections((p) => ({ ...p, custom: !p.custom }))}
+                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.custom !== false ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-[10px]">💬</span>
+                        <span className="text-[11px] font-medium text-gray-500">自建群</span>
+                        <span className="text-[10px] text-gray-400">{customConvs.length}</span>
+                      </div>
+                      {convSections.custom !== false && customConvs.map((c) => (
+                        <div key={c.id} onClick={() => setSelectedId(c.id)}
+                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-purple-100 text-purple-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
+                          </div>
+                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
            </>
@@ -912,7 +1134,6 @@ export default function ChatPage() {
             {messages.map((m) => {
               const isMine = m.sender === me?.username;
               const readCount = (m.readBy || []).filter((r: string) => r !== m.sender).length;
-              const countdown = burnCountdowns.get(m.id);
               // 发送者始终看到内容；接收者需揭示后才看到
               const isBurnHidden = m.burn && !m.revealedForMe && !isMine;
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
@@ -982,21 +1203,26 @@ export default function ChatPage() {
                           </div>
                           <p className="break-words">{m.content}</p>
                           <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-                            <span className="text-[10px] text-amber-500">{new Date(m.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[10px] text-amber-500">{formatMsgTime(m.createdAt)}</span>
                             {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-amber-400" /> : <Check className="w-3 h-3 text-amber-400" />)}
                           </div>
                         </div>
-                        {/* 倒计时进度条 */}
-                        {countdown !== undefined && countdown > 0 && (
-                          <div className="flex items-center gap-2 mt-1 ml-1">
-                            <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(countdown / (m.burnSeconds || 10)) * 100}%` }} />
+                        {/* 倒计时进度条：基于 burnRevealedAt 计算 */}
+                        {m.burnRevealedAt && (() => {
+                          const elapsed = (Date.now() - new Date(m.burnRevealedAt).getTime()) / 1000;
+                          const remaining = Math.max(0, (m.burnSeconds || 10) - elapsed);
+                          if (remaining <= 0) return null;
+                          return (
+                            <div className="flex items-center gap-2 mt-1 ml-1">
+                              <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 ease-linear" style={{ width: `${(remaining / (m.burnSeconds || 10)) * 100}%` }} />
+                              </div>
+                              <span className="text-[10px] text-orange-500 font-mono tabular-nums">{Math.ceil(remaining)}s</span>
                             </div>
-                            <span className="text-[10px] text-orange-500 font-mono tabular-nums">{countdown}s</span>
-                          </div>
-                        )}
+                          );
+                        })()}
                         {/* 发送者：即时焚毁按钮 */}
-                        {isMine && !countdown && (
+                        {isMine && !m.burnRevealedAt && (
                           <div className="flex justify-end mt-1">
                             <button onClick={() => burnNow(m.id)}
                               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-500 hover:bg-red-100 text-[10px] font-medium transition-colors">
@@ -1015,7 +1241,7 @@ export default function ChatPage() {
                           {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">已加密</span></div>)}
                           <p className="break-words">{m.content}</p>
                           <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-                            <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{new Date(m.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt)}</span>
                             {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-blue-100" /> : <Check className="w-3 h-3 text-blue-100" />)}
                           </div>
                         </div>
@@ -1202,6 +1428,15 @@ export default function ChatPage() {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">群名称</label>
               <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="例如：项目沟通群" className="h-9" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">群分类</label>
+              <select value={groupCategory} onChange={(e) => setGroupCategory(e.target.value)} className="w-full h-9 text-sm rounded-lg border border-gray-200 bg-white px-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="custom">自建群</option>
+                <option value="department">部门群</option>
+                <option value="project">项目部群</option>
+                <option value="subsidiary">分子公司群</option>
+              </select>
             </div>
              <div>
                <label className="text-sm font-medium text-gray-700 mb-1 block">选择成员</label>

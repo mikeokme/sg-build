@@ -61,6 +61,7 @@ export class ChatService {
         type: c.type,
         name: c.name,
         category: c.category || '',
+        departmentId: c.departmentId || '',
         projectId: c.projectId || '',
         members: c.members,
         owner: c.owner,
@@ -342,8 +343,9 @@ export class ChatService {
 
     const isFirstReveal = revealedBy.length === 0;
 
-    // 仅首次揭示时启动焚毁倒计时
+    // 仅首次揭示时启动焚毁倒计时并记录时间戳
     if (isFirstReveal) {
+      this.dataService.updateChatMessage(messageId, { burnRevealedAt: new Date().toISOString() });
       this.scheduleBurn(conversationId, messageId);
     }
 
@@ -352,6 +354,7 @@ export class ChatService {
 
     // 通知指定用户：消息被揭示（仅发送者和所有已揭示者）
     const targetUsers = m.burnTarget ? [m.sender, m.burnTarget, ...newRevealedBy] : newRevealedBy;
+    const burnRevealedAt = isFirstReveal ? new Date().toISOString() : m.burnRevealedAt || '';
     this.emitToUsers('chat:revealed', {
       conversationId,
       messageId,
@@ -360,6 +363,7 @@ export class ChatService {
       seconds,
       isFirstReveal,
       content,
+      burnRevealedAt,
     }, targetUsers);
 
     return { ok: true, seconds, content };
@@ -446,6 +450,7 @@ export class ChatService {
       burnSeconds: m.burnSeconds,
       burnTarget: canSeeTarget ? (m.burnTarget || '') : '',
       burnScheduled: m.burnScheduled,
+      burnRevealedAt: m.burnRevealedAt || '',
       revealedBy,
       revealedForMe,
       readBy: m.readBy || [],
