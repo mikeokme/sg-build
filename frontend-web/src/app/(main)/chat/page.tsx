@@ -122,7 +122,8 @@ export default function ChatPage() {
   // 通讯录 tab：'messages' | 'contacts'
   const [leftTab, setLeftTab] = useState<'messages' | 'contacts'>('messages');
   const [contactSearch, setContactSearch] = useState('');
-  const [convSections, setConvSections] = useState<Record<string, boolean>>({});  const [chatGroups, setChatGroups] = useState<any[]>([]);
+  const [convSections, setConvSections] = useState<Record<string, boolean>>({});
+  const [chatGroups, setChatGroups] = useState<any[]>([]);
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
