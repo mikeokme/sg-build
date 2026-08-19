@@ -313,26 +313,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // 三级：高管群
     { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'sub_exec_parent', departmentIds: ['board', 'gm-office', 'office'] },
 
-    // ═══ 一级：分子公司组 ═══
-    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null },
-
-    // 二级：分公司子类
-    { id: 'sub_branch_parent', name: '分公司', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司群', parentId: 'group_branch' },
-    // 三级：分公司群
-    { id: 'sub_branch_a', name: '分公司群', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司A/B/C', parentId: 'sub_branch_parent', departmentIds: ['branch-a', 'branch-b', 'branch-c'] },
-
-    // 二级：子公司子类
-    { id: 'sub_sub_parent', name: '子公司', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司群', parentId: 'group_branch' },
-    // 三级：子公司群
-    { id: 'sub_sub_alpha', name: '子公司甲群', icon: '🏭', color: 'amber', sortOrder: 0, description: '子公司甲', parentId: 'sub_sub_parent', departmentIds: ['sub-alpha'] },
-    { id: 'sub_sub_beta', name: '子公司乙群', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司乙', parentId: 'sub_sub_parent', departmentIds: ['sub-beta'] },
-
-    // 二级：一/二/三公司子类
-    { id: 'sub_co_parent', name: '号码公司组', icon: '🏪', color: 'amber', sortOrder: 2, description: '直属公司群', parentId: 'group_branch' },
-    // 三级：各公司群
-    { id: 'sub_co_1', name: '一公司群', icon: '🏪', color: 'amber', sortOrder: 0, description: '一公司', parentId: 'sub_co_parent', departmentIds: ['co-1'] },
-    { id: 'sub_co_2', name: '二公司群', icon: '🏪', color: 'amber', sortOrder: 1, description: '二公司', parentId: 'sub_co_parent', departmentIds: ['co-2'] },
-    { id: 'sub_co_3', name: '三公司群', icon: '🏪', color: 'amber', sortOrder: 2, description: '三公司', parentId: 'sub_co_parent', departmentIds: ['co-3'] },
+    // ═══ 一级：分子公司组（下拉直接各分公司/子公司/公司群，不设子分组）═══
+    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null, departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
 
     // ═══ 一级：集团部门组（下拉直接各部门群，不设子分组）═══
     { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null, departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops'] },
