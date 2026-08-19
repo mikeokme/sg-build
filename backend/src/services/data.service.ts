@@ -1591,4 +1591,58 @@ export class DataService implements OnModuleInit {
     if (!dept) return null;
     return [dept.id, ...this.getDescendantIds(dept.id, departments)];
   }
+
+  // ── 通讯录可见范围（钉钉/飞书式地址簿权限）──
+  // - 超管(admin)与总经理办公室(gm-office)：全部部门
+  // - 部门负责人(isHead 或部门 leader)：本部门 + 全部下级部门
+  // - 普通成员 / 外协人员：仅本部门
+  getAddressBookDeptIds(username: string): string[] | null {
+    const departments = this.getCollectionItems('departments');
+    const user = this.getUserByUsername(username);
+    if (!user) return null;
+    if (user.role === 'super_admin' || user.department === '总经理办公室') {
+      return departments.map((d) => d.id);
+    }
+    const dept = departments.find((d) => d.name === user.department);
+    if (!dept) return null;
+    const isDeptLeader = user.isHead === true || dept.leader === username;
+    if (isDeptLeader) {
+      return [dept.id, ...this.getDescendantIds(dept.id, departments)];
+    }
+    return [dept.id];
+  }
+
+  // 返回用户通讯录可见的部门名集合（用于过滤用户列表）；返回 null 表示无可见范围
+  getAddressBookVisibleDeptNames(username: string): Set<string> | null {
+    const ids = this.getAddressBookDeptIds(username);
+    if (!ids) return null;
+    const departments = this.getCollectionItems('departments');
+    return new Set(departments.filter((d) => ids.includes(d.id)).map((d) => d.name));
+  }
+
+  // 按通讯录可见范围过滤组织树：
+  // - 可见部门节点保留完整信息
+  // - 含可见后代的不可见节点保留为路径骨架（清空成员/岗位/计数，仅作导航）
+  // - 完全不可见的节点移除
+  filterOrgTreeByVisible(nodes: any[], visible: Set<string>): any[] {
+    const result: any[] = [];
+    for (const node of nodes) {
+      if (visible.has(node.id)) {
+        result.push({ ...node, children: this.filterOrgTreeByVisible(node.children || [], visible) });
+      } else {
+        const filteredChildren = this.filterOrgTreeByVisible(node.children || [], visible);
+        if (filteredChildren.length > 0) {
+          result.push({
+            ...node,
+            children: filteredChildren,
+            positions: [],
+            members: [],
+            directMembers: [],
+            memberCount: 0,
+          });
+        }
+      }
+    }
+    return result;
+  }
 }

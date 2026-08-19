@@ -73,6 +73,20 @@ function sortByPinyin(list: any[], key = 'name'): any[] {
   return [...list].sort((a, b) => collatorZh.compare(a[key] || '', b[key] || ''));
 }
 
+// 递归展平部门树为有序列表（用于成员选择器，兼容任意深度）
+function flattenDeptTree(nodes: any[], depth = 0): Array<{ dept: any; depth: number }> {
+  const out: Array<{ dept: any; depth: number }> = [];
+  for (const node of nodes || []) {
+    if (!node || node.isVirtual) continue;
+    const hasMembers = (node.members?.length || 0) > 0;
+    const childList = flattenDeptTree(node.children, depth + 1);
+    const hasChildMembers = childList.length > 0;
+    if (hasMembers || hasChildMembers) out.push({ dept: node, depth });
+    out.push(...childList);
+  }
+  return out;
+}
+
 function MemberItem({ gm, isGroupAdmin, isGroupOwner, me, onChat, onSetAdmin, onRemove, onTransfer, onInfoClick }: {
   gm: any; isGroupAdmin: boolean; isGroupOwner: boolean; me: any;
   onChat: (u: string) => void; onSetAdmin: (u: string) => void; onRemove: (u: string) => void; onTransfer: (u: string) => void;
@@ -204,36 +218,44 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
 
   const getDeptLabel = useCallback((deptName: string) => {
     if (!deptName) return '';
-    for (const dept of deptContacts) {
-      if (dept.children) {
-        for (const child of dept.children) {
-          if (child.name === deptName) return `${deptName} · ${dept.name}`;
+    const findPath = (nodes: any[], prefix: string): string => {
+      for (const dept of nodes) {
+        if (dept.name === deptName) return prefix ? `${prefix} / ${dept.name}` : dept.name;
+        if (dept.children && dept.children.length > 0) {
+          const r = findPath(dept.children, prefix ? `${prefix} / ${dept.name}` : dept.name);
+          if (r) return r;
         }
       }
-    }
-    return deptName;
+      return '';
+    };
+    return findPath(deptContacts, '');
   }, [deptContacts]);
 
-  // 从成员卡片跳转通讯录并定位部门
+  // 从成员卡片跳转通讯录并定位部门（递归查找路径并展开）
   const gotoDept = useCallback((deptName: string) => {
     setLeftTab('contacts');
-    const allGroup = deptContacts.find((g: any) => g.isVirtual);
-    const orgGroups = deptContacts.filter((g: any) => !g.isVirtual);
-    // 找到部门所在路径（一级组 + 子部门），展开并滚动定位
-    for (const group of orgGroups) {
-      const child = group.children?.find((d: any) => d.name === deptName);
-      if (child) {
-        setDeptSections((prev) => ({ ...prev, org: true, [group.id]: true, [child.id]: true }));
-        requestAnimationFrame(() => {
-          const el = document.getElementById('dept-' + child.id);
-          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-        return;
+    // 递归找到部门所在路径节点，逐级展开
+    const findAndExpand = (nodes: any[]): boolean => {
+      for (const dept of nodes) {
+        if (dept.name === deptName) {
+          setDeptSections((prev) => ({ ...prev, org: true, [dept.id]: true }));
+          requestAnimationFrame(() => {
+            const el = document.getElementById('dept-' + dept.id);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+          return true;
+        }
+        if (dept.children && dept.children.length > 0 && findAndExpand(dept.children)) {
+          setDeptSections((prev) => ({ ...prev, [dept.id]: true }));
+          return true;
+        }
       }
+      return false;
+    };
+    if (!findAndExpand(deptContacts)) {
+      // 未匹配部门：至少展开单位机构组
+      setDeptSections((prev) => ({ ...prev, org: true, _all: false }));
     }
-    // 未匹配部门：至少展开单位机构组
-    setDeptSections((prev) => ({ ...prev, org: true, _all: false }));
-    if (allGroup) setDeptSections((prev) => ({ ...prev, org: true }));
   }, [deptContacts]);
 
   const countdownRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -992,6 +1014,75 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       </div>
                     </div>
                     {orgExpanded && orgGroups.map((group: any) => {
+                      // 递归渲染任意深度部门树
+                      const renderDeptNode = (dept: any, depth: number): React.ReactNode => {
+                        const deptFiltered = contactSearch
+                          ? dept.members.filter((m: any) =>
+                              m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                              m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                              dept.name.toLowerCase().includes(contactSearch.toLowerCase()))
+                          : dept.members;
+                        const childNodes = dept.children || [];
+                        const hasVisibleChild = childNodes.some((c: any) => c.members?.length > 0);
+                        if (deptFiltered.length === 0 && !hasVisibleChild) return null;
+                        const isDeptExpanded = deptSections[dept.id] !== false;
+                        return (
+                          <div key={dept.id} id={'dept-' + dept.id} className="border-b border-gray-50">
+                            <div onClick={() => setDeptSections((prev) => ({ ...prev, [dept.id]: !isDeptExpanded }))}
+                              className="flex items-center justify-between pl-8 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
+                              style={{ paddingLeft: `${8 + depth * 14}px` }}>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] text-gray-400 transition-transform ${isDeptExpanded ? 'rotate-90' : ''}`}>▶</span>
+                                <span className="text-sm font-semibold text-gray-700">{dept.name}</span>
+                                <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{deptFiltered.length}人</span>
+                              </div>
+                              {dept.leader && <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{dept.leader}</span>}
+                            </div>
+                            {isDeptExpanded && (
+                              <div>
+                                {deptFiltered.map((u: any) => {
+                                  const isOnline = onlineUsers.has(u.username);
+                                  const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
+                                  return (
+                                    <div key={u.username}
+                                      className="flex items-center gap-3 pl-14 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 transition-colors select-none group"
+                                      style={{ paddingLeft: `${14 + depth * 14}px` }}>
+                                      <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
+                                        <Avatar className="w-8 h-8">
+                                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                        </Avatar>
+                                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
+                                        <div className="flex items-center gap-1.5">
+                                          <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                                          {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
+                                          {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 truncate">
+                                          {u.position}
+                                          {u.phone && <span className="ml-1.5">{u.phone}</span>}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
+                                        {isMe && me?.username !== u.username && (
+                                          <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
+                                            className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
+                                            <X className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                        <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {childNodes.map((child: any) => renderDeptNode(child, depth + 1))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      };
                       const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
                       const isGroupExpanded = deptSections[group.id] !== false;
                       return (
@@ -1006,73 +1097,11 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                               <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{group.memberCount}人</span>
                             </div>
                           </div>
-                          {/* 子部门 */}
-                          {isGroupExpanded && group.children?.map((dept: any) => {
-                      const deptFiltered = contactSearch
-                        ? dept.members.filter((m: any) =>
-                            m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            dept.name.toLowerCase().includes(contactSearch.toLowerCase()))
-                        : dept.members;
-                      if (deptFiltered.length === 0) return null;
-                      const isDeptExpanded = deptSections[dept.id] !== false;
-                      return (
-                        <div key={dept.id} id={'dept-' + dept.id} className="border-b border-gray-50">
-                          <div onClick={() => setDeptSections((prev) => ({ ...prev, [dept.id]: !isDeptExpanded }))}
-                            className="flex items-center justify-between pl-8 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] text-gray-400 transition-transform ${isDeptExpanded ? 'rotate-90' : ''}`}>▶</span>
-                              <span className="text-sm font-semibold text-gray-700">{dept.name}</span>
-                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{deptFiltered.length}人</span>
-                            </div>
-                            {dept.leader && <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{dept.leader}</span>}
-                          </div>
-                          {isDeptExpanded && (
-                            <div>
-                              {deptFiltered.map((u: any) => {
-                                const isOnline = onlineUsers.has(u.username);
-                                const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
-                                return (
-                                  <div key={u.username}
-                                    className="flex items-center gap-3 pl-14 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 transition-colors select-none group">
-                                    <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
-                                      <Avatar className="w-8 h-8">
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                                      </Avatar>
-                                      {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
-                                      <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                                        {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
-                                        {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 truncate">
-                                        {u.position}
-                                        {u.phone && <span className="ml-1.5">{u.phone}</span>}
-                                      </p>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                      {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
-                                      {isMe && me?.username !== u.username && (
-                                        <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
-                                          className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
-                                          <X className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                      <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                          {/* 子部门（递归任意深度） */}
+                          {isGroupExpanded && (group.children || []).map((dept: any) => renderDeptNode(dept, 1))}
                         </div>
                       );
                     })}
-                  </div>
-                );
-              })}
                   </div>
                   {/* ═══ 一级：全体成员组 ═══ */}
                   <div>
@@ -1621,16 +1650,15 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
              <div>
                <label className="text-sm font-medium text-gray-700 mb-1 block">选择成员</label>
                <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg">
-                  {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                    const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
-                    return group.children?.map((dept: any) => {
+                  {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                       const members = dept.members.filter((m: any) => !newGroupMembers.includes(m.username));
                       const expanded = groupDialogDeptSections[dept.id] === true;
                       if (members.length === 0 && dept.members.filter((m: any) => newGroupMembers.includes(m.username)).length === 0) return null;
                       return (
                         <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                           <div onClick={() => setGroupDialogDeptSections((p) => ({ ...p, [dept.id]: !expanded }))}
-                            className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none">
+                            className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none"
+                            style={{ paddingLeft: `${6 + depth * 14}px` }}>
                             <span className={`text-[10px] text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
                             <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
                             <span className="text-[10px] text-gray-400">{dept.members.length}人</span>
@@ -1639,7 +1667,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                             const selected = newGroupMembers.includes(u.username);
                             return (
                               <div key={u.username} onClick={() => setNewGroupMembers((prev) => selected ? prev.filter((m) => m !== u.username) : [...prev, u.username])}
-                                className={`flex items-center gap-2.5 pl-10 pr-3 py-1.5 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2.5 pl-10 pr-3 py-1.5 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                style={{ paddingLeft: `${10 + depth * 14}px` }}>
                                 <Avatar className="w-6 h-6"><AvatarFallback className="text-[10px] bg-gray-100">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback></Avatar>
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm">{u.name || u.username}</span>
@@ -1651,8 +1680,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                           })}
                         </div>
                       );
-                    });
-                  })}
+                    })}
               </div>
               {newGroupMembers.length > 0 && <p className="text-xs text-gray-400 mt-1">已选 {newGroupMembers.length} 人</p>}
             </div>
@@ -1672,21 +1700,22 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
           </DialogHeader>
            <div className="mt-2">
              <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg">
-                {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                  return group.children?.map((dept: any) => {
+                {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                     if (dept.members.length === 0) return null;
                     const expanded = singleDialogDeptSections[dept.id] === true;
                     return (
                       <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                         <div onClick={() => setSingleDialogDeptSections((p) => ({ ...p, [dept.id]: !expanded }))}
-                          className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none">
+                          className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none"
+                          style={{ paddingLeft: `${6 + depth * 14}px` }}>
                           <span className={`text-[10px] text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
                           <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
                           <span className="text-[10px] text-gray-400">{dept.members.length}人</span>
                         </div>
                         {expanded && dept.members.map((u: any) => (
                           <div key={u.username} onClick={() => { openSingle(u.username); setShowSingleDialog(false); }}
-                            className="flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 last:border-b-0 transition-colors select-none">
+                            className="flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 last:border-b-0 transition-colors select-none"
+                            style={{ paddingLeft: `${10 + depth * 14}px` }}>
                             <Avatar className="w-7 h-7">
                               <AvatarFallback className="bg-blue-100 text-blue-600 text-[10px]">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                             </Avatar>
@@ -1701,8 +1730,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         ))}
                       </div>
                     );
-                  });
-              })}
+                  })}
              </div>
            </div>
         </DialogContent>
@@ -1720,8 +1748,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               <Input placeholder="搜索姓名、职位..." className="h-9 pl-8 text-sm" value={addMemberSearch} onChange={(e) => setAddMemberSearch(e.target.value)} />
             </div>
             <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
-              {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                return group.children?.map((dept: any) => {
+              {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                   const filtered = addMemberSearch
                     ? dept.members.filter((m: any) =>
                         (m.name.toLowerCase().includes(addMemberSearch.toLowerCase()) || m.position.toLowerCase().includes(addMemberSearch.toLowerCase()))
@@ -1733,7 +1760,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                   return (
                     <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                       <div onClick={() => setAddMemberDeptSections((prev) => ({ ...prev, [dept.id]: !isExpanded }))}
-                        className="flex items-center justify-between pl-6 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
+                        className="flex items-center justify-between pl-6 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
+                        style={{ paddingLeft: `${6 + depth * 14}px` }}>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                           <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
@@ -1744,7 +1772,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         const selected = selectedMembersToAdd.includes(u.username);
                         return (
                           <div key={u.username} onClick={() => setSelectedMembersToAdd((prev) => selected ? prev.filter((m) => m !== u.username) : [...prev, u.username])}
-                            className={`flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                            className={`flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            style={{ paddingLeft: `${10 + depth * 14}px` }}>
                             <Avatar className="w-7 h-7"><AvatarFallback className="text-xs bg-gray-100">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback></Avatar>
                             <div className="flex-1 min-w-0">
                               <span className="text-sm">{u.name || u.username}</span>
@@ -1756,8 +1785,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       })}
                     </div>
                   );
-                });
-              })}
+                })}
             </div>
             {selectedMembersToAdd.length > 0 && <p className="text-xs text-gray-400 mt-1">已选 {selectedMembersToAdd.length} 人</p>}
             <div className="flex justify-end gap-2 mt-3">

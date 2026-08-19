@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../guards/roles.decorator';
@@ -10,10 +10,15 @@ export class OrgController {
   constructor(private data: DataService) {}
 
   @Get('tree')
-  getTree() {
+  getTree(@Req() req: any) {
     const departments = this.data.getCollectionItems('departments');
     const positions = this.data.getCollectionItems('orgPositions');
-    return this.data.buildOrgTree(departments, positions);
+    const tree = this.data.buildOrgTree(departments, positions);
+    const username = req.user?.username || '';
+    const visibleDeptIds = this.data.getAddressBookDeptIds(username);
+    return visibleDeptIds
+      ? this.data.filterOrgTreeByVisible(tree, new Set(visibleDeptIds))
+      : [];
   }
 
   @Get('departments')
