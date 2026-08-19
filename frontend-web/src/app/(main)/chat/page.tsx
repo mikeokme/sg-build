@@ -122,7 +122,7 @@ export default function ChatPage() {
   // 通讯录 tab：'messages' | 'contacts'
   const [leftTab, setLeftTab] = useState<'messages' | 'contacts'>('messages');
   const [contactSearch, setContactSearch] = useState('');
-  const [convSections, setConvSections] = useState<Record<string, boolean>>({ project: false, group: false, single: false });
+  const [convSections, setConvSections] = useState<Record<string, boolean>>({ org: false, dept: false, project: false, branch: false, temp: false, single: false });
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
@@ -506,8 +506,23 @@ export default function ChatPage() {
   const isGroupOwner = selectedConv?.owner === me?.username;
   const typingList = Array.from(typingUsers.entries()).filter(([u, t]) => Date.now() - t < 4000).map(([u]) => u);
   const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
-  const projectConvs = filteredConvs.filter((c) => c.type === 'group' && (c.category === 'project' || (c.departmentId || '').startsWith('proj-')));
-  const groupConvs = filteredConvs.filter((c) => c.type === 'group' && c.category !== 'project' && !(c.departmentId || '').startsWith('proj-'));
+
+  // 集团架构组：按部门ID前缀自动归类
+  const groupConv = (c: any) => {
+    const did = c.departmentId || '';
+    if (!did) return 'temp';
+    if (['board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'].includes(did)) return 'org';
+    if (['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops'].includes(did)) return 'dept';
+    if (did.startsWith('proj-')) return 'project';
+    if (did.startsWith('branch-') || did.startsWith('sub-') || did.startsWith('co-')) return 'branch';
+    return 'temp';
+  };
+
+  const orgConvs = filteredConvs.filter((c) => c.type === 'group' && groupConv(c) === 'org');
+  const deptConvs = filteredConvs.filter((c) => c.type === 'group' && groupConv(c) === 'dept');
+  const projectConvs = filteredConvs.filter((c) => c.type === 'group' && groupConv(c) === 'project');
+  const branchConvs = filteredConvs.filter((c) => c.type === 'group' && groupConv(c) === 'branch');
+  const tempConvs = filteredConvs.filter((c) => c.type === 'group' && groupConv(c) === 'temp');
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
 
   return (
@@ -553,71 +568,248 @@ export default function ChatPage() {
               {filteredConvs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400"><MessageCircle className="w-10 h-10 mb-2" /><p className="text-sm">暂无会话</p></div>
               )}
-               {/* 群聊分区 */}
-               {groupConvs.length > 0 && (
-                 <div>
-                   <div onClick={() => setConvSections((p) => ({ ...p, group: !p.group }))}
-                     className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
-                     <span className={`text-[10px] text-gray-400 transition-transform ${convSections.group !== false ? 'rotate-90' : ''}`}>▶</span>
-                     <Users className="w-3 h-3 text-emerald-500" />
-                     <span className="text-xs font-semibold text-gray-500">群聊</span>
-                     <span className="text-[10px] text-gray-400">{groupConvs.length}</span>
-                   </div>
-                   {convSections.group !== false && groupConvs.map((c) => {
-                     const isSelected = c.id === selectedId;
-                     return (
-                       <div key={c.id} onClick={() => setSelectedId(c.id)}
-                         className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                         <div className="relative flex-shrink-0">
-                           <Avatar className="w-10 h-10">
-                             <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback>
-                           </Avatar>
-                         </div>
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center justify-between">
-                             <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
-                           </div>
-                           <div className="flex items-center gap-1 mt-0.5">
-                             <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                             <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
-                           </div>
-                         </div>
-                         {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                       </div>
-                     );
-                   })}
-                 </div>
-               )}
-               {/* 单聊分区 */}
-               {singleConvs.length > 0 && (
-                 <div>
-                   <div onClick={() => setConvSections((p) => ({ ...p, single: !p.single }))}
-                     className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
-                     <span className={`text-[10px] text-gray-400 transition-transform ${convSections.single !== false ? 'rotate-90' : ''}`}>▶</span>
-                     <MessageCircle className="w-3 h-3 text-blue-500" />
-                     <span className="text-xs font-semibold text-gray-500">单聊</span>
-                     <span className="text-[10px] text-gray-400">{singleConvs.length}</span>
-                   </div>
-                   {convSections.single !== false && singleConvs.map((c) => {
-                     const isSelected = c.id === selectedId;
-                     const otherUsername = c.members.find((m: string) => m !== me?.username) || me?.username;
-                     const otherUserData = otherUsername ? userMap.get(otherUsername) : null;
-                     const displayName = otherUserData?.name || otherUsername;
-                     const isOnline = onlineUsers.has(otherUsername);
-                     return (
-                       <div key={c.id} onClick={() => setSelectedId(c.id)}
-                         className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                         <div className="relative flex-shrink-0">
-                           <Avatar className="w-10 h-10">
-                             <AvatarFallback className="bg-blue-100 text-blue-600">{displayName?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                           </Avatar>
-                           {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
-                         </div>
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center justify-between">
-                             <span className="text-sm font-medium text-gray-900 truncate">{displayName}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+
+              {/* Helper: render a group item */}
+              {(() => {
+                const GroupItem = ({ c, key }: { c: any; key: string }) => {
+                  const isSelected = c.id === selectedId;
+                  return (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  );
+                };
+                // Group header component
+                const GroupHeader = ({ section, icon, label, count, color }: { section: string; icon: React.ReactNode; label: string; count: number; color: string }) => (
+                  <div>
+                    <div onClick={() => setConvSections((p) => ({ ...p, [section]: p[section] === false ? true : false }))}
+                      className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                      <span className={`text-[10px] text-gray-400 transition-transform ${convSections[section] !== false ? 'rotate-90' : ''}`}>▶</span>
+                      {icon}
+                      <span className={`text-xs font-semibold ${color}`}>{label}</span>
+                      <span className="text-[10px] text-gray-400">{count}</span>
+                    </div>
+                    {convSections[section] !== false && [...(c) => <GroupItem key={c.id} c={c} />, count > 0]}
+                  </div>
+                );
+                return null;
+              })()}
+
+              {/* 1. 集团组 */}
+              {orgConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, org: p.org === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.org !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <span className="text-blue-600">🏛</span>
+                    <span className="text-xs font-semibold text-gray-500">集团组</span>
+                    <span className="text-[10px] text-gray-400">{orgConvs.length}</span>
+                  </div>
+                  {convSections.org !== false && orgConvs.map((c) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-blue-100 text-blue-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 2. 部门组 */}
+              {deptConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, dept: p.dept === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.dept !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <span className="text-purple-600">📋</span>
+                    <span className="text-xs font-semibold text-gray-500">部门组</span>
+                    <span className="text-[10px] text-gray-400">{deptConvs.length}</span>
+                  </div>
+                  {convSections.dept !== false && deptConvs.map((c) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-purple-100 text-purple-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 3. 项目部组 */}
+              {projectConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, project: p.project === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.project !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <span className="text-emerald-600">🏗</span>
+                    <span className="text-xs font-semibold text-gray-500">项目部组</span>
+                    <span className="text-[10px] text-gray-400">{projectConvs.length}</span>
+                  </div>
+                  {convSections.project !== false && projectConvs.map((c) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 4. 分子公司组 */}
+              {branchConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, branch: p.branch === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.branch !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <span className="text-amber-600">🏢</span>
+                    <span className="text-xs font-semibold text-gray-500">分子公司组</span>
+                    <span className="text-[10px] text-gray-400">{branchConvs.length}</span>
+                  </div>
+                  {convSections.branch !== false && branchConvs.map((c) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-amber-100 text-amber-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 5. 其他临时组 */}
+              {tempConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, temp: p.temp === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.temp !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <span className="text-gray-500">💬</span>
+                    <span className="text-xs font-semibold text-gray-500">其他临时组</span>
+                    <span className="text-[10px] text-gray-400">{tempConvs.length}</span>
+                  </div>
+                  {convSections.temp !== false && tempConvs.map((c) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)}
+                      className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-gray-100 text-gray-600"><Users className="w-4 h-4" /></AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                          <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                        </div>
+                      </div>
+                      {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 单聊 */}
+              {singleConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, single: p.single === false ? true : false }))}
+                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.single !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <MessageCircle className="w-3 h-3 text-blue-500" />
+                    <span className="text-xs font-semibold text-gray-500">单聊</span>
+                    <span className="text-[10px] text-gray-400">{singleConvs.length}</span>
+                  </div>
+                  {convSections.single !== false && singleConvs.map((c) => {
+                    const isSelected = c.id === selectedId;
+                    const otherUsername = c.members.find((m: string) => m !== me?.username) || me?.username;
+                    const otherUserData = otherUsername ? userMap.get(otherUsername) : null;
+                    const displayName = otherUserData?.name || otherUsername;
+                    const isOnline = onlineUsers.has(otherUsername);
+                    return (
+                      <div key={c.id} onClick={() => setSelectedId(c.id)}
+                        className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <div className="relative flex-shrink-0">
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback className="bg-blue-100 text-blue-600">{displayName?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                          </Avatar>
+                          {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900 truncate">{displayName}</span>
+                            {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
@@ -626,46 +818,10 @@ export default function ChatPage() {
                         {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
                       </div>
                     );
-                   })}
-                 </div>
-               )}
-               {/* 项目部组分区 */}
-               {projectConvs.length > 0 && (
-                 <div>
-                   <div onClick={() => setConvSections((p) => ({ ...p, project: !p.project }))}
-                     className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-50">
-                     <span className={`text-[10px] text-gray-400 transition-transform ${convSections.project !== false ? 'rotate-90' : ''}`}>▶</span>
-                     <span className="text-emerald-600">🏗</span>
-                     <span className="text-xs font-semibold text-gray-500">项目部组</span>
-                     <span className="text-[10px] text-gray-400">{projectConvs.length}</span>
-                   </div>
-                   {convSections.project !== false && projectConvs.map((c) => {
-                     const isSelected = c.id === selectedId;
-                     return (
-                       <div key={c.id} onClick={() => setSelectedId(c.id)}
-                         className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                         <div className="relative flex-shrink-0">
-                           <Avatar className="w-10 h-10">
-                             <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback>
-                           </Avatar>
-                         </div>
-                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center justify-between">
-                             <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                             {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
-                           </div>
-                           <div className="flex items-center gap-1 mt-0.5">
-                             <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                             <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
-                           </div>
-                         </div>
-                         {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                       </div>
-                     );
-                   })}
-                 </div>
-               )}
-             </div>
+                  })}
+                </div>
+              )}
+            </div>
            </>
          )}
 
