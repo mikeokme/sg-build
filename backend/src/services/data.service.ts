@@ -1142,6 +1142,8 @@ export class DataService implements OnModuleInit {
         this.chatMessages = data.chatMessages || [];
         this.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
         console.log(`[DataService] 已从 ${DATA_FILE} 加载数据`);
+        // 启动时对齐部门群与部门成员（钉钉/飞书式自动联动）
+        this.syncAllDepartmentGroups();
         return;
       } catch (e) {
         console.error('[DataService] 加载数据失败，使用种子数据', e);
@@ -1155,6 +1157,8 @@ export class DataService implements OnModuleInit {
     this.chatMessages = seeded.chatMessages;
     this.save();
     console.log(`[DataService] 已生成种子数据并保存到 ${DATA_FILE}`);
+    // 启动时对齐部门群与部门成员（钉钉/飞书式自动联动）
+    this.syncAllDepartmentGroups();
   }
 
   private save() {
@@ -1644,5 +1648,126 @@ export class DataService implements OnModuleInit {
       }
     }
     return result;
+  }
+
+  // ── 部门群自动联动（钉钉/飞书式：部门群=本部门直属成员+超管，负责人为群主，负责人/副职为管理员）──
+
+  private getDeptDirectUsernames(deptId: string): string[] {
+    const dept = this.getCollectionItems('departments').find((d: any) => d.id === deptId);
+    if (!dept) return [];
+    return this.users
+      .filter((u: any) => u.isActive !== false && u.department === dept.name)
+      .map((u: any) => u.username);
+  }
+
+  // 同步部门群（不存在则自动创建）：成员/群主/管理员/群名
+  syncDepartmentGroup(deptId: string): any {
+    const dept = this.getCollectionItems('departments').find((d: any) => d.id === deptId);
+    if (!dept) return null;
+    const groupId = `dg_${deptId}`;
+    let conv = this.conversations.find((c) => c.category === 'department' && c.departmentId === deptId);
+    if (!conv) {
+      conv = {
+        id: groupId,
+        type: 'group',
+        name: `${dept.name}群`,
+        category: 'department',
+        departmentId: deptId,
+        members: [],
+        admins: [],
+        owner: dept.leader || '',
+        createdAt: new Date().toISOString(),
+        description: `${dept.name}部门群`,
+        avatar: '',
+        pinnedMessageId: '',
+      };
+      this.conversations.push(conv);
+    }
+    const direct = this.getDeptDirectUsernames(deptId);
+    const superAdmins = this.users
+      .filter((u: any) => u.role === 'super_admin' && u.isActive !== false)
+      .map((u: any) => u.username);
+    const leader = dept.leader;
+    const members = Array.from(new Set([...direct, ...superAdmins]));
+    const admins = this.users
+      .filter((u: any) => u.isActive !== false && u.department === dept.name && (u.isHead || u.isDeputy || u.username === leader))
+      .map((u: any) => u.username);
+    conv.name = `${dept.name}群`;
+    conv.owner = leader || superAdmins[0] || '';
+    conv.members = members;
+    conv.admins = Array.from(new Set(admins));
+    if (conv.id !== groupId) {
+      // 历史 id 不一致：迁移为规范 id，并迁移消息
+      this.conversations.forEach((c, idx) => { if (c.id === groupId) this.conversations.splice(idx, 1); });
+      const oldId = conv.id;
+      conv.id = groupId;
+      for (const m of this.chatMessages) {
+        if (m.conversationId === oldId) m.conversationId = groupId;
+      }
+    }
+    this.save();
+    return conv;
+  }
+
+  // 用户部门调动/停用/删除时，自动进出部门群
+  syncUserDepartmentGroups(oldDepartment: string | undefined, newDepartment: string | undefined, username: string) {
+    const departments = this.getCollectionItems('departments');
+    const user = this.getUserByUsername(username);
+    // 用户停用或删除：从所有部门群移除
+    if (!user || user.isActive === false) {
+      for (const conv of this.conversations) {
+        if (conv.category === 'department') {
+          conv.members = conv.members.filter((m: any) => m !== username);
+          conv.admins = (conv.admins || []).filter((m: any) => m !== username);
+          if (conv.owner === username) conv.owner = '';
+        }
+      }
+      this.save();
+      return;
+    }
+    // 部门调动：重新同步旧部门与新部门的部门群
+    const affected = new Set<string>();
+    for (const d of departments) {
+      if (d.name === oldDepartment || d.name === newDepartment) affected.add(d.id);
+    }
+    for (const id of affected) this.syncDepartmentGroup(id);
+  }
+
+  // 部门改名/负责人变更后同步部门群
+  syncDepartmentGroupByName(oldName: string | undefined, deptId: string) {
+    const departments = this.getCollectionItems('departments');
+    const affected = new Set<string>([deptId]);
+    for (const d of departments) {
+      if (d.name === oldName) affected.add(d.id);
+    }
+    for (const id of affected) this.syncDepartmentGroup(id);
+  }
+
+  getDepartmentIdByName(name: string): string | undefined {
+    const dept = this.getCollectionItems('departments').find((d: any) => d.name === name);
+    return dept?.id;
+  }
+
+  // 删除部门时清理对应部门群及消息
+  removeDepartmentGroup(deptId: string) {
+    const groupId = `dg_${deptId}`;
+    const groups = this.conversations.filter((c) => c.category === 'department' && c.departmentId === deptId);
+    for (const conv of groups) {
+      const idx = this.conversations.findIndex((c) => c.id === conv.id);
+      if (idx !== -1) this.conversations.splice(idx, 1);
+      this.chatMessages = this.chatMessages.filter((m: any) => m.conversationId !== conv.id);
+    }
+    // 兼容历史非规范 id
+    const idx = this.conversations.findIndex((c) => c.id === groupId);
+    if (idx !== -1) this.conversations.splice(idx, 1);
+    this.chatMessages = this.chatMessages.filter((m: any) => m.conversationId !== groupId);
+    this.save();
+  }
+
+  // 全量同步所有部门群（初始化/修复数据用）
+  syncAllDepartmentGroups() {
+    for (const dept of this.getCollectionItems('departments')) {
+      this.syncDepartmentGroup(dept.id);
+    }
   }
 }
