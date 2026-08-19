@@ -126,9 +126,6 @@ export default function ChatPage() {
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
-  // 项目部组
-  const [projectGroups, setProjectGroups] = useState<any[]>([]);
-  const [projectGroupSections, setProjectGroupSections] = useState<Record<string, boolean>>({});
 
   // 群成员管理面板
   const [showGroupInfo, setShowGroupInfo] = useState(false);

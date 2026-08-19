@@ -486,7 +486,7 @@ export default function OrgChartPage() {
           <DeptList depts={departments} />
         </div>
         <div className="p-3 border-t border-gray-100">
-          <Button size="sm" variant="outline" onClick={() => handleAdd('hq')} className="w-full text-xs h-8">
+          <Button size="sm" variant="outline" onClick={() => handleAdd('group')} className="w-full text-xs h-8">
             <Plus className="w-3.5 h-3.5 mr-1" /> 新建部门
           </Button>
         </div>
