@@ -534,26 +534,63 @@ export default function ChatPage() {
     return chatGroups.find((g: any) => g.id === 'sub_temp')?.id || 'sub_temp';
   };
 
-  // 构建三级树结构
-  const level1Groups = chatGroups.filter((g: any) => !g.parentId);
-  const level2Groups = chatGroups.filter((g: any) => g.parentId && !g.departmentIds?.length);
-  const level3Groups = chatGroups.filter((g: any) => g.parentId && g.departmentIds?.length > 0);
-
-  const groupedTree = level1Groups.map((l1: any) => {
-    const children = level2Groups.filter((l2: any) => l2.parentId === l1.id).map((l2: any) => {
-      const l3Children = level3Groups.filter((l3: any) => l3.parentId === l2.id);
-      return {
-        ...l2,
-        convs: l3Children.map((l3: any) => ({
-          ...l3,
-          conversations: filteredConvs.filter((c: any) => getGroupForConv(c) === l3.id),
-        })),
-      };
-    });
-    return { ...l1, children };
-  });
+  // 构建通用分组树（按 parentId 递归，层级不限）
+  const buildGroupTree = (parentId: string | null): any[] =>
+    chatGroups
+      .filter((g: any) => (g.parentId ?? null) === parentId)
+      .map((g: any) => ({
+        ...g,
+        conversations: filteredConvs.filter((c: any) => getGroupForConv(c) === g.id),
+        children: buildGroupTree(g.id),
+      }));
+  const groupedTree = buildGroupTree(null);
+  const countGroupConvs = (n: any): number =>
+    n.conversations.length + (n.children || []).reduce((s: number, c: any) => s + countGroupConvs(c), 0);
 
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
+
+  // 递归渲染分组树节点
+  const renderGroupNode = (node: any, depth: number): React.ReactNode => {
+    const count = countGroupConvs(node);
+    if (count === 0) return null;
+    const isExpanded = convSections[node.id] !== false;
+    const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
+    const indent = depth === 0 ? 'pl-3' : depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : 'pl-14';
+    return (
+      <div key={node.id}>
+        {/* 分组标题 */}
+        <div onClick={() => setConvSections((p) => ({ ...p, [node.id]: isExpanded ? false : true }))}
+          className={`flex items-center gap-2 ${indent} py-2 cursor-pointer hover:bg-gray-50 select-none border-b ${depth === 0 ? 'border-gray-200 bg-gray-50/50' : 'border-gray-100'}`}>
+          <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+          <span className={colorMap[node.color] || 'text-gray-600'}>{node.icon}</span>
+          <span className={`${depth === 0 ? 'text-sm font-bold text-gray-700' : depth === 1 ? 'text-xs font-medium text-gray-600' : 'text-[11px] text-gray-500'}`}>{node.name}</span>
+          <span className="text-[10px] text-gray-400 ml-auto">{count}</span>
+        </div>
+        {isExpanded && node.conversations.map((c: any) => (
+          <div key={c.id} onClick={() => setSelectedId(c.id)}
+            className={`flex items-center gap-3 px-3 py-2.5 pl-14 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+            <div className="relative flex-shrink-0">
+              <Avatar className="w-9 h-9">
+                <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-3.5 h-3.5" /></AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                <p className="text-[11px] text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+              </div>
+            </div>
+            {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+          </div>
+        ))}
+        {isExpanded && (node.children || []).map((child: any) => renderGroupNode(child, depth + 1))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -599,80 +636,11 @@ export default function ChatPage() {
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400"><MessageCircle className="w-10 h-10 mb-2" /><p className="text-sm">暂无会话</p></div>
               )}
 
-              {/* 三级分组渲染 */}
-              {groupedTree.map((l1: any) => {
-                const l1Expanded = convSections[l1.id] !== false;
-                const l1Count = l1.children.reduce((sum: number, l2: any) =>
-                  sum + l2.convs.reduce((s: number, l3: any) => s + l3.conversations.length, 0), 0);
-                if (l1Count === 0) return null;
-                const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
-                return (
-                  <div key={l1.id}>
-                    {/* 一级分组 */}
-                    <div onClick={() => setConvSections((p) => ({ ...p, [l1.id]: l1Expanded ? false : true }))}
-                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-200 bg-gray-50/50">
-                      <span className={`text-[10px] text-gray-400 transition-transform ${l1Expanded ? 'rotate-90' : ''}`}>▶</span>
-                      <span className={colorMap[l1.color] || 'text-gray-600'}>{l1.icon}</span>
-                      <span className="text-sm font-bold text-gray-700">{l1.name}</span>
-                      <span className="text-[10px] text-gray-400 ml-auto">{l1Count}</span>
-                    </div>
-                    {l1Expanded && l1.children.map((l2: any) => {
-                      const l2Expanded = convSections[l2.id] !== false;
-                      const l2Count = l2.convs.reduce((sum: number, l3: any) => sum + l3.conversations.length, 0);
-                      if (l2Count === 0) return null;
-                      return (
-                        <div key={l2.id}>
-                          {/* 二级分组 */}
-                          <div onClick={(e) => { e.stopPropagation(); setConvSections((p) => ({ ...p, [l2.id]: l2Expanded ? false : true })) }}
-                            className="flex items-center gap-2 px-3 py-1.5 pl-6 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100">
-                            <span className={`text-[9px] text-gray-400 transition-transform ${l2Expanded ? 'rotate-90' : ''}`}>▶</span>
-                            <span className={colorMap[l2.color] || 'text-gray-500'}>{l2.icon}</span>
-                            <span className="text-xs font-medium text-gray-600">{l2.name}</span>
-                            <span className="text-[9px] text-gray-400">{l2Count}</span>
-                          </div>
-                          {l2Expanded && l2.convs.map((l3: any) => {
-                            const l3Expanded = convSections[l3.id] !== false;
-                            return (
-                              <div key={l3.id}>
-                                {/* 三级分组标题（仅在有群聊时显示） */}
-                                {l3.conversations.length > 0 && (
-                                  <div onClick={() => setConvSections((p) => ({ ...p, [l3.id]: l3Expanded ? false : true }))}
-                                    className="flex items-center gap-2 px-3 py-1.5 pl-10 cursor-pointer hover:bg-gray-50 select-none">
-                                    <span className={`text-[9px] text-gray-400 transition-transform ${l3Expanded ? 'rotate-90' : ''}`}>▶</span>
-                                    <span className={colorMap[l3.color] || 'text-gray-500'}>{l3.icon}</span>
-                                    <span className="text-[11px] text-gray-500">{l3.name}</span>
-                                  </div>
-                                )}
-                                {l3Expanded && l3.conversations.map((c: any) => (
-                                  <div key={c.id} onClick={() => setSelectedId(c.id)}
-                                    className={`flex items-center gap-3 px-3 py-2.5 pl-14 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                                    <div className="relative flex-shrink-0">
-                                      <Avatar className="w-9 h-9">
-                                        <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-3.5 h-3.5" /></AvatarFallback>
-                                      </Avatar>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                                        {c.lastMessageAt && <span className="text-[10px] text-gray-400">{new Date(c.lastMessageAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>}
-                                      </div>
-                                      <div className="flex items-center gap-1 mt-0.5">
-                                        <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                                        <p className="text-[11px] text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
-                                      </div>
-                                    </div>
-                                    {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
+              {/* 分组树渲染 */}
+              {groupedTree.map((node: any) => renderGroupNode(node, 0))}
+              {groupedTree.length === 0 && filteredConvs.filter((c) => c.type === 'group').length > 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400"><MessageCircle className="w-10 h-10 mb-2" /><p className="text-sm">暂无分组配置</p></div>
+              )}
 
               {/* 单聊 */}
               {singleConvs.length > 0 && (
