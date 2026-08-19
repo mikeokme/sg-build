@@ -58,9 +58,9 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'dg_board', type: 'group', name: '董事会群', category: 'department', departmentId: 'board', members: ['admin'], admins: [], owner: 'admin' },
     { id: 'dg_gm', type: 'group', name: '总经理办公室群', category: 'department', departmentId: 'gm-office', members: ['admin','manager','张伟'], admins: ['manager'], owner: 'admin' },
     { id: 'dg_office', type: 'group', name: '办公室群', category: 'department', departmentId: 'office', members: ['周芳','郑敏','马行政','林助理'], admins: ['郑敏'], owner: '周芳' },
-    { id: 'dg_dgm-a', type: 'group', name: '副总经理A群', category: 'department', departmentId: 'dgm-a', members: ['张伟','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'], admins: ['王磊','赵丽','刘工','马师傅','张经理'], owner: '张伟' },
-    { id: 'dg_dgm-b', type: 'group', name: '副总经理B群', category: 'department', departmentId: 'dgm-b', members: ['李明','钱人事','陈工','林工'], admins: ['李明'], owner: '李明' },
-    { id: 'dg_dgm-c', type: 'group', name: '副总经理C群', category: 'department', departmentId: 'dgm-c', members: ['刘市场','韩市场','杨市场','许投标','何投标','吕客服','施客服','梁质量','宋质量','吴刚'], admins: ['刘市场','吕客服'], owner: '刘市场' },
+    { id: 'dg_dgm-a', type: 'group', name: '副总经理A群', category: 'department', departmentId: 'dgm-a', members: ['admin','张伟','王磊','赵丽','孙强','何安全','高安全','朱商务','秦商务','刘工','张副1','李技术1','王施工1','赵质量1','钱安全1','孙材料1','周测量','马师傅','张副2','李技术2','王施工2','赵质量2','钱安全2','孙材料2','周测量','张经理','李技术3','王施工3','赵质量3','钱安全3','李经理','张测量','王施工4','赵质量4','孙经理','周施工','吴安全','周经理','吴采购','郑质量','吴经理','郑施工','陈安全'], admins: ['王磊','赵丽','刘工','马师傅','张经理'], owner: '张伟' },
+    { id: 'dg_dgm-b', type: 'group', name: '副总经理B群', category: 'department', departmentId: 'dgm-b', members: ['admin','李明','钱人事','陈工','林工'], admins: ['李明'], owner: '李明' },
+    { id: 'dg_dgm-c', type: 'group', name: '副总经理C群', category: 'department', departmentId: 'dgm-c', members: ['admin','刘市场','韩市场','杨市场','许投标','何投标','吕客服','施客服','梁质量','宋质量','吴刚'], admins: ['刘市场','吕客服'], owner: '刘市场' },
     { id: 'dg_eng', type: 'group', name: '工程管理部群', category: 'department', departmentId: 'eng-mgmt', members: ['admin','王磊'], admins: [], owner: '王磊' },
     { id: 'dg_fin', type: 'group', name: '财务部群', category: 'department', departmentId: 'finance', members: ['admin','赵丽','赵会计','周出纳'], admins: ['赵会计'], owner: '赵丽' },
     { id: 'dg_saf', type: 'group', name: '安全生产部群', category: 'department', departmentId: 'safety', members: ['admin','孙强','何安全','高安全'], admins: ['何安全'], owner: '孙强' },
@@ -297,21 +297,21 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
 
   // 聊天分组配置（三级结构）
   // 一级：顶级分组（parentId=null）
-  // 二级：子类分组（parentId=一级ID，无departmentIds）
-  // 三级：实际群聊匹配规则（parentId=二级ID，有departmentIds）
+  // 二级：集团高管组下设直接群聊匹配规则（parentId=一级ID，有departmentIds）
   collections['chatGroups'] = [
-    // ═══ 一级：集团总部组 ═══
-    { id: 'group_exec', name: '集团总部组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团管理层群', parentId: null },
+    // ═══ 一级：集团高管组 ═══
+    { id: 'group_exec', name: '集团高管组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团高管层群', parentId: null },
 
-    // 二级：总经办子类（容器，无departmentIds）
-    { id: 'sub_exec_parent', name: '总经办组', icon: '👔', color: 'blue', sortOrder: 0, description: '总经理及副总层级', parentId: 'group_exec' },
-
-    // 三级：副总群
-    { id: 'sub_dgm', name: '副总群', icon: '👔', color: 'blue', sortOrder: 0, description: '副总经理群', parentId: 'sub_exec_parent', departmentIds: ['dgm-a', 'dgm-b', 'dgm-c'] },
-    // 三级：三总师群
-    { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 1, description: '总工程师/会计师/经济师', parentId: 'sub_exec_parent', departmentIds: ['chief-eng'] },
-    // 三级：高管群
-    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'sub_exec_parent', departmentIds: ['board', 'gm-office'] },
+    // 二级：高管群（对应集团公司群）
+    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 0, description: '集团公司高层群', parentId: 'group_exec', departmentIds: ['group'] },
+    // 二级：总经办公群
+    { id: 'sub_gm_office', name: '总经办公群', icon: '👔', color: 'blue', sortOrder: 1, description: '总经理办公室', parentId: 'group_exec', departmentIds: ['gm-office'] },
+    // 二级：董事群
+    { id: 'sub_board', name: '董事群', icon: '💼', color: 'blue', sortOrder: 2, description: '董事会', parentId: 'group_exec', departmentIds: ['board'] },
+    // 二级：副总群
+    { id: 'sub_dgm', name: '副总群', icon: '👔', color: 'blue', sortOrder: 3, description: '副总经理群', parentId: 'group_exec', departmentIds: ['dgm-a', 'dgm-b', 'dgm-c'] },
+    // 二级：三总师群
+    { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 4, description: '总工程师/会计师/经济师', parentId: 'group_exec', departmentIds: ['chief-eng'] },
 
     // ═══ 一级：分子公司组（下拉直接各分公司/子公司/公司群，不设子分组）═══
     { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null, departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
