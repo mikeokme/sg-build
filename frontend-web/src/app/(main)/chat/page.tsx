@@ -820,6 +820,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
 
   // 构建通用分组树（按 parentId 递归，层级不限）
   // 自动升级：若某分组只有一个子分组且自身无直挂会话，则直接把该子分组提升为顶级，不显示多余的上级层级
+  // 折叠：若某分组下仅有一个直挂会话且无子分组，则取消分组，只保留该群
   const buildGroupTree = (parentId: string | null): any[] =>
     chatGroups
       .filter((g: any) => (g.parentId ?? null) === parentId)
@@ -827,6 +828,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
         const children = buildGroupTree(g.id);
         const convs = filteredConvs.filter((c: any) => getGroupForConv(c) === g.id);
         if (children.length === 1 && convs.length === 0) return children[0];
+        if (convs.length === 1 && children.length === 0) return { ...g, conversations: convs, children: [], collapsed: true };
         return { ...g, conversations: convs, children };
       });
   const groupedTree = buildGroupTree(null);
@@ -836,12 +838,42 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
 
   // 递归渲染分组树节点
+  const renderConvItem = (c: any) => (
+    <div key={c.id} onClick={() => setSelectedId(c.id)} onContextMenu={(e) => { e.preventDefault(); setSelectedId(c.id); }}
+      className={`flex items-center gap-3 px-3 py-2.5 pl-14 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+      <div className="relative flex-shrink-0">
+        <Avatar className="w-9 h-9">
+          <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-3.5 h-3.5" /></AvatarFallback>
+        </Avatar>
+        {c.archived && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gray-400 border-2 border-white rounded-full" title="已归档" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-900 truncate">
+            {c.pinned && <span className="text-amber-500 mr-1">📌</span>}
+            {c.muted && <span className="text-gray-300 mr-1">🔇</span>}
+            {c.name}
+          </span>
+          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+        </div>
+        <div className="flex items-center gap-1 mt-0.5">
+          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+          <p className="text-[11px] text-gray-400 truncate">{c.draft ? <span className="text-orange-400">[草稿] {c.draft}</span> : (c.lastMessage || '暂无消息')}</p>
+        </div>
+      </div>
+      {!c.muted && c.unread > 0 && <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+      {c.muted && c.unread > 0 && <span className="text-[10px] text-gray-300">{c.unread}</span>}
+    </div>
+  );
+
+  // 递归渲染分组树节点
   const renderGroupNode = (node: any, depth: number): React.ReactNode => {
     const count = countGroupConvs(node);
     if (count === 0) return null;
     const isExpanded = convSections[node.id] !== false;
     const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
     const indent = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : depth === 3 ? 'pl-14' : 'pl-16';
+    if (node.collapsed) return <div key={node.id}>{node.conversations.map(renderConvItem)}</div>;
     return (
       <div key={node.id}>
         {/* 分组标题 */}
@@ -852,33 +884,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
           <span className={`${depth === 1 ? 'text-sm font-bold text-gray-700' : depth === 2 ? 'text-xs font-medium text-gray-600' : 'text-[11px] text-gray-500'}`}>{node.name}</span>
           <span className="text-[10px] text-gray-400 ml-auto">{count}</span>
         </div>
-        {isExpanded && node.conversations.map((c: any) => (
-          <div key={c.id} onClick={() => setSelectedId(c.id)} onContextMenu={(e) => { e.preventDefault(); setSelectedId(c.id); }}
-            className={`flex items-center gap-3 px-3 py-2.5 pl-14 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-            <div className="relative flex-shrink-0">
-              <Avatar className="w-9 h-9">
-                <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-3.5 h-3.5" /></AvatarFallback>
-              </Avatar>
-              {c.archived && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gray-400 border-2 border-white rounded-full" title="已归档" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900 truncate">
-                  {c.pinned && <span className="text-amber-500 mr-1">📌</span>}
-                  {c.muted && <span className="text-gray-300 mr-1">🔇</span>}
-                  {c.name}
-                </span>
-                {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-              </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                <p className="text-[11px] text-gray-400 truncate">{c.draft ? <span className="text-orange-400">[草稿] {c.draft}</span> : (c.lastMessage || '暂无消息')}</p>
-              </div>
-            </div>
-            {!c.muted && c.unread > 0 && <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-            {c.muted && c.unread > 0 && <span className="text-[10px] text-gray-300">{c.unread}</span>}
-          </div>
-        ))}
+        {isExpanded && node.conversations.map(renderConvItem)}
         {isExpanded && (node.children || []).map((child: any) => renderGroupNode(child, depth + 1))}
       </div>
     );
@@ -1296,6 +1302,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
               const isSecretKeyCard = m.contentType === 'secret-key';
               const isSecretLocked = m.encrypted && m.secretTarget && !isMine && !(m.secretRevealedBy || []).includes(me?.username);
+              // 加密/阅后即焚消息：不提供转发、点赞、编辑、公告等操作
+              const isNoInteract = !!(m.encrypted || m.burn);
 
               return (
                 <div key={m.id}>
@@ -1315,7 +1323,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       return (
                         <div className="mb-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 border-l-2 border-blue-400">
                           <span className="font-medium text-blue-600">{userMap.get(repliedMsg.sender)?.name || repliedMsg.sender}:</span>
-                          <span className="ml-1 truncate">{repliedMsg.content?.substring(0, 50)}{repliedMsg.content?.length > 50 ? '...' : ''}</span>
+                          <span className="ml-1 truncate">{repliedMsg.encrypted || repliedMsg.burn ? (repliedMsg.encrypted ? '🔒 加密消息' : '🔥 阅后即焚') : (repliedMsg.content?.substring(0, 50) + (repliedMsg.content?.length > 50 ? '...' : ''))}</span>
                         </div>
                       );
                     })()}
@@ -1335,12 +1343,12 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                     {/* 消息操作按钮 */}
                     {hoveredMsgId === m.id && !isBurnHidden && (
                       <div className={`flex gap-1 mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                        <button onClick={() => setReplyTo(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="回复">↩ 回复</button>
-                        <button onClick={() => openForward(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="转发">↪ 转发</button>
-                        {isMine && !m.burn && (
+                        <button onClick={() => setReplyTo(m)} disabled={isNoInteract} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed" title="回复">↩ 回复</button>
+                        {!isNoInteract && <button onClick={() => openForward(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="转发">↪ 转发</button>}
+                        {isMine && !isNoInteract && (
                           <button onClick={() => startEdit(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="编辑">✎ 编辑</button>
                         )}
-                        {isGroupAdmin && !m.burn && (
+                        {isGroupAdmin && !isNoInteract && (
                           <button onClick={() => togglePinMessage(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-amber-100 hover:text-amber-600 rounded text-gray-600" title="设为群公告">
                             {m.pinned ? '取消公告' : '📌 公告'}
                           </button>
@@ -1353,11 +1361,13 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                           ) : null;
                         })()}
                         {/* 表情回应快捷条 */}
-                        <span className="flex items-center gap-0.5 ml-1">
-                          {REACTION_EMOJIS.slice(0, 5).map((e) => (
-                            <button key={e} onClick={() => toggleReaction(m.id, e)} className="px-1 py-0.5 text-[11px] bg-gray-100 hover:bg-amber-50 rounded hover:scale-110 transition-transform" title={`回应 ${e}`}>{e}</button>
-                          ))}
-                        </span>
+                        {!isNoInteract && (
+                          <span className="flex items-center gap-0.5 ml-1">
+                            {REACTION_EMOJIS.slice(0, 5).map((e) => (
+                              <button key={e} onClick={() => toggleReaction(m.id, e)} className="px-1 py-0.5 text-[11px] bg-gray-100 hover:bg-amber-50 rounded hover:scale-110 transition-transform" title={`回应 ${e}`}>{e}</button>
+                            ))}
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -1502,7 +1512,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                           </div>
                         )}
                         {/* 表情回应展示 */}
-                        {(m.reactions || []).length > 0 && (
+                        {!isNoInteract && (m.reactions || []).length > 0 && (
                           <div className={`flex gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
                             {m.reactions.map((r: any) => {
                               const reacted = (r.users || []).includes(me?.username);
