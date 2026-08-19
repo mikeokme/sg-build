@@ -1,4 +1,4 @@
-export type PageType = 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage' | 'project-archives';
+export type PageType = 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage' | 'project-archives' | 'project-documents';
 
 export interface FieldDef {
   key: string;
@@ -53,8 +53,24 @@ export const categories: CategoryDef[] = [
           { key: 'startDate', label: '开工日期', type: 'date' },
           { key: 'endDate', label: '计划竣工', type: 'date' },
           { key: 'planDuration', label: '计划工期（天）', type: 'number' },
-          { key: 'status', label: '项目状态', type: 'select', options: statusOptions(['立项', '在建', '竣工', '停工', '暂缓']) },
+          { key: 'status', label: '项目状态', type: 'select', options: statusOptions(['立项', '在建', '竣工', '完工', '停工', '暂缓']) },
           { key: 'description', label: '项目简介', type: 'textarea' },
+        ],
+      },
+      {
+        key: 'project-documents',
+        title: '项目文档库',
+        collection: 'projectDocuments',
+        pageType: 'project-documents',
+        fields: [
+          { key: 'projectId', label: '所属项目', type: 'text' },
+          { key: 'name', label: '文档名称', required: true },
+          { key: 'type', label: '文档类型', type: 'select', options: statusOptions(['技术方案', '图纸', '检测报告', '验收记录', '设计变更', '评估报告', '设备清单', '合同文件', '其他']) },
+          { key: 'fileName', label: '文件名' },
+          { key: 'size', label: '文件大小（字节）', type: 'number' },
+          { key: 'uploader', label: '上传人' },
+          { key: 'date', label: '上传日期', type: 'date' },
+          { key: 'description', label: '描述', type: 'textarea' },
         ],
       },
       {

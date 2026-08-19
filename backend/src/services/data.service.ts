@@ -391,6 +391,20 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'pa11', name: '山区小型水库建设', code: 'SL-2026-011', location: '云南省昆明市呈贡区', type: '水库工程', scope: '坝体填筑、溢洪道、放水设施', manager: '吴经理', supervisor: '钱安全', customer: '县水利局', contractType: '总价合同', amount: 25000000, qualityTarget: '合格', safetyTarget: '零事故', startDate: '2026-03-01', endDate: '2027-08-31', planDuration: 549, status: '在建', description: '山区小型水库新建工程，解决当地饮水安全问题' },
   ];
 
+  // 项目文档库
+  collections['projectDocuments'] = [
+    { id: 'pd1', projectId: 'pa1', name: '施工组织设计', type: '技术方案', fileName: '施工组织设计_v2.pdf', size: 2457600, uploader: '刘工', date: '2024-04-15', description: '清河水库除险加固工程施工组织设计' },
+    { id: 'pd2', projectId: 'pa1', name: '施工图纸-坝体加固', type: '图纸', fileName: '坝体加固图纸.dwg', size: 5242880, uploader: '张伟', date: '2024-03-20', description: '大坝坝体加固施工图纸' },
+    { id: 'pd3', projectId: 'pa1', name: '质量检验报告-第一批', type: '检测报告', fileName: '质检报告001.pdf', size: 1048576, uploader: '监理组', date: '2024-06-01', description: '大坝混凝土浇筑质量检验报告' },
+    { id: 'pd4', projectId: 'pa2', name: '渠道衬砌施工方案', type: '技术方案', fileName: '渠道衬砌方案.pdf', size: 3145728, uploader: '马师傅', date: '2024-06-10', description: '南水北调渠道衬砌施工专项方案' },
+    { id: 'pd5', projectId: 'pa2', name: '材料进场验收单', type: '验收记录', fileName: '进场验收001.xlsx', size: 524288, uploader: '王磊', date: '2024-07-01', description: '预制混凝土板进场验收记录' },
+    { id: 'pd6', projectId: 'pa4', name: '河道整治设计变更', type: '设计变更', fileName: '变更单001.pdf', size: 2097152, uploader: '赵工', date: '2025-03-15', description: '河道整治线路调整设计变更' },
+    { id: 'pd7', projectId: 'pa4', name: '环境影响评估报告', type: '评估报告', fileName: '环评报告.pdf', size: 8388608, uploader: '张伟', date: '2025-02-01', description: '流域治理工程环境影响评估' },
+    { id: 'pd8', projectId: 'pa3', name: '竣工验收报告', type: '验收记录', fileName: '竣工验收报告.pdf', size: 4194304, uploader: '李工', date: '2026-03-25', description: '城市防洪堤加固工程竣工验收' },
+    { id: 'pd9', projectId: 'pa5', name: '灌溉系统图纸', type: '图纸', fileName: '灌溉系统图.dwg', size: 3670016, uploader: '李经理', date: '2025-07-15', description: '农田灌溉系统管网布置图' },
+    { id: 'pd10', projectId: 'pa5', name: '智能灌溉设备清单', type: '设备清单', fileName: '设备清单.xlsx', size: 327680, uploader: '钱安全', date: '2025-08-01', description: '智能灌溉控制系统设备明细' },
+  ];
+
   collections['plans'] = [
     { id: 'pl1', name: '清河水库坝体混凝土需用计划', project: '清河水库除险加固工程', material: '大坝专用水泥', quantity: 1500, unit: '吨', planDate: '2026-07-01', status: '已批准' },
     { id: 'pl2', name: '南水北调渠道衬砌板需用计划', project: '南水北调支线渠系工程', material: '预制混凝土板', quantity: 5000, unit: '块', planDate: '2026-07-15', status: '待审批' },

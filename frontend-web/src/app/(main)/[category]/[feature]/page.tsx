@@ -11,6 +11,8 @@ import { CalendarPage } from '@/components/CalendarPage';
 import { DocPage } from '@/components/DocPage';
 import { UserManagementPage } from '@/components/UserManagementPage';
 import { ProjectArchivesPage } from '@/components/ProjectArchivesPage';
+import ProjectDetailPage from '@/components/ProjectDetailPage';
+import { ProjectDocumentsPage } from '@/components/ProjectDocumentsPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -43,6 +45,7 @@ export default function FeatureRoutePage() {
       {pageType === 'calendar' && <CalendarPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'doc' && <DocPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'project-archives' && <ProjectArchivesPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'project-documents' && <ProjectDocumentsPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'user-manage' && <UserManagementPage />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>

@@ -7,6 +7,7 @@ import { CollectionModule } from './modules/collection/collection.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { OrgModule } from './modules/org/org.module';
+import { ProjectModule } from './modules/project/project.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     DashboardModule,
     ChatModule,
     OrgModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],
