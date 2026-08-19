@@ -115,6 +115,14 @@ export class DashboardController {
     const materialReceiving = get('materialReceiving');
     const opportunities = get('opportunities');
     const bids = get('bids');
+    const plans = get('plans');
+    const budgets = get('budgets');
+    const changes = get('changes');
+    const completions = get('completions');
+    const progress = get('progress');
+    const subcontractPlans = get('subcontractPlans');
+    const rentalPlans = get('rentalPlans');
+    const projectInits = get('projectInits');
 
     // 待办汇总（审批类集合 + 待付款 + 预警 + 整改）
     const isAdmin = ADMIN_ROLES.includes(req.user?.role || '');
@@ -224,6 +232,21 @@ export class DashboardController {
         opportunities: opportunities.length,
         oppTotal,
         bidWon,
+      },
+      engineering: {
+        projectArchiveTotal: projectArchives.length,
+        projectArchiveAmount: projectArchives.reduce((s: number, p: any) => s + num(p.amount), 0),
+        inConstruction: projectArchives.filter((p: any) => p.status === '在建').length,
+        completed: projectArchives.filter((p: any) => p.status === '竣工' || p.status === '完工').length,
+        productionThisMonth: productionValues.filter((pv: any) => pv.month === productionTrend[productionTrend.length - 1]?.month).reduce((s: number, pv: any) => s + num(pv.value), 0),
+        pendingPlans: plans.filter((p: any) => p.status === '待审批').length,
+        pendingChanges: changes.filter((c: any) => c.status === '待审批').length,
+        budgetTotal: budgets.reduce((s: number, b: any) => s + num(b.amount), 0),
+        progressItems: progress.length,
+        activeProgress: progress.filter((p: any) => p.progress && p.progress < 100).length,
+        subcontractPlans: subcontractPlans.length,
+        rentalPlans: rentalPlans.length,
+        completions: completions.length,
       },
       alerts: alerts.filter((a: any) => a.status === '未处理').slice(0, 5),
       notices: notices.slice(0, 4),

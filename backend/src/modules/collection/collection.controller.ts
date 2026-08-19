@@ -28,9 +28,11 @@ const APPROVAL_COLLECTIONS: Record<string, { titleField: string; category: strin
   plans: { titleField: 'name', category: '需用计划' },
   changes: { titleField: 'title', category: '变更签证' },
   subcontractPlans: { titleField: 'name', category: '分包计划' },
+  rentalPlans: { titleField: 'name', category: '租赁计划' },
   reimbursements: { titleField: 'title', category: '报销' },
   safetyAccidents: { titleField: 'title', category: '安全事故' },
   qualityAccidents: { titleField: 'title', category: '质量事故' },
+  completions: { titleField: 'project', category: '竣工结算' },
 };
 
 // 指派/协作类集合：创建时通知负责人
@@ -159,6 +161,7 @@ export class CollectionController {
     const map: Record<string, string> = {
       approvals: 'oa', projectInits: 'market', majorRequests: 'procurement',
       plans: 'engineering', changes: 'engineering', subcontractPlans: 'engineering',
+      rentalPlans: 'engineering', completions: 'engineering',
       reimbursements: 'finance', safetyAccidents: 'quality', qualityAccidents: 'quality',
       tasks: 'oa', meetings: 'oa',
     };
