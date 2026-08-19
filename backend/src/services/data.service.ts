@@ -297,64 +297,81 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
 
   // 聊天分组配置（三级结构）
   // 一级：顶级分组（parentId=null）
-  // 二级：子类分组（parentId=一级ID）
-  // 三级：实际群聊匹配规则（parentId=二级ID）
+  // 二级：子类分组（parentId=一级ID，无departmentIds）
+  // 三级：实际群聊匹配规则（parentId=二级ID，有departmentIds）
   collections['chatGroups'] = [
     // ═══ 一级：集团总部组 ═══
     { id: 'group_exec', name: '集团总部组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团管理层群', parentId: null },
 
-    // 二级：副总群
-    { id: 'sub_dgm', name: '副总群', icon: '👔', color: 'blue', sortOrder: 0, description: '副总经理群', parentId: 'group_exec', departmentIds: ['dgm-a', 'dgm-b', 'dgm-c'] },
-    // 二级：三总师群
-    { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 1, description: '总工程师/会计师/经济师', parentId: 'group_exec', departmentIds: ['chief-eng'] },
-    // 二级：高管群
-    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'group_exec', departmentIds: ['board', 'gm-office'] },
+    // 二级：总经办子类（容器，无departmentIds）
+    { id: 'sub_exec_parent', name: '总经办组', icon: '👔', color: 'blue', sortOrder: 0, description: '总经理及副总层级', parentId: 'group_exec' },
+
+    // 三级：副总群
+    { id: 'sub_dgm', name: '副总群', icon: '👔', color: 'blue', sortOrder: 0, description: '副总经理群', parentId: 'sub_exec_parent', departmentIds: ['dgm-a', 'dgm-b', 'dgm-c'] },
+    // 三级：三总师群
+    { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 1, description: '总工程师/会计师/经济师', parentId: 'sub_exec_parent', departmentIds: ['chief-eng'] },
+    // 三级：高管群
+    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'sub_exec_parent', departmentIds: ['board', 'gm-office', 'office'] },
 
     // ═══ 一级：分子公司组 ═══
     { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null },
 
-    // 二级：分公司
-    { id: 'sub_branch', name: '分公司', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司群', parentId: 'group_branch', departmentIds: ['branch-a', 'branch-b', 'branch-c'] },
-    // 二级：子公司
-    { id: 'sub_sub', name: '子公司', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司群', parentId: 'group_branch', departmentIds: ['sub-alpha', 'sub-beta'] },
-    // 二级：一/二/三公司
-    { id: 'sub_co', name: '一/二/三公司', icon: '🏪', color: 'amber', sortOrder: 2, description: '直属公司群', parentId: 'group_branch', departmentIds: ['co-1', 'co-2', 'co-3'] },
+    // 二级：分公司子类
+    { id: 'sub_branch_parent', name: '分公司', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司群', parentId: 'group_branch' },
+    // 三级：分公司群
+    { id: 'sub_branch_a', name: '分公司群', icon: '🏗️', color: 'amber', sortOrder: 0, description: '分公司A/B/C', parentId: 'sub_branch_parent', departmentIds: ['branch-a', 'branch-b', 'branch-c'] },
+
+    // 二级：子公司子类
+    { id: 'sub_sub_parent', name: '子公司', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司群', parentId: 'group_branch' },
+    // 三级：子公司群
+    { id: 'sub_sub_alpha', name: '子公司甲群', icon: '🏭', color: 'amber', sortOrder: 0, description: '子公司甲', parentId: 'sub_sub_parent', departmentIds: ['sub-alpha'] },
+    { id: 'sub_sub_beta', name: '子公司乙群', icon: '🏭', color: 'amber', sortOrder: 1, description: '子公司乙', parentId: 'sub_sub_parent', departmentIds: ['sub-beta'] },
+
+    // 二级：一/二/三公司子类
+    { id: 'sub_co_parent', name: '一/二/三公司', icon: '🏪', color: 'amber', sortOrder: 2, description: '直属公司群', parentId: 'group_branch' },
+    // 三级：各公司群
+    { id: 'sub_co_1', name: '一公司群', icon: '🏪', color: 'amber', sortOrder: 0, description: '一公司', parentId: 'sub_co_parent', departmentIds: ['co-1'] },
+    { id: 'sub_co_2', name: '二公司群', icon: '🏪', color: 'amber', sortOrder: 1, description: '二公司', parentId: 'sub_co_parent', departmentIds: ['co-2'] },
+    { id: 'sub_co_3', name: '三公司群', icon: '🏪', color: 'amber', sortOrder: 2, description: '三公司', parentId: 'sub_co_parent', departmentIds: ['co-3'] },
 
     // ═══ 一级：集团部门组 ═══
     { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null },
 
-    // 二级：工程部群
+    // 三级：各部门群
     { id: 'sub_eng', name: '工程管理部群', icon: '🔧', color: 'purple', sortOrder: 0, description: '工程管理', parentId: 'group_dept', departmentIds: ['eng-mgmt'] },
-    // 二级：财务部群
     { id: 'sub_fin', name: '财务部群', icon: '💰', color: 'purple', sortOrder: 1, description: '财务管理', parentId: 'group_dept', departmentIds: ['finance'] },
-    // 二级：安全生产部群
     { id: 'sub_safety', name: '安全生产部群', icon: '🛡️', color: 'purple', sortOrder: 2, description: '安全管理', parentId: 'group_dept', departmentIds: ['safety'] },
-    // 二级：合同管理部群
     { id: 'sub_contract', name: '合同管理部群', icon: '📝', color: 'purple', sortOrder: 3, description: '合同管理', parentId: 'group_dept', departmentIds: ['contract'] },
-    // 二级：人力资源部群
     { id: 'sub_hr', name: '人力资源部群', icon: '👥', color: 'purple', sortOrder: 4, description: '人力资源', parentId: 'group_dept', departmentIds: ['hr'] },
-    // 二级：审计部群
     { id: 'sub_audit', name: '审计部群', icon: '🔍', color: 'purple', sortOrder: 5, description: '审计监督', parentId: 'group_dept', departmentIds: ['audit'] },
-    // 二级：市场开发部群
     { id: 'sub_market', name: '市场开发部群', icon: '📈', color: 'purple', sortOrder: 6, description: '市场开发', parentId: 'group_dept', departmentIds: ['market-dev'] },
-    // 二级：运维部群
     { id: 'sub_ops', name: '运维部群', icon: '⚡', color: 'purple', sortOrder: 7, description: '运维服务', parentId: 'group_dept', departmentIds: ['ops'] },
 
     // ═══ 一级：项目部组 ═══
     { id: 'group_proj', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 3, description: '项目执行单元', parentId: null },
 
-    // 二级：项目部群
-    { id: 'sub_proj', name: '项目部群', icon: '📁', color: 'emerald', sortOrder: 0, description: '项目部群', parentId: 'group_proj', departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
+    // 二级：项目部子类
+    { id: 'sub_proj_parent', name: '项目部群', icon: '📁', color: 'emerald', sortOrder: 0, description: '项目部群', parentId: 'group_proj' },
+    // 三级：各项目部群
+    { id: 'sub_proj_a', name: '项目部A群', icon: '📁', color: 'emerald', sortOrder: 0, description: '项目部A', parentId: 'sub_proj_parent', departmentIds: ['proj-a'] },
+    { id: 'sub_proj_b', name: '项目部B群', icon: '📁', color: 'emerald', sortOrder: 1, description: '项目部B', parentId: 'sub_proj_parent', departmentIds: ['proj-b'] },
+    { id: 'sub_proj_c', name: '项目部C群', icon: '📁', color: 'emerald', sortOrder: 2, description: '项目部C', parentId: 'sub_proj_parent', departmentIds: ['proj-c'] },
 
     // ═══ 一级：其他群组 ═══
     { id: 'group_other', name: '其他群组', icon: '💬', color: 'gray', sortOrder: 4, description: '其他自建群', parentId: null },
 
-    // 二级：临时群
-    { id: 'sub_temp', name: '临时群', icon: '⏱️', color: 'gray', sortOrder: 0, description: '临时创建的群聊', parentId: 'group_other', departmentIds: [] },
-    // 二级：食堂群（预留）
-    { id: 'sub_canteen', name: '食堂群', icon: '🍽️', color: 'gray', sortOrder: 1, description: '食堂相关群聊', parentId: 'group_other', departmentIds: [] },
-    // 二级：专项群（预留）
-    { id: 'sub_special', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 2, description: '专项工作群聊', parentId: 'group_other', departmentIds: [] },
+    // 二级：临时群子类
+    { id: 'sub_temp_parent', name: '临时群', icon: '⏱️', color: 'gray', sortOrder: 0, description: '临时创建的群聊', parentId: 'group_other' },
+    // 三级：临时群（无departmentIds，匹配所有无departmentId的群）
+    { id: 'sub_temp', name: '临时群', icon: '⏱️', color: 'gray', sortOrder: 0, description: '临时群', parentId: 'sub_temp_parent', departmentIds: [] },
+
+    // 二级：食堂群子类
+    { id: 'sub_canteen_parent', name: '食堂群', icon: '🍽️', color: 'gray', sortOrder: 1, description: '食堂相关群聊', parentId: 'group_other' },
+    { id: 'sub_canteen', name: '食堂群', icon: '🍽️', color: 'gray', sortOrder: 0, description: '食堂群', parentId: 'sub_canteen_parent', departmentIds: [] },
+
+    // 二级：专项群子类
+    { id: 'sub_special_parent', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 2, description: '专项工作群聊', parentId: 'group_other' },
+    { id: 'sub_special', name: '专项群', icon: '⭐', color: 'gray', sortOrder: 0, description: '专项群', parentId: 'sub_special_parent', departmentIds: [] },
   ];
 
 
