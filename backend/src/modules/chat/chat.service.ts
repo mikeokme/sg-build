@@ -14,6 +14,16 @@ export class ChatService {
   setEmitter(fn: ChatEventFn) { this.emitter = fn; }
   emit(event: string, payload: any) { try { this.emitter(event, payload); } catch {} }
 
+  // 判断用户是否有权访问某会话（部门群按可见部门放宽；其余按成员）
+  private canAccess(username: string, c: any): boolean {
+    if (c.type !== 'group' || c.category !== 'department' || !c.departmentId) {
+      return c.members.includes(username);
+    }
+    const visibleDepts = this.dataService.getVisibleDeptIds(username);
+    if (!visibleDepts) return c.members.includes(username);
+    return visibleDepts.includes(c.departmentId);
+  }
+
   // 向指定用户列表发送事件（用于阅后即焚消息的定向通知）
   emitToUsers(event: string, payload: any, targetUsers: string[]) {
     if (!targetUsers.length) return;
@@ -23,9 +33,20 @@ export class ChatService {
   // ── 会话 ──
 
   listConversations(username: string): any[] {
+    const visibleDepts = this.dataService.getVisibleDeptIds(username);
     const convs = this.dataService
       .getConversations()
-      .filter((c) => c.members.includes(username));
+      .filter((c) => {
+        // 单聊：仅显示自己参与的
+        if (c.type !== 'group') return c.members.includes(username);
+        // 群查看权限：部门类群聊显示「本级 + 下级」部门对应的群（即使非成员也可查看）
+        if (c.category === 'department' && c.departmentId) {
+          if (!visibleDepts) return c.members.includes(username);
+          return visibleDepts.includes(c.departmentId);
+        }
+        // 自建群：按成员过滤
+        return c.members.includes(username);
+      });
     return convs.map((c) => {
       const msgs = this.dataService.getChatMessages(c.id);
       const last = msgs[msgs.length - 1] || null;
@@ -92,7 +113,7 @@ export class ChatService {
     const c = this.dataService.getConversation(conversationId);
     if (!c) throw new ForbiddenException('会话不存在');
     if (c.type !== 'group') throw new ForbiddenException('仅群聊支持成员管理');
-    if (!c.members.includes(requester)) throw new ForbiddenException('无权查看该群成员');
+    if (!this.canAccess(requester, c)) throw new ForbiddenException('无权查看该群成员');
     const admins = c.admins || [];
     return c.members.map((username: string) => {
       const u = this.dataService.getUserByUsername(username);
@@ -234,7 +255,7 @@ export class ChatService {
   listMessages(username: string, conversationId: string): { error?: string; messages?: any[] } {
     const c = this.dataService.getConversation(conversationId);
     if (!c) return { error: '会话不存在' };
-    if (!c.members.includes(username)) return { error: '无权访问该会话' };
+    if (!this.canAccess(username, c)) return { error: '无权访问该会话' };
     const senderRole = this.dataService.getUserByUsername(username)?.role || '';
     const messages = this.dataService.getChatMessages(conversationId)
       .filter((m) => {
@@ -256,7 +277,7 @@ export class ChatService {
   sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; replyTo?: string; mention?: string[] }) {
     const c = this.dataService.getConversation(payload.conversationId);
     if (!c) return { error: '会话不存在' };
-    if (!c.members.includes(username)) return { error: '无权发送消息' };
+    if (!this.canAccess(username, c)) return { error: '无权发送消息' };
     const content = String(payload.content || '').trim();
     if (!content) return { error: '消息内容不能为空' };
 
@@ -318,7 +339,7 @@ export class ChatService {
   // ── 揭示阅后即焚消息（点击火焰图标触发） ──
   revealMessage(username: string, conversationId: string, messageId: string) {
     const c = this.dataService.getConversation(conversationId);
-    if (!c || !c.members.includes(username)) return { error: '会话不存在或无权访问' };
+    if (!c || !this.canAccess(username, c)) return { error: '会话不存在或无权访问' };
     const m = this.dataService.getChatMessage(messageId);
     if (!m || m.conversationId !== conversationId) return { error: '消息不存在' };
     if (!m.burn) return { ok: true };
@@ -372,7 +393,7 @@ export class ChatService {
   // 标记已读（非焚毁消息）
   markRead(username: string, conversationId: string) {
     const c = this.dataService.getConversation(conversationId);
-    if (!c || !c.members.includes(username)) return { error: '会话不存在或无权访问' };
+    if (!c || !this.canAccess(username, c)) return { error: '会话不存在或无权访问' };
     const msgs = this.dataService.getChatMessages(conversationId);
     let changed = false;
     for (const m of msgs) {

@@ -1555,4 +1555,18 @@ export class DataService implements OnModuleInit {
     }
     return ids;
   }
+
+  // 群查看权限：返回用户可见的部门 id 集合（本级 + 全部下级）
+  // 超管(admin)与总经理(gm-office)返回全部部门；普通用户按组织树「本级+下级」过滤
+  getVisibleDeptIds(username: string): string[] | null {
+    const departments = this.getCollectionItems('departments');
+    const user = this.getUserByUsername(username);
+    if (!user) return null;
+    if (user.role === 'super_admin' || user.department === '总经理办公室') {
+      return departments.map((d) => d.id);
+    }
+    const dept = departments.find((d) => d.name === user.department);
+    if (!dept) return null;
+    return [dept.id, ...this.getDescendantIds(dept.id, departments)];
+  }
 }
