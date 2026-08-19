@@ -58,15 +58,19 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
 
   const fetchProjects = async () => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/projects`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setProjects(await res.json());
+    try {
+      const res = await fetch(`${API_BASE}/projects`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) setProjects(await res.json());
+    } catch {}
   };
 
   const fetchDocs = async (projectId: string) => {
     if (!projectId) { setDocs([]); return; }
     const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/projects/${projectId}/documents`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setDocs(await res.json());
+    try {
+      const res = await fetch(`${API_BASE}/projects/${projectId}/documents`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.ok) setDocs(await res.json());
+    } catch {}
   };
 
   useEffect(() => {
@@ -88,11 +92,13 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
     if (!formName.trim() || !selectedProjectId) return;
     setSaving(true);
     const token = localStorage.getItem('token');
-    await fetch(`${API_BASE}/projects/${selectedProjectId}/documents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ name: formName, type: formType, fileName: formFile, description: formDesc, uploader: '当前用户' }),
-    });
+    try {
+      await fetch(`${API_BASE}/projects/${selectedProjectId}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ name: formName, type: formType, fileName: docFile, description: formDesc, uploader: '当前用户' }),
+      });
+    } catch {}
     setAddOpen(false);
     setFormName(''); setFormType(''); setFormFile(''); setFormDesc('');
     fetchDocs(selectedProjectId);
@@ -103,7 +109,9 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
   const handleDelete = async (docId: string) => {
     setDeleting(docId);
     const token = localStorage.getItem('token');
-    await fetch(`${API_BASE}/projects/documents/${docId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    try {
+      await fetch(`${API_BASE}/projects/documents/${docId}`, { method: 'DELETE', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    } catch {}
     setDelId(null);
     fetchDocs(selectedProjectId);
     fetchProjects();
@@ -134,8 +142,8 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><Building2 className="w-5 h-5 text-blue-600" /></div><div><p className="text-lg font-bold">{projects.length}</p><p className="text-xs text-gray-500">项目总数</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><FileText className="w-5 h-5 text-emerald-600" /></div><div><p className="text-lg font-bold">{docs.length}</p><p className="text-xs text-gray-500">当前项目文档</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><Paperclip className="w-5 h-5 text-purple-600" /></div><div><p className="text-lg font-bold">{projects.reduce((s, p) => s + (p.documentCount || 0), 0)}</p><p className="text-xs text-gray-500">全部文档</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-amber-600" /></div><div><p className="text-lg font-bold">{fmtBytes(docs.reduce((s, d) => s + (d.size || 0), 0))}</p><p className="text-xs text-gray-500">文档总量</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><Paperclip className="w-5 h-5 text-purple-600" /></div><div><p className="text-lg font-bold">{projects.reduce((s,p)=>s+(p.documentCount||0),0)}</p><p className="text-xs text-gray-500">全部文档</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-amber-600" /></div><div><p className="text-lg font-bold">{fmtBytes(docs.reduce((s,d)=>s+(d.size||0),0))}</p><p className="text-xs text-gray-500">文档总量</p></div></CardContent></Card>
       </div>
 
       {/* Project selector + docs table */}

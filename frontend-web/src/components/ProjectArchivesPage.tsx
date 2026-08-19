@@ -298,12 +298,18 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
-    const res = await fetch(`${API_BASE}/collections/${feature.collection}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+    try {
+      const res = await fetch(`${API_BASE}/collections/${feature.collection}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setItems(Array.isArray(data) ? data : []);
+      } else {
+        console.warn(`Collections fetch failed: ${res.status} ${res.statusText}`);
+      }
+    } catch (e) {
+      console.error('Failed to fetch projects:', e);
     }
     setLoading(false);
   };
