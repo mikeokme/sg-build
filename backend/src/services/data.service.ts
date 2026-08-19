@@ -311,13 +311,13 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // 三级：三总师群
     { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 1, description: '总工程师/会计师/经济师', parentId: 'sub_exec_parent', departmentIds: ['chief-eng'] },
     // 三级：高管群
-    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'sub_exec_parent', departmentIds: ['board', 'gm-office', 'office'] },
+    { id: 'sub_exec', name: '高管群', icon: '🎩', color: 'blue', sortOrder: 2, description: '董事会与总经理', parentId: 'sub_exec_parent', departmentIds: ['board', 'gm-office'] },
 
     // ═══ 一级：分子公司组（下拉直接各分公司/子公司/公司群，不设子分组）═══
     { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null, departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
 
     // ═══ 一级：集团部门组（下拉直接各部门群，不设子分组）═══
-    { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null, departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops'] },
+    { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null, departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops', 'office'] },
 
     // ═══ 一级：项目部组（下拉直接各项目部群，不设子分组）═══
     { id: 'group_proj', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 3, description: '项目执行单元', parentId: null, departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
