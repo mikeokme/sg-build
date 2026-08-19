@@ -10,6 +10,7 @@ import { GanttPage } from '@/components/GanttPage';
 import { CalendarPage } from '@/components/CalendarPage';
 import { DocPage } from '@/components/DocPage';
 import { UserManagementPage } from '@/components/UserManagementPage';
+import { ProjectArchivesPage } from '@/components/ProjectArchivesPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -41,6 +42,7 @@ export default function FeatureRoutePage() {
       {pageType === 'gantt' && <GanttPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'calendar' && <CalendarPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'doc' && <DocPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'project-archives' && <ProjectArchivesPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'user-manage' && <UserManagementPage />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>

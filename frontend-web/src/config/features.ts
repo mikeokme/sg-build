@@ -1,4 +1,4 @@
-export type PageType = 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage';
+export type PageType = 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage' | 'project-archives';
 
 export interface FieldDef {
   key: string;
@@ -36,15 +36,25 @@ export const categories: CategoryDef[] = [
         key: 'project-archives',
         title: '项目档案',
         collection: 'projectArchives',
+        pageType: 'project-archives',
         fields: [
           { key: 'name', label: '项目名称', required: true },
           { key: 'code', label: '项目编号' },
+          { key: 'location', label: '项目地点' },
+          { key: 'type', label: '工程类型', type: 'select', options: statusOptions(['水利枢纽', '渠道工程', '防洪工程', '灌溉工程', '水库工程', '生态工程', '环保工程', '监测工程', '景观工程', '综合治理', '其他']) },
+          { key: 'scope', label: '工程范围', type: 'textarea' },
           { key: 'manager', label: '项目经理' },
+          { key: 'supervisor', label: '监理负责人' },
           { key: 'customer', label: '建设单位' },
-          { key: 'amount', label: '合同金额', type: 'number' },
+          { key: 'contractType', label: '合同类型', type: 'select', options: statusOptions(['总价合同', '单价合同', 'EPC总承包', '其他']) },
+          { key: 'amount', label: '合同金额（元）', type: 'number' },
+          { key: 'qualityTarget', label: '质量目标', type: 'select', options: statusOptions(['合格', '优良', '优秀']) },
+          { key: 'safetyTarget', label: '安全目标', type: 'select', options: statusOptions(['零事故', '一般事故以下']) },
           { key: 'startDate', label: '开工日期', type: 'date' },
           { key: 'endDate', label: '计划竣工', type: 'date' },
-          { key: 'status', label: '状态', type: 'select', options: statusOptions(['立项', '在建', '竣工', '停工']) },
+          { key: 'planDuration', label: '计划工期（天）', type: 'number' },
+          { key: 'status', label: '项目状态', type: 'select', options: statusOptions(['立项', '在建', '竣工', '停工', '暂缓']) },
+          { key: 'description', label: '项目简介', type: 'textarea' },
         ],
       },
       {
