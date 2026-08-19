@@ -172,4 +172,60 @@ export class ChatController {
   revealMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest) {
     return this.chatService.revealMessage(this.username(req), id, messageId);
   }
+
+  // ── Telegram 风格社交功能 ──
+
+  // 会话偏好（置顶/静音/归档/草稿）
+  @Put('conversations/:id/prefs')
+  setPrefs(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { pinned?: boolean; muted?: boolean; archived?: boolean; draft?: string }) {
+    return this.chatService.setPrefs(id, this.username(req), body || {});
+  }
+
+  // 清空聊天记录
+  @Delete('conversations/:id/history')
+  clearHistory(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.clearHistory(id, this.username(req));
+  }
+
+  // 删除会话（隐藏给自己）
+  @Delete('conversations/:id')
+  deleteConversation(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.deleteConversation(id, this.username(req));
+  }
+
+  // 退群
+  @Post('conversations/:id/leave')
+  leaveGroup(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.leaveGroup(id, this.username(req));
+  }
+
+  // 群信息编辑
+  @Put('conversations/:id/profile')
+  updateProfile(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { name?: string; description?: string; avatar?: string }) {
+    return this.chatService.updateProfile(id, this.username(req), body || {});
+  }
+
+  // 编辑消息
+  @Put('conversations/:id/messages/:messageId')
+  editMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { content?: string }) {
+    return this.chatService.editMessage(this.username(req), id, messageId, body?.content || '');
+  }
+
+  // 转发消息
+  @Post('messages/:messageId/forward')
+  forwardMessage(@Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { conversationId?: string; sourceConversationId?: string }) {
+    return this.chatService.forwardMessage(this.username(req), body?.sourceConversationId || '', messageId, body?.conversationId || '');
+  }
+
+  // 表情回应（切换）
+  @Post('conversations/:id/messages/:messageId/reaction')
+  toggleReaction(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { emoji?: string }) {
+    return this.chatService.toggleReaction(this.username(req), id, messageId, body?.emoji || '');
+  }
+
+  // 群公告置顶/取消
+  @Put('conversations/:id/pinned-message')
+  pinMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { messageId?: string | null }) {
+    return this.chatService.pinMessage(this.username(req), id, body?.messageId ?? null);
+  }
 }

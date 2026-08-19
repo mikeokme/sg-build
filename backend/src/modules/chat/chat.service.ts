@@ -48,6 +48,8 @@ export class ChatService {
         return c.members.includes(username);
       });
     return convs.map((c) => {
+      const prefs = this.dataService.getConversationPrefs(c.id, username);
+      if (prefs.hidden) return null;
       const msgs = this.dataService.getChatMessages(c.id);
       const last = msgs[msgs.length - 1] || null;
       const unread = msgs.filter((m) => {
@@ -77,6 +79,10 @@ export class ChatService {
           lastMsgText = last.content;
         }
       }
+      if (prefs.draft) lastMsgText = `[草稿] ${prefs.draft}`;
+      const pinnedMessage = c.pinnedMessageId
+        ? msgs.find((m) => m.id === c.pinnedMessageId) || null
+        : null;
       return {
         id: c.id,
         type: c.type,
@@ -87,12 +93,24 @@ export class ChatService {
         members: c.members,
         owner: c.owner,
         createdAt: c.createdAt,
+        description: c.description || '',
+        avatar: c.avatar || '',
+        pinnedMessageId: c.pinnedMessageId || '',
+        pinnedMessage: pinnedMessage ? this.decorateForClient(pinnedMessage, c.id, username) : null,
+        pinned: !!prefs.pinned,
+        muted: !!prefs.muted,
+        archived: !!prefs.archived,
+        draft: prefs.draft || '',
         lastMessage: lastMsgText,
         lastMessageAt: last?.createdAt || '',
         lastSender: last?.sender || '',
         unread,
       };
-    }).sort((a, b) => new Date(b.lastMessageAt || b.createdAt).getTime() - new Date(a.lastMessageAt || a.createdAt).getTime());
+    }).filter((x: any) => !!x).sort((a: any, b: any) => {
+      // 置顶优先，其次按最近消息
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return new Date(b.lastMessageAt || b.createdAt).getTime() - new Date(a.lastMessageAt || a.createdAt).getTime();
+    });
   }
 
   getOrCreateSingle(myUsername: string, otherUsername: string) {
@@ -105,6 +123,84 @@ export class ChatService {
   createGroup(name: string, members: string[], owner: string) {
     const valid = members.filter((m) => this.dataService.getUserByUsername(m));
     return this.dataService.createGroupConversation(name, valid, owner);
+  }
+
+  // ── 会话偏好（置顶/静音/归档/草稿） ──
+
+  setPrefs(conversationId: string, username: string, patch: { pinned?: boolean; muted?: boolean; archived?: boolean; draft?: string }) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (!c.members.includes(username)) throw new ForbiddenException('无权操作该会话');
+    const result: any = {};
+    if (typeof patch.pinned === 'boolean') {
+      this.dataService.setConversationPref(conversationId, username, 'pinned', patch.pinned);
+      result.pinned = patch.pinned;
+    }
+    if (typeof patch.muted === 'boolean') {
+      this.dataService.setConversationPref(conversationId, username, 'muted', patch.muted);
+      result.muted = patch.muted;
+    }
+    if (typeof patch.archived === 'boolean') {
+      this.dataService.setConversationPref(conversationId, username, 'archived', patch.archived);
+      result.archived = patch.archived;
+    }
+    if (typeof patch.draft === 'string') {
+      this.dataService.setConversationPref(conversationId, username, 'draft', patch.draft || '');
+      result.draft = patch.draft || '';
+    }
+    return { ok: true, ...result };
+  }
+
+  // 清空聊天记录（所有人）
+  clearHistory(conversationId: string, requester: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (!this.canAccess(requester, c)) throw new ForbiddenException('无权操作该会话');
+    this.dataService.deleteConversationMessages(conversationId);
+    this.emit('chat:history-cleared', { conversationId, by: requester });
+    return { ok: true };
+  }
+
+  // 删除会话（隐藏给自己，双方单聊隐藏）
+  deleteConversation(conversationId: string, requester: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (!c.members.includes(requester)) throw new ForbiddenException('无权操作该会话');
+    this.dataService.setConversationPref(conversationId, requester, 'hidden', true);
+    return { ok: true };
+  }
+
+  // 退群
+  leaveGroup(conversationId: string, requester: string) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (c.type !== 'group') throw new ForbiddenException('仅群聊支持退群');
+    if (!c.members.includes(requester)) throw new ForbiddenException('您不在该群中');
+    if (c.owner === requester) throw new ForbiddenException('群主请先转让群主后再退群');
+    this.dataService.removeConversationMember(conversationId, requester);
+    this.dataService.setConversationPref(conversationId, requester, 'hidden', true);
+    this.emit('chat:left', { conversationId, username: requester, members: c.members });
+    return { ok: true };
+  }
+
+  // 群信息编辑（名称/描述/头像）——群主或管理员
+  updateProfile(conversationId: string, requester: string, patch: { name?: string; description?: string; avatar?: string }) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (c.type !== 'group') throw new ForbiddenException('仅群聊支持信息编辑');
+    if (!c.members.includes(requester)) throw new ForbiddenException('无权操作该会话');
+    const reqUser = this.dataService.getUserByUsername(requester);
+    const reqLevel = ROLE_LEVELS[reqUser?.role || ''] || 0;
+    const isOwner = c.owner === requester;
+    const isAdmin = reqLevel >= 60;
+    if (!isOwner && !isAdmin) throw new ForbiddenException('仅群主和管理员可编辑群信息');
+    const data: any = {};
+    if (typeof patch.name === 'string' && patch.name.trim()) data.name = patch.name.trim();
+    if (typeof patch.description === 'string') data.description = patch.description;
+    if (typeof patch.avatar === 'string') data.avatar = patch.avatar;
+    this.dataService.updateConversation(conversationId, data);
+    this.emit('chat:group-updated', { conversationId, ...data, by: requester });
+    return { ok: true, ...data };
   }
 
   // ── 群成员管理 ──
@@ -422,6 +518,90 @@ export class ChatService {
     return { ok: true };
   }
 
+  // 编辑消息（仅发送者，非焚毁中）
+  editMessage(username: string, conversationId: string, messageId: string, content: string) {
+    const m = this.dataService.getChatMessage(messageId);
+    if (!m || m.conversationId !== conversationId) return { error: '消息不存在' };
+    const text = String(content || '').trim();
+    if (!text) return { error: '内容不能为空' };
+    if (m.sender !== username) return { error: '只能编辑自己发送的消息' };
+    if (m.burn) return { error: '阅后即焚消息不可编辑' };
+    const stored = m.encrypted ? encryptMessage(conversationId, text) : text;
+    const updated = this.dataService.updateChatMessage(messageId, {
+      content: stored,
+      edited: true,
+      editedAt: new Date().toISOString(),
+    });
+    const clientMsg = this.decorateForClient(updated, conversationId, username);
+    this.emit('chat:edited', { conversationId, message: clientMsg, by: username });
+    return { ok: true, message: clientMsg };
+  }
+
+  // 转发消息到目标会话
+  forwardMessage(username: string, sourceConvId: string, messageId: string, targetConvId: string) {
+    const src = this.dataService.getConversation(sourceConvId);
+    const dst = this.dataService.getConversation(targetConvId);
+    if (!src || !dst) return { error: '会话不存在' };
+    if (!this.canAccess(username, src) || !this.canAccess(username, dst)) return { error: '无权操作该会话' };
+    const m = this.dataService.getChatMessage(messageId);
+    if (!m || m.conversationId !== sourceConvId) return { error: '消息不存在' };
+    if (m.burn) return { error: '阅后即焚消息不可转发' };
+    const content = m.encrypted ? decryptMessage(sourceConvId, m.content) : m.content;
+    const msg = this.dataService.addChatMessage({
+      conversationId: targetConvId,
+      sender: username,
+      contentType: 'text',
+      content,
+      forwardFrom: { conversationId: sourceConvId, sender: m.sender, messageId },
+    });
+    const clientMsg = this.decorateForClient(msg, targetConvId, username);
+    this.emit('chat:message', { conversationId: targetConvId, message: clientMsg });
+    return { ok: true, message: clientMsg };
+  }
+
+  // 切换表情回应
+  toggleReaction(username: string, conversationId: string, messageId: string, emoji: string) {
+    const c = this.dataService.getConversation(conversationId);
+    const m = this.dataService.getChatMessage(messageId);
+    if (!m || m.conversationId !== conversationId) return { error: '消息不存在' };
+    if (!c || !this.canAccess(username, c)) return { error: '无权操作该会话' };
+    if (m.burn && m.sender !== username) return { error: '阅后即焚消息不可回应' };
+    const reactions = m.reactions || [];
+    let idx = reactions.findIndex((r: any) => r.emoji === emoji);
+    if (idx === -1) {
+      reactions.push({ emoji, users: [username] });
+    } else {
+      const users = reactions[idx].users || [];
+      const ui = users.indexOf(username);
+      if (ui >= 0) users.splice(ui, 1); else users.push(username);
+      if (users.length === 0) reactions.splice(idx, 1);
+    }
+    const updated = this.dataService.updateChatMessage(messageId, { reactions });
+    const clientMsg = this.decorateForClient(updated, conversationId, username);
+    this.emit('chat:reaction', { conversationId, message: clientMsg, by: username });
+    return { ok: true, message: clientMsg };
+  }
+
+  // 群公告置顶/取消置顶
+  pinMessage(username: string, conversationId: string, messageId: string | null) {
+    const c = this.dataService.getConversation(conversationId);
+    if (!c) throw new ForbiddenException('会话不存在');
+    if (c.type !== 'group') throw new ForbiddenException('仅群聊支持公告置顶');
+    if (!c.members.includes(username)) throw new ForbiddenException('无权操作该群');
+    const reqUser = this.dataService.getUserByUsername(username);
+    const reqLevel = ROLE_LEVELS[reqUser?.role || ''] || 0;
+    const isOwner = c.owner === username;
+    const isAdmin = reqLevel >= 60;
+    if (!isOwner && !isAdmin) throw new ForbiddenException('仅群主和管理员可设置公告');
+    if (messageId) {
+      const m = this.dataService.getChatMessage(messageId);
+      if (!m || m.conversationId !== conversationId) throw new ForbiddenException('消息不存在');
+    }
+    this.dataService.updateConversation(conversationId, { pinnedMessageId: messageId || '' });
+    this.emit('chat:message-pinned', { conversationId, messageId: messageId || '', by: username });
+    return { ok: true, pinnedMessageId: messageId || '' };
+  }
+
   // ── 焚毁倒计时 ──
   private scheduleBurn(conversationId: string, messageId: string) {
     const m = this.dataService.getChatMessage(messageId);
@@ -475,6 +655,10 @@ export class ChatService {
       revealedBy,
       revealedForMe,
       readBy: m.readBy || [],
+      edited: m.edited,
+      editedAt: m.editedAt || '',
+      forwardFrom: m.forwardFrom || null,
+      reactions: m.reactions || [],
       createdAt: m.createdAt,
     };
   }

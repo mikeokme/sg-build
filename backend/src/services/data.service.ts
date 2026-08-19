@@ -1409,6 +1409,9 @@ export class DataService implements OnModuleInit {
     };
     if (category) conv.category = category;
     if (projectId) conv.projectId = projectId;
+    conv.description = '';
+    conv.avatar = '';
+    conv.pinnedMessageId = '';
     this.conversations.push(conv);
     this.save();
     return conv;
@@ -1437,6 +1440,25 @@ export class DataService implements OnModuleInit {
     Object.assign(c, data);
     this.save();
     return c;
+  }
+
+  // 会话级用户偏好（置顶/静音/归档/草稿/隐藏），惰性初始化
+  getConversationPrefs(conversationId: string, username: string): any {
+    const c = this.getConversation(conversationId);
+    if (!c) return {};
+    if (!c.userPrefs) c.userPrefs = {};
+    if (!c.userPrefs[username]) c.userPrefs[username] = {};
+    return c.userPrefs[username];
+  }
+
+  setConversationPref(conversationId: string, username: string, key: string, value: any) {
+    const c = this.getConversation(conversationId);
+    if (!c) return null;
+    if (!c.userPrefs) c.userPrefs = {};
+    if (!c.userPrefs[username]) c.userPrefs[username] = {};
+    c.userPrefs[username][key] = value;
+    this.save();
+    return c.userPrefs[username];
   }
 
   // ── 聊天：消息 ──
