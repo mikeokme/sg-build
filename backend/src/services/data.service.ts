@@ -295,6 +295,14 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'adm_sa_burn1', conversationId: 'dg_sa', sender: 'admin', content: '孙建国，子公司甲的资质年审材料有问题，重新准备一下，别让人知道是哪里错了', type: 'text', burn: true, burnSeconds: 45, burnTarget: '孙建国', readBy: ['admin'], createdAt: new Date(now - h * 3).toISOString() },
   ];
 
+  // 聊天分组配置
+  collections['chatGroups'] = [
+    { id: 'group_org', name: '集团组', icon: '🏛', color: 'blue', sortOrder: 0, description: '集团总部层级', departmentIds: ['board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'] },
+    { id: 'group_dept', name: '部门组', icon: '📋', color: 'purple', sortOrder: 1, description: '职能部门', departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops'] },
+    { id: 'group_project', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 2, description: '项目执行单元', departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
+    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 3, description: '分公司与子公司', departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
+    { id: 'group_temp', name: '其他临时组', icon: '💬', color: 'gray', sortOrder: 4, description: '其他自建群聊', departmentIds: [] },
+  ];
 
 
   collections['suppliers'] = [

@@ -26,6 +26,45 @@ export class OrgController {
     return this.data.getCollectionItems('orgPositions');
   }
 
+  // 聊天分组配置
+  @Get('chat-groups')
+  getChatGroups() {
+    return this.data.getCollectionItems('chatGroups');
+  }
+
+  @Post('chat-groups')
+  @Roles('super_admin')
+  createChatGroup(@Body() body: any) {
+    return this.data.addCollectionItem('chatGroups', {
+      id: body.id || this.data.generateId(),
+      name: body.name,
+      icon: body.icon || '💬',
+      color: body.color || 'gray',
+      sortOrder: body.sortOrder || 0,
+      description: body.description || '',
+      departmentIds: body.departmentIds || [],
+    });
+  }
+
+  @Put('chat-groups/:id')
+  @Roles('super_admin')
+  updateChatGroup(@Param('id') id: string, @Body() body: any) {
+    return this.data.updateCollectionItem('chatGroups', id, {
+      name: body.name,
+      icon: body.icon,
+      color: body.color,
+      sortOrder: body.sortOrder,
+      description: body.description,
+      departmentIds: body.departmentIds,
+    });
+  }
+
+  @Delete('chat-groups/:id')
+  @Roles('super_admin')
+  deleteChatGroup(@Param('id') id: string) {
+    return this.data.deleteCollectionItem('chatGroups', id);
+  }
+
   @Post('departments')
   @Roles('super_admin', 'high_admin')
   createDepartment(@Body() body: any) {
