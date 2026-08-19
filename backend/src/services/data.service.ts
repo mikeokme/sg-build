@@ -313,8 +313,15 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // 二级：三总师群
     { id: 'sub_chief', name: '三总师群', icon: '⚙️', color: 'blue', sortOrder: 4, description: '总工程师/会计师/经济师', parentId: 'group_exec', departmentIds: ['chief-eng'] },
 
-    // ═══ 一级：分子公司组（下拉直接各分公司/子公司/公司群，不设子分组）═══
-    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null, departmentIds: ['branch-a', 'branch-b', 'branch-c', 'sub-alpha', 'sub-beta', 'co-1', 'co-2', 'co-3'] },
+    // ═══ 一级：分子公司组 ═══
+    { id: 'group_branch', name: '分子公司组', icon: '🏢', color: 'amber', sortOrder: 1, description: '分公司与子公司', parentId: null },
+
+    // 二级：分公司组
+    { id: 'sub_branch_co', name: '分公司组', icon: '🏢', color: 'amber', sortOrder: 0, description: '各分公司', parentId: 'group_branch', departmentIds: ['branch-a', 'branch-b', 'branch-c'] },
+    // 二级：子公司组
+    { id: 'sub_sub', name: '子公司组', icon: '🏭', color: 'amber', sortOrder: 1, description: '各子公司', parentId: 'group_branch', departmentIds: ['sub-alpha', 'sub-beta'] },
+    // 二级：号码公司组
+    { id: 'sub_num', name: '号码公司组', icon: '🔢', color: 'amber', sortOrder: 2, description: '一/二/三公司', parentId: 'group_branch', departmentIds: ['co-1', 'co-2', 'co-3'] },
 
     // ═══ 一级：集团部门组（下拉直接各部门群，不设子分组）═══
     { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null, departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops', 'office'] },
