@@ -42,6 +42,14 @@ const DEFAULTS: Record<string, { title: string; amountLabel: string; unit?: stri
   rentalContracts: { title: '租赁合同', amountLabel: '合同金额' },
   subcontracts: { title: '分包合同', amountLabel: '合同金额' },
   suppliers: { title: '供应商档案', amountLabel: '数量' },
+  laborSubcontractors: { title: '劳务分包商', amountLabel: '在册人数' },
+  proSubcontractors: { title: '专业分包商', amountLabel: '数量' },
+  laborContracts: { title: '劳务分包合同', amountLabel: '合同金额' },
+  proContracts: { title: '专业分包合同', amountLabel: '合同金额' },
+  subcontractChanges: { title: '分包合同变更', amountLabel: '变更金额' },
+  subcontractSettlements: { title: '分包结算', amountLabel: '结算金额' },
+  subcontractPayments: { title: '分包付款', amountLabel: '付款金额' },
+  subcontractEvaluations: { title: '分包考核', amountLabel: '数量' },
 };
 
 function fmtMoney(v: number | string): string {
@@ -68,7 +76,7 @@ export function EngineeringModulePage({ feature, categoryTitle, categoryKey }: {
   const meta = DEFAULTS[feature.collection] || { title: feature.title, amountLabel: '金额' };
 
   const statusField = feature.fields.find((f) => f.key === 'status');
-  const amountField = feature.fields.find((f) => f.key === 'amount' || f.key === 'settleAmount');
+  const amountField = feature.fields.find((f) => f.key === 'amount' || f.key === 'settleAmount' || f.key === 'workerCount');
   const quantityField = feature.fields.find((f) => f.key === 'quantity');
   const statusOptions = statusField?.options?.map((o) => o.value) || [];
 

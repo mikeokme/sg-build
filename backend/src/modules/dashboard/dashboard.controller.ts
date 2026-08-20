@@ -31,6 +31,14 @@ const COLLECTION_ROUTE: Record<string, string> = {
   purchaseReceipts: '/procurement/receipts',
   supplierEvaluations: '/procurement/supplier-eval',
   suppliers: '/procurement/supplier-archives',
+  laborSubcontractors: '/subcontract/labor-subcontractors',
+  proSubcontractors: '/subcontract/pro-subcontractors',
+  laborContracts: '/subcontract/labor-contracts',
+  proContracts: '/subcontract/pro-contracts',
+  subcontractChanges: '/subcontract/subcontract-changes',
+  subcontractSettlements: '/subcontract/subcontract-settlements',
+  subcontractPayments: '/subcontract/subcontract-payments',
+  subcontractEvaluations: '/subcontract/subcontract-eval',
   materialReceiving: '/material/receiving',
   materialDiscount: '/material/discount',
   materialIssue: '/material/issue',
@@ -139,6 +147,14 @@ export class DashboardController {
     const projectInits = get('projectInits');
     const constructionLogs = get('constructionLogs');
     const milestones = get('milestones');
+    const laborSubcontractors = get('laborSubcontractors');
+    const proSubcontractors = get('proSubcontractors');
+    const laborContracts = get('laborContracts');
+    const proContracts = get('proContracts');
+    const subcontractChanges = get('subcontractChanges');
+    const subcontractSettlements = get('subcontractSettlements');
+    const subcontractPayments = get('subcontractPayments');
+    const subcontractEvaluations = get('subcontractEvaluations');
 
     // 待办汇总（审批类集合 + 待付款 + 预警 + 整改）
     const isAdmin = ADMIN_ROLES.includes(req.user?.role || '');
@@ -153,6 +169,8 @@ export class DashboardController {
         { name: 'changes', label: '变更签证' },
         { name: 'reimbursements', label: '报销' },
         { name: 'subcontractPlans', label: '分包计划' },
+        { name: 'subcontractChanges', label: '分包合同变更' },
+        { name: 'subcontractSettlements', label: '分包结算' },
       ];
       for (const d of defs) {
         const items = get(d.name).filter((x: any) => x.status === '待审批');
@@ -255,6 +273,21 @@ export class DashboardController {
         supplierCount: suppliers.length,
         evalCount: supplierEvaluations.length,
         evalExcellent: supplierEvaluations.filter((e: any) => e.result === 'A级-优秀').length,
+      },
+      subcontract: {
+        laborCount: laborSubcontractors.length,
+        proCount: proSubcontractors.length,
+        laborContractAmount: laborContracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        proContractAmount: proContracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        laborActive: laborContracts.filter((c: any) => c.status === '履行中').length,
+        proActive: proContracts.filter((c: any) => c.status === '履行中').length,
+        changesPending: subcontractChanges.filter((c: any) => c.status === '待审批').length,
+        settlementPending: subcontractSettlements.filter((c: any) => c.status === '待审批').length,
+        paymentPending: subcontractPayments.filter((c: any) => c.status === '待支付').length,
+        paymentTotal: subcontractPayments.reduce((s: number, c: any) => s + num(c.amount), 0),
+        settlementTotal: subcontractSettlements.reduce((s: number, c: any) => s + num(c.amount), 0),
+        evalCount: subcontractEvaluations.length,
+        evalExcellent: subcontractEvaluations.filter((e: any) => e.result === '优秀').length,
       },
       hr: {
         staff: staff.length,

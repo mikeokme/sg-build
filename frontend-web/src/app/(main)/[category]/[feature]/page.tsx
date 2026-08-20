@@ -23,6 +23,7 @@ import { ProcurementOverviewPage } from '@/components/ProcurementOverviewPage';
 import { ProcurementPlanPage } from '@/components/ProcurementPlanPage';
 import { ReceiptsPage } from '@/components/ReceiptsPage';
 import { SupplierEvalPage } from '@/components/SupplierEvalPage';
+import { SubcontractOverviewPage } from '@/components/SubcontractOverviewPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -67,6 +68,7 @@ export default function FeatureRoutePage() {
       {pageType === 'procurement-plan' && <ProcurementPlanPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'receipts' && <ReceiptsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'supplier-eval' && <SupplierEvalPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'subcontract-overview' && <SubcontractOverviewPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>
   );

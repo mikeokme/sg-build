@@ -658,6 +658,61 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'se4', supplier: '北方机械租赁', project: '流域综合治理工程', qualityScore: 88, deliveryScore: 92, priceScore: 75, serviceScore: 86, date: '2026-06-30', content: '设备状态良好，调度响应快', result: 'B级-良好' },
   ];
 
+  // 分包管理
+  collections['subcontractOverview'] = [
+    { id: 'so1', name: '2026年三季度分包管理汇总', type: '汇总报表', date: '2026-08-31' },
+  ];
+  collections['laborSubcontractors'] = [
+    { id: 'ls1', name: '金城建筑劳务有限公司', code: 'LW-001', legalPerson: '金大成', phone: '13800001111', workType: '钢筋工', workerCount: 80, qualification: '劳务分包资质', status: '合作中' },
+    { id: 'ls2', name: '恒通模板工程队', code: 'LW-002', legalPerson: '王恒', phone: '13800002222', workType: '木工', workerCount: 45, qualification: '劳务分包资质', status: '合作中' },
+    { id: 'ls3', name: '蓝天砌筑劳务队', code: 'LW-003', legalPerson: '张蓝天', phone: '13800003333', workType: '砌筑工', workerCount: 60, qualification: '三级', status: '合作中' },
+    { id: 'ls4', name: '众诚综合劳务公司', code: 'LW-004', legalPerson: '李众', phone: '13800004444', workType: '综合', workerCount: 120, qualification: '一级', status: '暂停合作' },
+  ];
+  collections['proSubcontractors'] = [
+    { id: 'ps1', name: '华安钢结构工程有限公司', code: 'ZY-001', legalPerson: '刘华安', phone: '13900001111', category: '钢结构', qualification: '一级', licenseNo: 'D12345678', status: '合作中' },
+    { id: 'ps2', name: '永固桩基工程公司', code: 'ZY-002', legalPerson: '赵永固', phone: '13900002222', category: '桩基', qualification: '一级', licenseNo: 'D23456789', status: '合作中' },
+    { id: 'ps3', name: '明宇防水工程公司', code: 'ZY-003', legalPerson: '孙明宇', phone: '13900003333', category: '防水防腐', qualification: '二级', licenseNo: 'D34567890', status: '合作中' },
+    { id: 'ps4', name: '蓝天幕墙装饰公司', code: 'ZY-004', legalPerson: '周蓝天', phone: '13900004444', category: '幕墙', qualification: '二级', licenseNo: 'D45678901', status: '已终止' },
+  ];
+  collections['laborContracts'] = [
+    { id: 'lc1', name: '清河水库主体劳务分包合同', code: 'LWB-2026-001', subcontractor: '金城建筑劳务有限公司', project: '清河水库除险加固工程', workType: '钢筋工', workerCount: 80, amount: 3600000, payRatio: 80, signDate: '2026-03-01', endDate: '2026-11-30', status: '履行中' },
+    { id: 'lc2', name: '流域治理模板劳务分包合同', code: 'LWB-2026-002', subcontractor: '恒通模板工程队', project: '流域综合治理工程', workType: '木工', workerCount: 45, amount: 2100000, payRatio: 70, signDate: '2026-04-15', endDate: '2026-12-31', status: '履行中' },
+    { id: 'lc3', name: '防洪堤砌筑劳务分包合同', code: 'LWB-2026-003', subcontractor: '蓝天砌筑劳务队', project: '城市防洪堤加固工程', workType: '砌筑工', workerCount: 60, amount: 1850000, payRatio: 90, signDate: '2026-02-10', endDate: '2026-08-31', status: '已完工' },
+    { id: 'lc4', name: '支线渠系综合劳务分包合同', code: 'LWB-2026-004', subcontractor: '众诚综合劳务公司', project: '南水北调支线渠系工程', workType: '综合', workerCount: 120, amount: 5200000, payRatio: 60, signDate: '2026-05-01', endDate: '2027-06-30', status: '履行中' },
+  ];
+  collections['proContracts'] = [
+    { id: 'pc1', name: '滨江大桥钢结构制作安装合同', code: 'ZYB-2026-001', subcontractor: '华安钢结构工程有限公司', project: '滨江大桥工程', category: '钢结构', amount: 5800000, payRatio: 75, signDate: '2026-02-20', endDate: '2026-12-31', status: '履行中' },
+    { id: 'pc2', name: '水库大坝桩基工程专业分包合同', code: 'ZYB-2026-002', subcontractor: '永固桩基工程公司', project: '清河水库除险加固工程', category: '桩基', amount: 3200000, payRatio: 80, signDate: '2026-03-10', endDate: '2026-09-30', status: '履行中' },
+    { id: 'pc3', name: '闸站防水防腐工程专业分包合同', code: 'ZYB-2026-003', subcontractor: '明宇防水工程公司', project: '农田水利灌溉工程', category: '防水防腐', amount: 980000, payRatio: 90, signDate: '2026-04-01', endDate: '2026-08-31', status: '已完工' },
+  ];
+  collections['subcontractChanges'] = [
+    { id: 'sch1', name: '清河水库劳务合同人员增补变更', code: 'BG-2026-001', contract: 'LWB-2026-001', project: '清河水库除险加固工程', reason: '施工高峰期劳动力增补', amount: 350000, date: '2026-07-10', status: '已批准' },
+    { id: 'sch2', name: '滨江大桥钢构工程量变更', code: 'BG-2026-002', contract: 'ZYB-2026-001', project: '滨江大桥工程', reason: '设计变更增加工程量', amount: 460000, date: '2026-07-20', status: '待审批' },
+    { id: 'sch3', name: '桩基工程桩长调整变更', code: 'BG-2026-003', contract: 'ZYB-2026-002', project: '清河水库除险加固工程', reason: '地质条件变化调整桩长', amount: 180000, date: '2026-08-01', status: '待审批' },
+  ];
+  collections['subcontractSettlements'] = [
+    { id: 'ss1', name: '清河水库主体劳务6月结算', code: 'JS-2026-001', contract: 'LWB-2026-001', subcontractor: '金城建筑劳务有限公司', project: '清河水库除险加固工程', amount: 420000, paidAmount: 420000, period: '2026-06', date: '2026-07-05', status: '已支付' },
+    { id: 'ss2', name: '流域治理模板劳务7月结算', code: 'JS-2026-002', contract: 'LWB-2026-002', subcontractor: '恒通模板工程队', project: '流域综合治理工程', amount: 380000, paidAmount: 0, period: '2026-07', date: '2026-08-05', status: '已批准' },
+    { id: 'ss3', name: '滨江大桥钢构首期结算', code: 'JS-2026-003', contract: 'ZYB-2026-001', subcontractor: '华安钢结构工程有限公司', project: '滨江大桥工程', amount: 1450000, paidAmount: 1000000, period: '2026-07', date: '2026-08-10', status: '已批准' },
+    { id: 'ss4', name: '防洪堤砌筑劳务完工结算', code: 'JS-2026-004', contract: 'LWB-2026-003', subcontractor: '蓝天砌筑劳务队', project: '城市防洪堤加固工程', amount: 1850000, paidAmount: 1850000, period: '完工', date: '2026-08-15', status: '已支付' },
+  ];
+  collections['subcontractPayments'] = [
+    { id: 'sp1', name: '清河水库主体劳务6月付款', code: 'FK-2026-001', contract: 'LWB-2026-001', subcontractor: '金城建筑劳务有限公司', project: '清河水库除险加固工程', amount: 420000, method: '银行转账', date: '2026-07-08', status: '已支付' },
+    { id: 'sp2', name: '滨江大桥钢构首期付款', code: 'FK-2026-002', contract: 'ZYB-2026-001', subcontractor: '华安钢结构工程有限公司', project: '滨江大桥工程', amount: 1000000, method: '银行转账', date: '2026-08-12', status: '已支付' },
+    { id: 'sp3', name: '流域治理模板劳务7月付款', code: 'FK-2026-003', contract: 'LWB-2026-002', subcontractor: '恒通模板工程队', project: '流域综合治理工程', amount: 380000, method: '承兑汇票', date: '2026-08-20', status: '待支付' },
+    { id: 'sp4', name: '支线渠系综合劳务预付', code: 'FK-2026-004', contract: 'LWB-2026-004', subcontractor: '众诚综合劳务公司', project: '南水北调支线渠系工程', amount: 800000, method: '银行转账', date: '2026-08-25', status: '待支付' },
+  ];
+  collections['subcontractEvaluations'] = [
+    { id: 'se1', subcontractor: '金城建筑劳务有限公司', project: '清河水库除险加固工程', qualityScore: 92, progressScore: 88, safetyScore: 90, cooperationScore: 85, date: '2026-07-31', content: '钢筋绑扎质量好，进度配合积极', result: '优秀' },
+    { id: 'se2', subcontractor: '恒通模板工程队', project: '流域综合治理工程', qualityScore: 85, progressScore: 82, safetyScore: 88, cooperationScore: 80, date: '2026-07-31', content: '模板工艺稳定，安全防护到位', result: '良好' },
+    { id: 'se3', subcontractor: '华安钢结构工程有限公司', project: '滨江大桥工程', qualityScore: 88, progressScore: 78, safetyScore: 85, cooperationScore: 82, date: '2026-06-30', content: '制作安装质量良好，进度稍慢', result: '良好' },
+    { id: 'se4', subcontractor: '蓝天幕墙装饰公司', project: '湿地公园水系工程', qualityScore: 60, progressScore: 55, safetyScore: 65, cooperationScore: 58, date: '2026-05-31', content: '施工质量问题多，配合较差', result: '不合格' },
+  ];
+  collections['subcontractReports'] = [
+    { id: 'sr1', name: '2026年7月分包台账', type: '分包台账', date: '2026-07-31' },
+    { id: 'sr2', name: '2026年二季度分包结算汇总', type: '结算台账', date: '2026-06-30' },
+  ];
+
   // 采购订单
   collections['purchaseOrders'] = [
     { id: 'po1', code: 'CG-2026-001', supplier: '华北建材有限公司', material: 'P.O42.5水泥', quantity: 200, unit: '吨', price: 480, status: '已收货' },

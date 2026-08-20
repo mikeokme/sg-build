@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowRight, Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Bell, Truck, ClipboardCheck, Clock, AlertTriangle,
-  TrendingUp, Briefcase, Banknote, FileText, CircleCheck,
+  TrendingUp, Briefcase, Banknote, FileText, CircleCheck, Handshake,
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -20,6 +20,7 @@ const API_BASE = 'http://localhost:3000';
 
 const categoryIcons: Record<string, any> = {
   oa: Bell, market: Target, engineering: Building2, procurement: ShoppingCart,
+  subcontract: Handshake,
   material: Boxes, equipment: Truck, finance: Wallet, quality: ShieldCheck,
   hr: Users, platform: Settings, resource: Database,
 };

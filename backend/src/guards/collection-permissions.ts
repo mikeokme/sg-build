@@ -54,6 +54,10 @@ const COLLECTION_CATEGORY: Record<string, string> = {
   majorRequests: 'procurement', groupContracts: 'procurement', purchaseContracts: 'procurement',
   purchaseOrders: 'procurement', rentalContracts: 'procurement', subcontracts: 'procurement', procurementReports: 'procurement',
   procurementPlans: 'procurement', purchaseReceipts: 'procurement', supplierEvaluations: 'procurement',
+  // subcontract
+  laborSubcontractors: 'subcontract', proSubcontractors: 'subcontract', laborContracts: 'subcontract',
+  proContracts: 'subcontract', subcontractChanges: 'subcontract', subcontractSettlements: 'subcontract',
+  subcontractPayments: 'subcontract', subcontractEvaluations: 'subcontract', subcontractReports: 'subcontract',
   // material
   materialReceiving: 'material', materialDiscount: 'material', materialIssue: 'material', materialDirect: 'material',
   materialTransferOut: 'material', materialTransferIn: 'material', materialReturn: 'material', materialReturnSupplier: 'material',

@@ -7,7 +7,7 @@ import {
   Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Menu, Bell, Search, Truck,
   ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid, ClipboardCheck, MessageCircle,
-  Network, Sun, Moon, Monitor, Languages,
+  Network, Sun, Moon, Monitor, Languages, Handshake,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ const categoryIcons: Record<string, any> = {
   market: Target,
   engineering: Building2,
   procurement: ShoppingCart,
+  subcontract: Handshake,
   material: Boxes,
   equipment: Truck,
   finance: Wallet,
