@@ -10,6 +10,20 @@ import { GanttPage } from '@/components/GanttPage';
 import { CalendarPage } from '@/components/CalendarPage';
 import { DocPage } from '@/components/DocPage';
 import { UserManagementPage } from '@/components/UserManagementPage';
+import { ProjectArchivesPage } from '@/components/ProjectArchivesPage';
+import ProjectDetailPage from '@/components/ProjectDetailPage';
+import { ProjectDocumentsPage } from '@/components/ProjectDocumentsPage';
+import { EngineeringOverviewPage } from '@/components/EngineeringOverviewPage';
+import { EngineeringModulePage } from '@/components/EngineeringModulePage';
+import { SchedulePage } from '@/components/SchedulePage';
+import { ConstructionLogsPage } from '@/components/ConstructionLogsPage';
+import { MilestonesPage } from '@/components/MilestonesPage';
+import { ProductionValuePage } from '@/components/ProductionValuePage';
+import { ProcurementOverviewPage } from '@/components/ProcurementOverviewPage';
+import { ProcurementPlanPage } from '@/components/ProcurementPlanPage';
+import { ReceiptsPage } from '@/components/ReceiptsPage';
+import { SupplierEvalPage } from '@/components/SupplierEvalPage';
+import { SubcontractOverviewPage } from '@/components/SubcontractOverviewPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -41,7 +55,20 @@ export default function FeatureRoutePage() {
       {pageType === 'gantt' && <GanttPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'calendar' && <CalendarPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'doc' && <DocPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'project-archives' && <ProjectArchivesPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'project-documents' && <ProjectDocumentsPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'user-manage' && <UserManagementPage />}
+      {pageType === 'engineering-overview' && <EngineeringOverviewPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'engineering-module' && <EngineeringModulePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-schedule' && <SchedulePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-logs' && <ConstructionLogsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-milestones' && <MilestonesPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-production' && <ProductionValuePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'procurement-overview' && <ProcurementOverviewPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'procurement-plan' && <ProcurementPlanPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'receipts' && <ReceiptsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'supplier-eval' && <SupplierEvalPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'subcontract-overview' && <SubcontractOverviewPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>
   );

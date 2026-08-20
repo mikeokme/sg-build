@@ -7,7 +7,7 @@ import {
   Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Menu, Bell, Search, Truck,
   ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid, ClipboardCheck, MessageCircle,
-  Network, Sun, Moon, Monitor, Languages,
+  Network, Sun, Moon, Monitor, Languages, Handshake,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ const categoryIcons: Record<string, any> = {
   market: Target,
   engineering: Building2,
   procurement: ShoppingCart,
+  subcontract: Handshake,
   material: Boxes,
   equipment: Truck,
   finance: Wallet,
@@ -67,7 +68,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     engineering: true, procurement: true, material: true, equipment: true,
     oa: true, market: true, finance: true, quality: true,
-    hr: true, platform: true, resource: true,
+    hr: true, platform: true, resource: true, subcontract: true,
+  });
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    for (const cat of categories) {
+      for (const f of cat.features) {
+        if (f.group) map[`${cat.key}::${f.group}`] = true;
+      }
+    }
+    return map;
   });
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -144,8 +154,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       if (cat) {
         setCollapsed((prev) => {
           const next = { ...prev };
-          // 默认展开当前分类，保留其他分类当前状态
-          if (next[catKey] === undefined) next[catKey] = false;
+          // 默认全部折叠，仅当用户主动展开
+          if (next[catKey] === undefined) next[catKey] = true;
           return next;
         });
       }
@@ -219,16 +229,45 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </button>
                 {sidebarOpen && isOpen && (
                   <div className="ml-4 pl-3 border-l border-slate-700/50 space-y-0.5 mt-0.5">
-                    {cat.features.map((f) => {
-                      const active = pathname === `/${cat.key}/${f.key}`;
-                      return (
-                        <Link key={f.key} href={`/${cat.key}/${f.key}`}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-                          <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
-                          <span className="truncate">{f.title}</span>
-                        </Link>
-                      );
-                    })}
+                    {(() => {
+                      const groups = new Map<string, typeof cat.features>();
+                      for (const f of cat.features) {
+                        const g = f.group || '';
+                        if (!groups.has(g)) groups.set(g, []);
+                        groups.get(g)!.push(f);
+                      }
+                      return Array.from(groups.entries()).map(([group, feats]) => {
+                        const gKey = `${cat.key}::${group}`;
+                        const gOpen = !collapsedGroups[gKey];
+                        return (
+                          <div key={gKey}>
+                            {group ? (
+                              <button
+                                onClick={() => setCollapsedGroups((prev) => ({ ...prev, [gKey]: !prev[gKey] }))}
+                                className="w-full flex items-center gap-1.5 px-3 pt-2 pb-1 text-left group/g">
+                                <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${gOpen ? '' : '-rotate-90'}`} />
+                                <span className="text-sm font-semibold text-slate-400 tracking-wide uppercase group-hover/g:text-slate-200">{group}</span>
+                                <span className="text-[10px] text-slate-600 ml-auto">{feats.length}</span>
+                              </button>
+                            ) : null}
+                            {gOpen && (
+                              <div className="space-y-0.5">
+                                {feats.map((f) => {
+                                  const active = pathname === `/${cat.key}/${f.key}`;
+                                  return (
+                                    <Link key={f.key} href={`/${cat.key}/${f.key}`}
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                                      <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
+                                      <span className="truncate">{f.title}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>

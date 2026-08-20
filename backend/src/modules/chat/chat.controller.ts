@@ -28,41 +28,56 @@ export class ChatController {
     return this.chatService.listConversations(this.username(req));
   }
 
-  // 获取可发起聊天的用户列表（排除自己）
+  // 获取可发起聊天的用户列表（排除自己），按通讯录可见范围过滤
   @Get('users')
   listUsers(@Req() req: AuthedRequest) {
     const me = this.username(req);
-    return this.dataService
+    const visibleDeptNames = this.dataService.getAddressBookVisibleDeptNames(me);
+    const all = this.dataService
       .getUsers()
-      .filter((u) => u.username !== me && u.isActive !== false)
-      .map((u) => ({
-        username: u.username,
-        name: u.name || u.username,
-        role: u.role,
-        department: u.department || '',
-        position: u.position || '',
-        phone: u.phone || '',
-        isHead: !!u.isHead,
-        isDeputy: !!u.isDeputy,
-        avatar: u.avatar || '',
-      }));
+      .filter((u) => u.username !== me && u.isActive !== false);
+    const filtered = visibleDeptNames
+      ? all.filter((u) => !u.department || visibleDeptNames.has(u.department))
+      : all;
+    return filtered.map((u) => ({
+      username: u.username,
+      name: u.name || u.username,
+      role: u.role,
+      department: u.department || '',
+      position: u.position || '',
+      phone: u.phone || '',
+      isHead: !!u.isHead,
+      isDeputy: !!u.isDeputy,
+      avatar: u.avatar || '',
+    }));
   }
 
   // 通讯录：复用组织架构树数据，保证与组织架构模块完全一致
+  // 按钉钉/飞书式可见范围过滤：admin/总经理见全部，部门负责人见本部门+下级，普通成员仅见本部门
   @Get('contacts')
   getContacts(@Req() req: AuthedRequest) {
+    const me = this.username(req);
     const departments = this.dataService.getCollectionItems('departments');
     const positions = this.dataService.getCollectionItems('orgPositions');
     const tree = this.dataService.buildOrgTree(departments, positions);
+    const visibleDeptNames = this.dataService.getAddressBookVisibleDeptNames(me);
+    const visibleDeptIds = this.dataService.getAddressBookDeptIds(me);
 
-    // 添加全体人员虚拟组
+    // 可见范围过滤组织树
+    const visibleTree = visibleDeptIds
+      ? this.dataService.filterOrgTreeByVisible(tree, new Set(visibleDeptIds))
+      : [];
+
+    // 全体人员虚拟组（仅含可见部门成员）
     const users = this.dataService.getUsers().filter((u: any) => u.isActive !== false);
-    const allMembers = users.map((u: any) => ({
-      username: u.username, name: u.name || u.username, role: u.role,
-      position: u.position || '', phone: u.phone || '',
-      department: u.department || '', isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
-    }));
-    tree.push({
+    const allMembers = users
+      .filter((u) => !visibleDeptNames || !u.department || visibleDeptNames.has(u.department))
+      .map((u: any) => ({
+        username: u.username, name: u.name || u.username, role: u.role,
+        position: u.position || '', phone: u.phone || '',
+        department: u.department || '', isHead: !!u.isHead, isDeputy: !!u.isDeputy, avatar: u.avatar || '',
+      }));
+    visibleTree.push({
       id: '_all',
       name: '全体人员',
       code: 'ALL',
@@ -74,7 +89,7 @@ export class ChatController {
       children: [],
     });
 
-    return tree;
+    return visibleTree;
   }
 
   // 发起/进入单聊
@@ -171,5 +186,61 @@ export class ChatController {
   @Post('conversations/:id/reveal/:messageId')
   revealMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest) {
     return this.chatService.revealMessage(this.username(req), id, messageId);
+  }
+
+  // ── Telegram 风格社交功能 ──
+
+  // 会话偏好（置顶/静音/归档/草稿）
+  @Put('conversations/:id/prefs')
+  setPrefs(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { pinned?: boolean; muted?: boolean; archived?: boolean; draft?: string }) {
+    return this.chatService.setPrefs(id, this.username(req), body || {});
+  }
+
+  // 清空聊天记录
+  @Delete('conversations/:id/history')
+  clearHistory(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.clearHistory(id, this.username(req));
+  }
+
+  // 删除会话（隐藏给自己）
+  @Delete('conversations/:id')
+  deleteConversation(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.deleteConversation(id, this.username(req));
+  }
+
+  // 退群
+  @Post('conversations/:id/leave')
+  leaveGroup(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.chatService.leaveGroup(id, this.username(req));
+  }
+
+  // 群信息编辑
+  @Put('conversations/:id/profile')
+  updateProfile(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { name?: string; description?: string; avatar?: string }) {
+    return this.chatService.updateProfile(id, this.username(req), body || {});
+  }
+
+  // 编辑消息
+  @Put('conversations/:id/messages/:messageId')
+  editMessage(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { content?: string }) {
+    return this.chatService.editMessage(this.username(req), id, messageId, body?.content || '');
+  }
+
+  // 转发消息
+  @Post('messages/:messageId/forward')
+  forwardMessage(@Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { conversationId?: string; sourceConversationId?: string }) {
+    return this.chatService.forwardMessage(this.username(req), body?.sourceConversationId || '', messageId, body?.conversationId || '');
+  }
+
+  // 表情回应（切换）
+  @Post('conversations/:id/messages/:messageId/reaction')
+  toggleReaction(@Param('id') id: string, @Param('messageId') messageId: string, @Req() req: AuthedRequest, @Body() body: { emoji?: string }) {
+    return this.chatService.toggleReaction(this.username(req), id, messageId, body?.emoji || '');
+  }
+
+  // 群公告置顶/取消
+  @Put('conversations/:id/pinned-message')
+  pinMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { messageId?: string | null }) {
+    return this.chatService.pinMessage(this.username(req), id, body?.messageId ?? null);
   }
 }

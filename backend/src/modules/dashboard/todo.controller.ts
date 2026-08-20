@@ -46,6 +46,7 @@ export class TodoController {
         { name: 'approvals', label: '审批中心', titleField: 'title', subField: 'type' },
         { name: 'projectInits', label: '项目立项', titleField: 'name', subField: 'customer' },
         { name: 'majorRequests', label: '大宗采购', titleField: 'name', subField: 'project' },
+        { name: 'procurementPlans', label: '采购计划', titleField: 'name', subField: 'project' },
         { name: 'plans', label: '需用计划', titleField: 'name', subField: 'project' },
         { name: 'changes', label: '变更签证', titleField: 'title', subField: 'project' },
         { name: 'reimbursements', label: '报销', titleField: 'title', subField: 'applicant' },

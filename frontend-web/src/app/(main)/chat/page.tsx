@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
-  Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact,
+  Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact, KeyRound,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,42 @@ function formatMsgTime(dateStr: string) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+// 取汉字拼音首字母（基于 zh locale 代表字二分法）
+const PINYIN_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z'];
+const PINYIN_SEEDS = ['阿', '芭', '擦', '搭', '蛾', '发', '噶', '哈', '击', '喀', '垃', '妈', '拿', '哦', '啪', '期', '然', '撒', '塌', '挖', '昔', '压', '匝'];
+const collatorZh = new Intl.Collator('zh-Hans-CN');
+function pinyinInitial(name: string): string {
+  const ch = (name || '').trim().charAt(0);
+  if (!ch) return '#';
+  if (/[A-Za-z]/.test(ch)) return ch.toUpperCase();
+  // 二分定位首字母区间
+  let lo = 0, hi = PINYIN_SEEDS.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (collatorZh.compare(ch, PINYIN_SEEDS[mid]) >= 0) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo > 0 ? PINYIN_LETTERS[lo - 1] : '#';
+}
+// 按姓氏拼音首字母排序（全体人员）
+function sortByPinyin(list: any[], key = 'name'): any[] {
+  return [...list].sort((a, b) => collatorZh.compare(a[key] || '', b[key] || ''));
+}
+
+// 递归展平部门树为有序列表（用于成员选择器，兼容任意深度）
+function flattenDeptTree(nodes: any[], depth = 0): Array<{ dept: any; depth: number }> {
+  const out: Array<{ dept: any; depth: number }> = [];
+  for (const node of nodes || []) {
+    if (!node || node.isVirtual) continue;
+    const hasMembers = (node.members?.length || 0) > 0;
+    const childList = flattenDeptTree(node.children, depth + 1);
+    const hasChildMembers = childList.length > 0;
+    if (hasMembers || hasChildMembers) out.push({ dept: node, depth });
+    out.push(...childList);
+  }
+  return out;
 }
 
 function MemberItem({ gm, isGroupAdmin, isGroupOwner, me, onChat, onSetAdmin, onRemove, onTransfer, onInfoClick }: {
@@ -118,6 +154,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [encrypted, setEncrypted] = useState(false);
+  const [secretTarget, setSecretTarget] = useState('');
+  const [secretInputMsgId, setSecretInputMsgId] = useState<string | null>(null);
+  const [secretPasswordInput, setSecretPasswordInput] = useState('');
   const [burn, setBurn] = useState(false);
   const [burnSec, setBurnSec] = useState(10);
   const [burnTarget, setBurnTarget] = useState('');
@@ -143,13 +182,11 @@ export default function ChatPage() {
   // 通讯录 tab：'messages' | 'contacts'
   const [leftTab, setLeftTab] = useState<'messages' | 'contacts'>('messages');
   const [contactSearch, setContactSearch] = useState('');
-  const [convSections, setConvSections] = useState<Record<string, boolean>>({ single: false, hq: false, sub: false, proj: false, dept: false, co: false, custom: false });
+const [convSections, setConvSections] = useState<Record<string, boolean>>({});
+  const [chatGroups, setChatGroups] = useState<any[]>([]);
   // 通讯录按部门分组
   const [deptContacts, setDeptContacts] = useState<any[]>([]);
   const [deptSections, setDeptSections] = useState<Record<string, boolean>>({});
-  // 项目部组
-  const [projectGroups, setProjectGroups] = useState<any[]>([]);
-  const [projectGroupSections, setProjectGroupSections] = useState<Record<string, boolean>>({});
 
   // 群成员管理面板
   const [showGroupInfo, setShowGroupInfo] = useState(false);
@@ -161,6 +198,19 @@ export default function ChatPage() {
   const groupInfoRef = useRef<HTMLDivElement>(null);
   const [memberInfo, setMemberInfo] = useState<any>(null);
   const [memberInfoPos, setMemberInfoPos] = useState<{ x: number; y: number } | null>(null);
+  // Telegram 风格扩展状态
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [showForwardDialog, setShowForwardDialog] = useState(false);
+  const [forwardMsgId, setForwardMsgId] = useState<string | null>(null);
+  const [forwardTarget, setForwardTarget] = useState('');
+  const [msgSearch, setMsgSearch] = useState('');
+  const [showMsgSearch, setShowMsgSearch] = useState(false);
+  const [showGroupEditDialog, setShowGroupEditDialog] = useState(false);
+  const [groupEditName, setGroupEditName] = useState('');
+  const [groupEditDesc, setGroupEditDesc] = useState('');
+  const [groupEditAvatar, setGroupEditAvatar] = useState('');
+  const REACTION_EMOJIS = ['👍', '❤️', '😂', '🔥', '👏', '🎉', '🙏', '😮'];
 
   // 用户信息快速查找 & 部门标签
   const userMap = useMemo(() => {
@@ -171,14 +221,44 @@ export default function ChatPage() {
 
   const getDeptLabel = useCallback((deptName: string) => {
     if (!deptName) return '';
-    for (const dept of deptContacts) {
-      if (dept.children) {
-        for (const child of dept.children) {
-          if (child.name === deptName) return `${deptName} · ${dept.name}`;
+    const findPath = (nodes: any[], prefix: string): string => {
+      for (const dept of nodes) {
+        if (dept.name === deptName) return prefix ? `${prefix} / ${dept.name}` : dept.name;
+        if (dept.children && dept.children.length > 0) {
+          const r = findPath(dept.children, prefix ? `${prefix} / ${dept.name}` : dept.name);
+          if (r) return r;
         }
       }
+      return '';
+    };
+    return findPath(deptContacts, '');
+  }, [deptContacts]);
+
+  // 从成员卡片跳转通讯录并定位部门（递归查找路径并展开）
+  const gotoDept = useCallback((deptName: string) => {
+    setLeftTab('contacts');
+    // 递归找到部门所在路径节点，逐级展开
+    const findAndExpand = (nodes: any[]): boolean => {
+      for (const dept of nodes) {
+        if (dept.name === deptName) {
+          setDeptSections((prev) => ({ ...prev, org: true, [dept.id]: true }));
+          requestAnimationFrame(() => {
+            const el = document.getElementById('dept-' + dept.id);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+          return true;
+        }
+        if (dept.children && dept.children.length > 0 && findAndExpand(dept.children)) {
+          setDeptSections((prev) => ({ ...prev, [dept.id]: true }));
+          return true;
+        }
+      }
+      return false;
+    };
+    if (!findAndExpand(deptContacts)) {
+      // 未匹配部门：至少展开单位机构组
+      setDeptSections((prev) => ({ ...prev, org: true, _all: false }));
     }
-    return deptName;
   }, [deptContacts]);
 
   const countdownRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -256,6 +336,14 @@ export default function ChatPage() {
       fetchConvs();
     });
 
+    // 指定接收人加密：接收人解密成功后更新消息内容
+    s.on('chat:secret-revealed', (data: any) => {
+      if (data.conversationId === selectedIdRef.current && data.message) {
+        setMessages((prev) => prev.map((m) => (m.id === data.message.id ? data.message : m)));
+      }
+      fetchConvs();
+    });
+
     s.on('chat:burning', (data: any) => {
       if (data.conversationId === selectedIdRef.current) {
         // 只有已揭示的用户才启动倒计时
@@ -305,6 +393,40 @@ export default function ChatPage() {
       fetchConvs();
     });
 
+    s.on('chat:edited', (data: any) => {
+      if (data.conversationId === selectedIdRef.current) {
+        setMessages((prev) => prev.map((m) => (m.id === data.message.id ? data.message : m)));
+      }
+      fetchConvs();
+    });
+
+    s.on('chat:reaction', (data: any) => {
+      if (data.conversationId === selectedIdRef.current) {
+        setMessages((prev) => prev.map((m) => (m.id === data.message.id ? data.message : m)));
+      }
+    });
+
+    s.on('chat:message-pinned', (data: any) => {
+      if (data.conversationId === selectedIdRef.current) {
+        setMessages((prev) => prev.map((m) => ({ ...m, pinned: !!data.messageId && m.id === data.messageId })));
+      }
+      fetchConvs();
+    });
+
+    s.on('chat:history-cleared', (data: any) => {
+      if (data.conversationId === selectedIdRef.current) setMessages([]);
+      fetchConvs();
+    });
+
+    s.on('chat:left', (data: any) => {
+      if (data.conversationId === selectedIdRef.current) setSelectedId(null);
+      fetchConvs();
+    });
+
+    s.on('chat:group-updated', (data: any) => {
+      fetchConvs();
+    });
+
     s.on('chat:presence', (data: any) => {
       setOnlineUsers((prev) => { const next = new Set(prev); if (data.online) next.add(data.username); else next.delete(data.username); return next; });
     });
@@ -321,8 +443,10 @@ export default function ChatPage() {
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
         setDeptContacts(list);
-        // 默认折叠所有部门和子部门
+        // 默认折叠所有部门和子部门；单位机构组与全体成员组保持展开
         const sections: Record<string, boolean> = {};
+        sections['org'] = true;
+        sections['_all'] = true;
         list.forEach((group: any) => {
           sections[group.id] = false;
           if (group.children) {
@@ -332,6 +456,21 @@ export default function ChatPage() {
           }
         });
         setDeptSections(sections);
+      })
+      .catch(() => {});
+
+    // 获取聊天分组配置
+    fetch(`${API_BASE}/org/chat-groups`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const groups = Array.isArray(d) ? d : [];
+        setChatGroups(groups);
+        // 初始化分组展开状态（默认全部折叠）
+        const sections: Record<string, boolean> = {};
+        groups.forEach((g: any) => { sections[g.id] = false; });
+        sections['chat_root'] = false;
+        sections['single'] = false;
+        setConvSections(sections);
       })
       .catch(() => {});
 
@@ -409,6 +548,94 @@ export default function ChatPage() {
     } catch {}
   };
 
+  // ── Telegram 风格社交功能 ──
+
+  const api = async (url: string, method = 'GET', body?: any) => {
+    const token = localStorage.getItem('token');
+    const opts: any = { method, headers: { Authorization: `Bearer ${token}` } };
+    if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    const res = await fetch(`${API_BASE}${url}`, opts);
+    return res.json();
+  };
+
+  const setPref = async (conversationId: string, patch: any) => {
+    try { await api(`/chat/conversations/${conversationId}/prefs`, 'PUT', patch); fetchConvs(); } catch {}
+  };
+
+  const togglePin = (conversationId: string, cur: boolean) => setPref(conversationId, { pinned: !cur });
+  const toggleMute = (conversationId: string, cur: boolean) => setPref(conversationId, { muted: !cur });
+  const toggleArchive = (conversationId: string, cur: boolean) => setPref(conversationId, { archived: !cur });
+
+  const clearHistory = async () => {
+    if (!selectedId || !confirm('确定要清空当前聊天的全部记录吗？此操作不可恢复。')) return;
+    try { await api(`/chat/conversations/${selectedId}/history`, 'DELETE'); } catch {}
+  };
+
+  const deleteConversation = async () => {
+    if (!selectedId || !confirm('确定要删除当前聊天吗？（仅从你的会话列表移除）')) return;
+    try { await api(`/chat/conversations/${selectedId}`, 'DELETE'); setSelectedId(null); fetchConvs(); } catch {}
+  };
+
+  const leaveGroup = async () => {
+    if (!selectedId || !confirm('确定要退出该群聊吗？')) return;
+    try { await api(`/chat/conversations/${selectedId}/leave`, 'POST'); } catch {}
+  };
+
+  const openGroupEdit = () => {
+    if (!selectedConv) return;
+    setGroupEditName(selectedConv.name || '');
+    setGroupEditDesc(selectedConv.description || '');
+    setGroupEditAvatar(selectedConv.avatar || '');
+    setShowGroupEditDialog(true);
+  };
+
+  const saveGroupProfile = async () => {
+    if (!selectedId || !groupEditName.trim()) return;
+    try {
+      await api(`/chat/conversations/${selectedId}/profile`, 'PUT', { name: groupEditName, description: groupEditDesc, avatar: groupEditAvatar });
+      setShowGroupEditDialog(false);
+      fetchConvs();
+    } catch {}
+  };
+
+  const startEdit = (m: any) => { setEditingMsgId(m.id); setEditingText(m.content || ''); };
+  const cancelEdit = () => { setEditingMsgId(null); setEditingText(''); };
+  const saveEdit = async () => {
+    if (!selectedId || !editingMsgId || !editingText.trim()) return;
+    try {
+      await api(`/chat/conversations/${selectedId}/messages/${editingMsgId}`, 'PUT', { content: editingText });
+      cancelEdit();
+    } catch {}
+  };
+
+  const openForward = (messageId: string) => { setForwardMsgId(messageId); setForwardTarget(''); setShowForwardDialog(true); };
+  const doForward = async () => {
+    if (!forwardMsgId || !forwardTarget) return;
+    const srcConv = messages.find((m) => m.id === forwardMsgId)?.conversationId;
+    if (!srcConv) return;
+    try {
+      await api(`/chat/messages/${forwardMsgId}/forward`, 'POST', { conversationId: forwardTarget, sourceConversationId: srcConv });
+      setShowForwardDialog(false);
+    } catch {}
+  };
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!selectedId) return;
+    try { await api(`/chat/conversations/${selectedId}/messages/${messageId}/reaction`, 'POST', { emoji }); } catch {}
+  };
+
+  const togglePinMessage = async (messageId: string) => {
+    if (!selectedId) return;
+    try { await api(`/chat/conversations/${selectedId}/pinned-message`, 'PUT', { messageId }); } catch {}
+  };
+  const unpinMessage = async () => {
+    if (!selectedId) return;
+    try {
+      await api(`/chat/conversations/${selectedId}/pinned-message`, 'PUT', { messageId: null });
+      fetchConvs();
+    } catch {}
+  };
+
   useEffect(() => { fetchConvs(); }, [fetchConvs]);
 
   useEffect(() => {
@@ -427,11 +654,15 @@ export default function ChatPage() {
         }
       })
       .catch(() => {});
+    // 恢复草稿
+    const conv = convs.find((c) => c.id === selectedId);
+    if (conv?.draft) setInput(conv.draft); else setInput('');
+    setReplyTo(null); setEditingMsgId(null);
     socket?.emit('chat:open', { conversationId: selectedId });
     socket?.emit('chat:read', { conversationId: selectedId });
     // 群聊加载成员列表
-    const conv = convs.find((c) => c.id === selectedId);
-    if (conv?.type === 'group') {
+    const conv2 = convs.find((c) => c.id === selectedId);
+    if (conv2?.type === 'group') {
       fetchGroupMembers(selectedId);
     } else {
       setGroupMembers([]);
@@ -443,6 +674,15 @@ export default function ChatPage() {
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
   useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
+  // 草稿防抖保存
+  useEffect(() => {
+    if (!selectedId || !me) return;
+    const t = setTimeout(() => {
+      if (input.trim()) setPref(selectedId, { draft: input });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [input, selectedId]);
+
   const sendMessage = () => {
     if (!socket || !selectedId || !input.trim()) return;
     // 检测@提及
@@ -452,13 +692,16 @@ export default function ChatPage() {
       conversationId: selectedId, 
       content: input.trim(), 
       encrypted, 
+      secretTarget: encrypted && selectedConv?.type === 'group' ? secretTarget : undefined,
       burn, 
       burnSeconds: burn ? burnSec : undefined, 
       burnTarget: burn && selectedConv?.type === 'group' ? burnTarget : undefined,
       replyTo: replyTo?.id || '',
       mention: mentions
     });
-    setInput(''); setEncrypted(false); setBurn(false); setBurnTarget(''); setReplyTo(null); inputRef.current?.focus();
+    // 发送后清空草稿
+    setPref(selectedId, { draft: '' });
+    setInput(''); setEncrypted(false); setSecretTarget(''); setBurn(false); setBurnTarget(''); setReplyTo(null); inputRef.current?.focus();
   };
 
   const revealMessage = (messageId: string) => {
@@ -477,6 +720,24 @@ export default function ChatPage() {
   const burnNow = (messageId: string) => {
     if (!socket || !selectedId) return;
     socket.emit('chat:delete', { conversationId: selectedId, messageId });
+  };
+
+  // 指定接收人加密：用密码解密
+  const revealSecret = (messageId: string) => {
+    if (!socket || !selectedId || !secretPasswordInput.trim()) return;
+    socket.emit('chat:secret-reveal', {
+      conversationId: selectedId,
+      messageId,
+      password: secretPasswordInput.trim(),
+    });
+    setSecretInputMsgId(null);
+    setSecretPasswordInput('');
+  };
+
+  // 复制密码卡片后自动销毁
+  const copySecretKey = async (cardId: string, password: string) => {
+    try { await navigator.clipboard.writeText(password); } catch {}
+    if (socket) socket.emit('chat:secret-copied', { cardId });
   };
 
   const openSingle = async (username: string) => {
@@ -542,22 +803,92 @@ export default function ChatPage() {
   );
   const isGroupOwner = selectedConv?.owner === me?.username;
   const typingList = Array.from(typingUsers.entries()).filter(([u, t]) => Date.now() - t < 4000).map(([u]) => u);
-  const filteredConvs = convs.filter((c) => !searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredConvs = convs.filter((c) => !c.archived && (!searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase())));
+  const archivedConvs = convs.filter((c) => c.archived && (!searchTerm || c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.lastMessage?.toLowerCase().includes(searchTerm.toLowerCase())));
+
+  // 三级分组逻辑：一级(根) → 二级(子类) → 三级(实际群聊规则)
+  const getGroupForConv = (c: any): string => {
+    if (c.type !== 'group') return 'single';
+    const did = c.departmentId || '';
+    // 查找匹配的三级分组
+    for (const g of chatGroups) {
+      if (g.departmentIds && g.departmentIds.includes(did)) return g.id;
+    }
+    // 无 departmentId 的自建群归入其他群组
+    return chatGroups.find((g: any) => g.id === 'group_other')?.id || 'group_other';
+  };
+
+  // 构建通用分组树（按 parentId 递归，层级不限）
+  // 自动升级：若某分组只有一个子分组且自身无直挂会话，则直接把该子分组提升为顶级，不显示多余的上级层级
+  // 折叠：若某分组下仅有一个直挂会话且无子分组，则取消分组，只保留该群
+  const buildGroupTree = (parentId: string | null): any[] =>
+    chatGroups
+      .filter((g: any) => (g.parentId ?? null) === parentId)
+      .map((g: any) => {
+        const children = buildGroupTree(g.id);
+        const convs = filteredConvs.filter((c: any) => getGroupForConv(c) === g.id);
+        if (children.length === 1 && convs.length === 0) return children[0];
+        if (convs.length === 1 && children.length === 0) return { ...g, conversations: convs, children: [], collapsed: true };
+        return { ...g, conversations: convs, children };
+      });
+  const groupedTree = buildGroupTree(null);
+  const countGroupConvs = (n: any): number =>
+    n.conversations.length + (n.children || []).reduce((s: number, c: any) => s + countGroupConvs(c), 0);
+
   const singleConvs = filteredConvs.filter((c) => c.type === 'single');
-  const groupAll = filteredConvs.filter((c) => c.type === 'group');
-  // 集团工作组：总部及高管层级
-  const hqIds = ['group', 'board', 'gm-office', 'office', 'dgm-a', 'dgm-b', 'dgm-c', 'chief-eng'];
-  const hqConvs = groupAll.filter((c) => hqIds.includes(c.departmentId || ''));
-  // 分子公司组：分公司(sub-*) + 子公司(branch-*)
-  const subConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('branch-') || (c.departmentId || '').startsWith('sub-'));
-  // 项目部组：工程项目部
-  const projConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('proj-'));
-  // 集团部门组：职能部门（category=department，非总部层级）
-  const deptConvs = groupAll.filter((c) => c.category === 'department' && !hqIds.includes(c.departmentId || ''));
-  // 号码公司组：一二三公司(co-*)
-  const coConvs = groupAll.filter((c) => (c.departmentId || '').startsWith('co-'));
-  // 自建群
-  const customConvs = groupAll.filter((c) => !hqIds.includes(c.departmentId || '') && c.category !== 'department' && !subConvs.includes(c) && !projConvs.includes(c) && !coConvs.includes(c));
+
+  // 递归渲染分组树节点
+  const renderConvItem = (c: any) => (
+    <div key={c.id} onClick={() => setSelectedId(c.id)} onContextMenu={(e) => { e.preventDefault(); setSelectedId(c.id); }}
+      className={`flex items-center gap-3 px-3 py-2.5 pl-14 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+      <div className="relative flex-shrink-0">
+        <Avatar className="w-9 h-9">
+          <AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-3.5 h-3.5" /></AvatarFallback>
+        </Avatar>
+        {c.archived && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gray-400 border-2 border-white rounded-full" title="已归档" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-900 truncate">
+            {c.pinned && <span className="text-amber-500 mr-1">📌</span>}
+            {c.muted && <span className="text-gray-300 mr-1">🔇</span>}
+            {c.name}
+          </span>
+          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+        </div>
+        <div className="flex items-center gap-1 mt-0.5">
+          <Users className="w-3 h-3 text-gray-300 flex-shrink-0" />
+          <p className="text-[11px] text-gray-400 truncate">{c.draft ? <span className="text-orange-400">[草稿] {c.draft}</span> : (c.lastMessage || '暂无消息')}</p>
+        </div>
+      </div>
+      {!c.muted && c.unread > 0 && <Badge className="bg-blue-500 text-white text-[9px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+      {c.muted && c.unread > 0 && <span className="text-[10px] text-gray-300">{c.unread}</span>}
+    </div>
+  );
+
+  // 递归渲染分组树节点
+  const renderGroupNode = (node: any, depth: number): React.ReactNode => {
+    const count = countGroupConvs(node);
+    if (count === 0) return null;
+    const isExpanded = convSections[node.id] !== false;
+    const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
+    const indent = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : depth === 3 ? 'pl-14' : 'pl-16';
+    if (node.collapsed) return <div key={node.id}>{node.conversations.map(renderConvItem)}</div>;
+    return (
+      <div key={node.id}>
+        {/* 分组标题 */}
+        <div onClick={() => setConvSections((p) => ({ ...p, [node.id]: isExpanded ? false : true }))}
+          className={`flex items-center gap-2 ${indent} py-2 cursor-pointer hover:bg-gray-50 select-none border-b ${depth === 1 ? 'border-gray-200 bg-gray-50/50' : 'border-gray-100'}`}>
+          <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+          <span className={colorMap[node.color] || 'text-gray-600'}>{node.icon}</span>
+          <span className={`${depth === 1 ? 'text-sm font-bold text-gray-700' : depth === 2 ? 'text-xs font-medium text-gray-600' : 'text-[11px] text-gray-500'}`}>{node.name}</span>
+          <span className="text-[10px] text-gray-400 ml-auto">{count}</span>
+        </div>
+        {isExpanded && node.conversations.map(renderConvItem)}
+        {isExpanded && (node.children || []).map((child: any) => renderGroupNode(child, depth + 1))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-[calc(100vh-5rem)] bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -602,216 +933,93 @@ export default function ChatPage() {
               {filteredConvs.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400"><MessageCircle className="w-10 h-10 mb-2" /><p className="text-sm">暂无会话</p></div>
               )}
-              {/* ─── 1.1 单聊 ─── */}
-              {singleConvs.length > 0 && (
-                <div>
-                  <div onClick={() => setConvSections((p) => ({ ...p, single: !p.single }))}
-                    className="sticky top-0 z-10 flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.single !== false ? 'rotate-90' : ''}`}>▶</span>
-                    <MessageCircle className="w-3 h-3 text-blue-500" />
-                    <span className="text-xs font-semibold text-gray-500">单聊</span>
-                    <span className="text-[10px] text-gray-400">{singleConvs.length}</span>
-                  </div>
-                  {convSections.single !== false && singleConvs.map((c) => {
-                    const isSelected = c.id === selectedId;
-                    const otherUsername = c.members.find((m: string) => m !== me?.username) || me?.username;
-                    const otherUserData = otherUsername ? userMap.get(otherUsername) : null;
-                    const displayName = otherUserData?.name || otherUsername;
-                    const isOnline = onlineUsers.has(otherUsername);
-                    return (
-                      <div key={c.id} onClick={() => setSelectedId(c.id)}
-                        className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                        <div className="relative flex-shrink-0">
-                          <Avatar className="w-10 h-10">
-                            <AvatarFallback className="bg-blue-100 text-blue-600">{displayName?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                          </Avatar>
-                          {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-900 truncate">{displayName}</span>
-                            {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                          </div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <p className="text-xs text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                        </div>
-                        {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+
+              {/* 群聊（最高级别） */}
+              <div>
+                <div onClick={() => setConvSections((p) => ({ ...p, chat_root: convSections.chat_root !== false ? false : true }))}
+                  className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-200 bg-gray-50">
+                  <span className={`text-[10px] text-gray-400 transition-transform ${convSections.chat_root !== false ? 'rotate-90' : ''}`}>▶</span>
+                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="text-sm font-bold text-gray-700">群聊</span>
+                  <span className="text-[10px] text-gray-400 ml-auto">{groupedTree.reduce((s: number, n: any) => s + countGroupConvs(n), 0)}</span>
+                </div>
+                {convSections.chat_root !== false && groupedTree.map((node: any) => renderGroupNode(node, 1))}
+              </div>
+
+              {/* 单聊（最高级别） */}
+              <div>
+                <div onClick={() => setConvSections((p) => ({ ...p, single: convSections.single !== false ? false : true }))}
+                  className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-200 bg-gray-50">
+                  <span className={`text-[10px] text-gray-400 transition-transform ${convSections.single !== false ? 'rotate-90' : ''}`}>▶</span>
+                  <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
+                  <span className="text-sm font-bold text-gray-700">单聊</span>
+                  <span className="text-[10px] text-gray-400 ml-auto">{singleConvs.length}</span>
+                </div>
+                {convSections.single !== false && singleConvs.map((c) => {
+                  const isSelected = c.id === selectedId;
+                  const otherUsername = c.members.find((m: string) => m !== me?.username) || me?.username;
+                  const otherUserData = otherUsername ? userMap.get(otherUsername) : null;
+                  const displayName = otherUserData?.name || otherUsername;
+                  const isOnline = onlineUsers.has(otherUsername);
+                  return (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)} onContextMenu={(e) => { e.preventDefault(); setSelectedId(c.id); }}
+                      className={`flex items-center gap-3 px-3 py-3 pl-6 cursor-pointer transition-colors border-b border-gray-50 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback className="bg-blue-100 text-blue-600">{displayName?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
+                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />}
                       </div>
-                    );
-                  })}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {c.pinned && <span className="text-amber-500 mr-1">📌</span>}
+                            {c.muted && <span className="text-gray-300 mr-1">🔇</span>}
+                            {displayName}
+                          </span>
+                          {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <p className="text-xs text-gray-400 truncate">{c.draft ? <span className="text-orange-400">[草稿] {c.draft}</span> : (c.lastMessage || '暂无消息')}</p>
+                        </div>
+                      </div>
+                      {!c.muted && c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
+                      {c.muted && c.unread > 0 && <span className="text-[10px] text-gray-300">{c.unread}</span>}
+                    </div>
+                  );
+                })}
+</div>
+            </div>
+
+              {/* 已归档分区 */}
+              {archivedConvs.length > 0 && (
+                <div>
+                  <div onClick={() => setConvSections((p) => ({ ...p, archived: convSections.archived !== false ? false : true }))}
+                    className="sticky top-0 z-10 flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-200 bg-gray-50">
+                    <span className={`text-[10px] text-gray-400 transition-transform ${convSections.archived !== false ? 'rotate-90' : ''}`}>▶</span>
+                    <svg className="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5h18v2H3zM5 9v10h14V9M10 12h4"/></svg>
+                    <span className="text-sm font-bold text-gray-700">已归档</span>
+                    <span className="text-[10px] text-gray-400 ml-auto">{archivedConvs.length}</span>
+                  </div>
+                  {convSections.archived !== false && archivedConvs.map((c: any) => (
+                    <div key={c.id} onClick={() => setSelectedId(c.id)} onContextMenu={(e) => { e.preventDefault(); setSelectedId(c.id); }}
+                      className="flex items-center gap-3 px-3 py-2.5 pl-6 cursor-pointer transition-colors border-b border-gray-50 hover:bg-gray-50">
+                      <Avatar className="w-9 h-9">
+                        <AvatarFallback className="bg-gray-100 text-gray-500">{c.type === 'group' ? <Users className="w-3.5 h-3.5" /> : (userMap.get(c.members.find((m: string) => m !== me?.username))?.name?.[0]?.toUpperCase() || 'U')}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate block">
+                          {c.pinned && <span className="text-amber-500 mr-1">📌</span>}
+                          {c.type === 'group' ? c.name : (userMap.get(c.members.find((m: string) => m !== me?.username))?.name || c.name)}
+                        </span>
+                        <p className="text-[11px] text-gray-400 truncate">{c.lastMessage || '暂无消息'}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              {/* ─── 1.2 群聊 ─── */}
-              {groupAll.length > 0 && (
-                <>
-                  {/* 1.2 群聊 总标题 */}
-                  <div className="sticky top-0 z-20 flex items-center gap-2 px-3 py-1.5 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-                    <Users className="w-3 h-3 text-emerald-500" />
-                    <span className="text-xs font-bold text-gray-700">群聊</span>
-                    <span className="text-[10px] text-gray-400">{groupAll.length}</span>
-                  </div>
-                  {/* 1.2.1 集团工作组 */}
-                  {hqConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, hq: !p.hq }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.hq !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">🏛</span>
-                        <span className="text-[11px] font-medium text-gray-500">集团工作组</span>
-                        <span className="text-[10px] text-gray-400">{hqConvs.length}</span>
-                      </div>
-                      {convSections.hq !== false && hqConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-indigo-100 text-indigo-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.2 分子公司组 */}
-                  {subConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, sub: !p.sub }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.sub !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">🏢</span>
-                        <span className="text-[11px] font-medium text-gray-500">分子公司组</span>
-                        <span className="text-[10px] text-gray-400">{subConvs.length}</span>
-                      </div>
-                      {convSections.sub !== false && subConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-cyan-100 text-cyan-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.3 项目部组 */}
-                  {projConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, proj: !p.proj }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.proj !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">🏗</span>
-                        <span className="text-[11px] font-medium text-gray-500">项目部组</span>
-                        <span className="text-[10px] text-gray-400">{projConvs.length}</span>
-                      </div>
-                      {convSections.proj !== false && projConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-amber-100 text-amber-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.4 集团部门组 */}
-                  {deptConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, dept: !p.dept }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.dept !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">📋</span>
-                        <span className="text-[11px] font-medium text-gray-500">集团部门组</span>
-                        <span className="text-[10px] text-gray-400">{deptConvs.length}</span>
-                      </div>
-                      {convSections.dept !== false && deptConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-emerald-100 text-emerald-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.5 号码公司组 */}
-                  {coConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, co: !p.co }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.co !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">🏭</span>
-                        <span className="text-[11px] font-medium text-gray-500">号码公司组</span>
-                        <span className="text-[10px] text-gray-400">{coConvs.length}</span>
-                      </div>
-                      {convSections.co !== false && coConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-orange-100 text-orange-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* 1.2.6 自建群 */}
-                  {customConvs.length > 0 && (
-                    <div>
-                      <div onClick={() => setConvSections((p) => ({ ...p, custom: !p.custom }))}
-                        className="sticky top-[28px] z-10 flex items-center gap-2 pl-6 pr-3 py-1 cursor-pointer hover:bg-gray-50 select-none border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
-                        <span className={`text-[10px] text-gray-400 transition-transform ${convSections.custom !== false ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-[10px]">💬</span>
-                        <span className="text-[11px] font-medium text-gray-500">自建群</span>
-                        <span className="text-[10px] text-gray-400">{customConvs.length}</span>
-                      </div>
-                      {convSections.custom !== false && customConvs.map((c) => (
-                        <div key={c.id} onClick={() => setSelectedId(c.id)}
-                          className={`flex items-center gap-3 pl-8 pr-3 py-2.5 cursor-pointer transition-colors border-b border-gray-50 ${c.id === selectedId ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                          <Avatar className="w-9 h-9"><AvatarFallback className="bg-purple-100 text-purple-600"><Users className="w-4 h-4" /></AvatarFallback></Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
-                              {c.lastMessageAt && <span className="text-[10px] text-gray-400">{formatTime(c.lastMessageAt)}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">{c.lastMessage || '暂无消息'}</p>
-                          </div>
-                          {c.unread > 0 && <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 min-w-5 h-5 flex items-center justify-center">{c.unread > 99 ? '99+' : c.unread}</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-           </>
-         )}
+            </>
+          )}
 
         {/* 通讯录 Tab */}
         {leftTab === 'contacts' && (
@@ -827,140 +1035,177 @@ export default function ChatPage() {
               {deptContacts.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400"><Contact className="w-10 h-10 mb-2" /><p className="text-sm">暂无联系人</p></div>
               )}
-              {deptContacts.map((group: any) => {
-                if (group.isVirtual) {
-                  // 全体人员：平铺所有成员，按部门分组显示
-                  const filtered = contactSearch
-                    ? group.members.filter((m: any) =>
-                        m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                        (m.department || '').toLowerCase().includes(contactSearch.toLowerCase()))
-                    : group.members;
-                  if (filtered.length === 0) return null;
-                  const isExpanded = deptSections[group.id] !== false;
-                  return (
-                    <div key={group.id} className="border-b border-gray-100">
-                      <div onClick={() => setDeptSections((prev) => ({ ...prev, [group.id]: !isExpanded }))}
-                        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                          <span className="text-sm font-semibold text-gray-700">{group.name}</span>
-                          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{filtered.length}人</span>
-                        </div>
-                      </div>
-                      {isExpanded && (
-                        <div>
-                          {filtered.map((u: any) => {
-                            const isOnline = onlineUsers.has(u.username);
-                            return (
-                              <div key={u.username}
-                                className="flex items-center gap-3 pl-8 pr-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 transition-colors select-none"
-                                onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
-                                <div className="relative flex-shrink-0">
-                                  <Avatar className="w-8 h-8">
-                                    <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                                  </Avatar>
-                                  {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                                    {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
-                                    {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
-                                  </div>
-                                  <p className="text-[10px] text-gray-400 truncate">{u.position} · {u.department}</p>
-                                </div>
-                                {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-                // 五大组：带子部门层级
-                const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
-                const isGroupExpanded = deptSections[group.id] !== false;
+              {(() => {
+                // 二级分组：单位机构组 + 全体成员组
+                const orgGroups = deptContacts.filter((g: any) => !g.isVirtual);
+                const allGroup = deptContacts.find((g: any) => g.isVirtual);
+                const orgExpanded = deptSections['org'] !== false;
+                const allExpanded = deptSections['_all'] !== false;
+                const orgMemberCount = orgGroups.reduce((s: number, g: any) => s + (g.memberCount || 0), 0);
                 return (
-                  <div key={group.id} className="border-b border-gray-200">
-                    {/* 组标题 */}
-                    <div onClick={() => setDeptSections((prev) => ({ ...prev, [group.id]: !isGroupExpanded }))}
-                      className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50/50">
+                  <>
+                  {/* ═══ 一级：单位机构组 ═══ */}
+                  <div>
+                    <div onClick={() => setDeptSections((prev) => ({ ...prev, org: orgExpanded ? false : true }))}
+                      className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50 border-b border-gray-200">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs transition-transform ${isGroupExpanded ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-base">{groupIcon[group.id] || '📋'}</span>
-                        <span className="text-sm font-bold text-gray-800">{group.name}</span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{group.memberCount}人</span>
+                        <span className={`text-xs transition-transform ${orgExpanded ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-sm font-bold text-gray-800">单位机构组</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{orgMemberCount}人</span>
                       </div>
                     </div>
-                    {/* 子部门 */}
-                    {isGroupExpanded && group.children?.map((dept: any) => {
-                      const deptFiltered = contactSearch
-                        ? dept.members.filter((m: any) =>
+                    {orgExpanded && orgGroups.map((group: any) => {
+                      // 递归渲染任意深度部门树
+                      const renderDeptNode = (dept: any, depth: number): React.ReactNode => {
+                        const deptFiltered = contactSearch
+                          ? dept.members.filter((m: any) =>
+                              m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                              m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                              dept.name.toLowerCase().includes(contactSearch.toLowerCase()))
+                          : dept.members;
+                        const childNodes = dept.children || [];
+                        const hasVisibleChild = childNodes.some((c: any) => c.members?.length > 0);
+                        if (deptFiltered.length === 0 && !hasVisibleChild) return null;
+                        const isDeptExpanded = deptSections[dept.id] !== false;
+                        return (
+                          <div key={dept.id} id={'dept-' + dept.id} className="border-b border-gray-50">
+                            <div onClick={() => setDeptSections((prev) => ({ ...prev, [dept.id]: !isDeptExpanded }))}
+                              className="flex items-center justify-between pl-8 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
+                              style={{ paddingLeft: `${8 + depth * 14}px` }}>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] text-gray-400 transition-transform ${isDeptExpanded ? 'rotate-90' : ''}`}>▶</span>
+                                <span className="text-sm font-semibold text-gray-700">{dept.name}</span>
+                                <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{deptFiltered.length}人</span>
+                              </div>
+                              {dept.leader && <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{dept.leader}</span>}
+                            </div>
+                            {isDeptExpanded && (
+                              <div>
+                                {deptFiltered.map((u: any) => {
+                                  const isOnline = onlineUsers.has(u.username);
+                                  const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
+                                  return (
+                                    <div key={u.username}
+                                      className="flex items-center gap-3 pl-14 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 transition-colors select-none group"
+                                      style={{ paddingLeft: `${14 + depth * 14}px` }}>
+                                      <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
+                                        <Avatar className="w-8 h-8">
+                                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                        </Avatar>
+                                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
+                                        <div className="flex items-center gap-1.5">
+                                          <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                                          {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
+                                          {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 truncate">
+                                          {u.position}
+                                          {u.phone && <span className="ml-1.5">{u.phone}</span>}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
+                                        {isMe && me?.username !== u.username && (
+                                          <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
+                                            className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
+                                            <X className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                        <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {childNodes.map((child: any) => renderDeptNode(child, depth + 1))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      };
+                      const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
+                      const isGroupExpanded = deptSections[group.id] !== false;
+                      return (
+                        <div key={group.id} className="border-b border-gray-200">
+                          {/* 组标题 */}
+                          <div onClick={() => setDeptSections((prev) => ({ ...prev, [group.id]: !isGroupExpanded }))}
+                            className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50/50">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs transition-transform ${isGroupExpanded ? 'rotate-90' : ''}`}>▶</span>
+                              <span className="text-base">{groupIcon[group.id] || '📋'}</span>
+                              <span className="text-sm font-bold text-gray-800">{group.name}</span>
+                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{group.memberCount}人</span>
+                            </div>
+                          </div>
+                          {/* 子部门（递归任意深度） */}
+                          {isGroupExpanded && (group.children || []).map((dept: any) => renderDeptNode(dept, 1))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* ═══ 一级：全体成员组 ═══ */}
+                  <div>
+                    <div onClick={() => setDeptSections((prev) => ({ ...prev, _all: allExpanded ? false : true }))}
+                      className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50 border-b border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs transition-transform ${allExpanded ? 'rotate-90' : ''}`}>▶</span>
+                        <span className="text-sm font-bold text-gray-800">全体成员组</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{allGroup?.memberCount || 0}人</span>
+                      </div>
+                    </div>
+                    {allExpanded && allGroup && (() => {
+                      const filtered = contactSearch
+                        ? allGroup.members.filter((m: any) =>
                             m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
                             m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            dept.name.toLowerCase().includes(contactSearch.toLowerCase()))
-                        : dept.members;
-                      if (deptFiltered.length === 0) return null;
-                      const isDeptExpanded = deptSections[dept.id] !== false;
+                            (m.department || '').toLowerCase().includes(contactSearch.toLowerCase()))
+                        : allGroup.members;
+                      if (filtered.length === 0) return <div className="text-center text-gray-400 py-8 text-xs">暂无匹配成员</div>;
+                      const sorted = sortByPinyin(filtered);
+                      const buckets: Record<string, any[]> = {};
+                      sorted.forEach((u: any) => {
+                        const letter = pinyinInitial(u.name);
+                        (buckets[letter] = buckets[letter] || []).push(u);
+                      });
                       return (
-                        <div key={dept.id} className="border-b border-gray-50">
-                          <div onClick={() => setDeptSections((prev) => ({ ...prev, [dept.id]: !isDeptExpanded }))}
-                            className="flex items-center justify-between pl-8 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] text-gray-400 transition-transform ${isDeptExpanded ? 'rotate-90' : ''}`}>▶</span>
-                              <span className="text-sm font-semibold text-gray-700">{dept.name}</span>
-                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{deptFiltered.length}人</span>
-                            </div>
-                            {dept.leader && <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{dept.leader}</span>}
-                          </div>
-                          {isDeptExpanded && (
-                            <div>
-                              {deptFiltered.map((u: any) => {
+                        <div>
+                          {Object.keys(buckets).sort().map((letter) => (
+                            <div key={letter}>
+                              <div className="sticky top-[41px] z-10 px-4 py-1 bg-gray-50/90 border-b border-gray-100 text-[10px] font-bold text-gray-400">{letter}</div>
+                              {buckets[letter].map((u: any) => {
                                 const isOnline = onlineUsers.has(u.username);
-                                const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
                                 return (
                                   <div key={u.username}
-                                    className="flex items-center gap-3 pl-14 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 transition-colors select-none group">
-                                    <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
+                                    className="flex items-center gap-3 pl-8 pr-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 transition-colors select-none"
+                                    onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
+                                    <div className="relative flex-shrink-0">
                                       <Avatar className="w-8 h-8">
-                                        <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                        <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                                       </Avatar>
                                       {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
                                     </div>
-                                    <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
+                                    <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-1.5">
                                         <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
                                         {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
                                         {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
                                       </div>
-                                      <p className="text-[10px] text-gray-400 truncate">
-                                        {u.position}
-                                        {u.phone && <span className="ml-1.5">{u.phone}</span>}
-                                      </p>
+                                      <p className="text-[10px] text-gray-400 truncate">{u.position} · {u.department}</p>
                                     </div>
-                                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                                      {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
-                                      {isMe && me?.username !== u.username && (
-                                        <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
-                                          className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
-                                          <X className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                      <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
-                                    </div>
+                                    {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
                                   </div>
                                 );
                               })}
                             </div>
-                          )}
+                          ))}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
+                  </>
                 );
-              })}
+              })()}
             </div>
           </>
         )}
@@ -992,8 +1237,30 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200"><Lock className="w-3 h-3 mr-1" />端到端加密可用</Badge>
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200 mr-1 hidden xl:inline-flex"><Lock className="w-3 h-3 mr-1" />端到端加密可用</Badge>
+              <Button size="sm" variant="ghost" onClick={() => togglePin(selectedConv.id, selectedConv.pinned)} className="h-7 px-1.5" title={selectedConv.pinned ? '取消置顶' : '置顶会话'}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={selectedConv.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M12 17v5M6 13l2-1V6h8v6l2 1-4 4h-4l-4-4z"/></svg>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => toggleMute(selectedConv.id, selectedConv.muted)} className="h-7 px-1.5" title={selectedConv.muted ? '取消静音' : '静音'}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => toggleArchive(selectedConv.id, selectedConv.archived)} className="h-7 px-1.5" title={selectedConv.archived ? '取消归档' : '归档'}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5h18v2H3zM5 9v10h14V9M10 12h4"/></svg>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={clearHistory} className="h-7 px-1.5" title="清空聊天记录">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+              </Button>
+              <Button size="sm" variant="ghost" onClick={deleteConversation} className="h-7 px-1.5" title="删除会话">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </Button>
+              {selectedConv.type === 'group' && (
+                <Button size="sm" variant="ghost" onClick={leaveGroup} className="h-7 px-1.5" title="退出群聊">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setShowMsgSearch(!showMsgSearch)} className="h-7 px-1.5" title="搜索消息"><Search className="w-3.5 h-3.5" /></Button>
+              <Button size="sm" variant="ghost" onClick={openGroupEdit} className="h-7 px-1.5" title="群信息编辑"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></Button>
               {selectedConv.type === 'group' && (
                 <Button size="sm" variant={showGroupInfo ? 'default' : 'ghost'} onClick={() => setShowGroupInfo(!showGroupInfo)} className="h-7 px-2" title="群成员管理">
                   <Users className="w-3.5 h-3.5" />
@@ -1004,16 +1271,50 @@ export default function ChatPage() {
 
           {/* 消息区 */}
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-gray-50/50">
+            {/* 会话内消息搜索 */}
+            {showMsgSearch && (
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <Input autoFocus value={msgSearch} onChange={(e) => setMsgSearch(e.target.value)} placeholder="搜索消息内容..." className="h-8 pl-8 text-sm bg-white" />
+              </div>
+            )}
+            {/* 群公告置顶条 */}
+            {selectedConv?.pinnedMessage && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+                <span className="text-amber-600 font-medium">📌 群公告</span>
+                <span className="text-gray-600 truncate flex-1">
+                  {userMap.get(selectedConv.pinnedMessage.sender)?.name || selectedConv.pinnedMessage.sender}: {selectedConv.pinnedMessage.content}
+                </span>
+                {isGroupAdmin && <button onClick={unpinMessage} className="text-gray-400 hover:text-gray-600"><X className="w-3 h-3" /></button>}
+              </div>
+            )}
             {messages.length === 0 && <div className="text-center text-gray-400 py-16">暂无消息，发送第一条消息开始聊天</div>}
-            {messages.map((m) => {
+            {(() => {
+              let lastDate = '';
+              return messages.filter((m) => !msgSearch || (m.content || '').toLowerCase().includes(msgSearch.toLowerCase())).map((m) => {
+              const curDate = m.createdAt ? new Date(m.createdAt).toDateString() : '';
+              const showDateDivider = curDate !== lastDate;
+              lastDate = curDate;
               const isMine = m.sender === me?.username;
               const readCount = (m.readBy || []).filter((r: string) => r !== m.sender).length;
               // 发送者始终看到内容；接收者需揭示后才看到
               const isBurnHidden = m.burn && !m.revealedForMe && !isMine;
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
+              const isSecretKeyCard = m.contentType === 'secret-key';
+              const isSecretLocked = m.encrypted && m.secretTarget && !isMine && !(m.secretRevealedBy || []).includes(me?.username);
+              // 加密/阅后即焚消息：不提供转发、点赞、编辑、公告等操作
+              const isNoInteract = !!(m.encrypted || m.burn);
 
               return (
-                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`} onMouseEnter={() => setHoveredMsgId(m.id)} onMouseLeave={() => setHoveredMsgId(null)}>
+                <div key={m.id}>
+                {showDateDivider && (
+                  <div className="flex items-center justify-center py-1">
+                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {new Date(m.createdAt).toDateString() === new Date().toDateString() ? '今天' : formatMsgTime(m.createdAt).slice(0, 10)}
+                    </span>
+                  </div>
+                )}
+                <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`} onMouseEnter={() => setHoveredMsgId(m.id)} onMouseLeave={() => setHoveredMsgId(null)}>
                   <div className={`max-w-[70%] ${isMine ? 'order-2' : ''}`}>
                     {/* 回复引用 */}
                     {m.replyTo && (() => {
@@ -1022,7 +1323,7 @@ export default function ChatPage() {
                       return (
                         <div className="mb-1 px-3 py-1.5 bg-gray-100 rounded-lg text-xs text-gray-600 border-l-2 border-blue-400">
                           <span className="font-medium text-blue-600">{userMap.get(repliedMsg.sender)?.name || repliedMsg.sender}:</span>
-                          <span className="ml-1 truncate">{repliedMsg.content?.substring(0, 50)}{repliedMsg.content?.length > 50 ? '...' : ''}</span>
+                          <span className="ml-1 truncate">{repliedMsg.encrypted || repliedMsg.burn ? (repliedMsg.encrypted ? '🔒 加密消息' : '🔥 阅后即焚') : (repliedMsg.content?.substring(0, 50) + (repliedMsg.content?.length > 50 ? '...' : ''))}</span>
                         </div>
                       );
                     })()}
@@ -1042,7 +1343,16 @@ export default function ChatPage() {
                     {/* 消息操作按钮 */}
                     {hoveredMsgId === m.id && !isBurnHidden && (
                       <div className={`flex gap-1 mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                        <button onClick={() => setReplyTo(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="回复">↩ 回复</button>
+                        <button onClick={() => setReplyTo(m)} disabled={isNoInteract} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed" title="回复">↩ 回复</button>
+                        {!isNoInteract && <button onClick={() => openForward(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="转发">↪ 转发</button>}
+                        {isMine && !isNoInteract && (
+                          <button onClick={() => startEdit(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="编辑">✎ 编辑</button>
+                        )}
+                        {isGroupAdmin && !isNoInteract && (
+                          <button onClick={() => togglePinMessage(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-amber-100 hover:text-amber-600 rounded text-gray-600" title="设为群公告">
+                            {m.pinned ? '取消公告' : '📌 公告'}
+                          </button>
+                        )}
                         {isMine && (() => {
                           const msgTime = new Date(m.createdAt).getTime();
                           const canRecall = Date.now() - msgTime < 2 * 60 * 1000; // 2分钟内可撤回
@@ -1050,10 +1360,69 @@ export default function ChatPage() {
                             <button onClick={() => burnNow(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-red-100 hover:text-red-600 rounded text-gray-600" title="撤回">撤回</button>
                           ) : null;
                         })()}
+                        {/* 表情回应快捷条 */}
+                        {!isNoInteract && (
+                          <span className="flex items-center gap-0.5 ml-1">
+                            {REACTION_EMOJIS.slice(0, 5).map((e) => (
+                              <button key={e} onClick={() => toggleReaction(m.id, e)} className="px-1 py-0.5 text-[11px] bg-gray-100 hover:bg-amber-50 rounded hover:scale-110 transition-transform" title={`回应 ${e}`}>{e}</button>
+                            ))}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {isBurnHidden ? (
+                    {isSecretKeyCard ? (
+                      <div className={`px-3 py-2.5 rounded-2xl border-2 border-emerald-300 bg-gradient-to-r from-emerald-50 to-teal-50 text-sm ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow">
+                            <KeyRound className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold text-emerald-700">加密消息密码</p>
+                            <p className="text-xs font-mono text-emerald-800 break-all select-all">{m.content}</p>
+                            <p className="text-[9px] text-emerald-500 mt-0.5">复制后自动销毁</p>
+                          </div>
+                          <button onClick={() => copySecretKey(m.id, m.content)}
+                            className="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium transition-colors">
+                            复制密码
+                          </button>
+                        </div>
+                        <div className={`flex items-center gap-1 mt-1.5 ${isMine ? 'justify-end' : ''}`}>
+                          <span className="text-[10px] text-gray-400">{formatMsgTime(m.createdAt)}</span>
+                        </div>
+                      </div>
+
+                    ) : isSecretLocked ? (
+                      <div className={`px-3 py-2.5 rounded-2xl border-2 border-dashed border-purple-300 bg-purple-50 text-sm ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center shadow">
+                            <Lock className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-purple-700">加密消息（指定接收人）</p>
+                            <p className="text-[10px] text-purple-400 mt-0.5">输入单聊收到的密码解密</p>
+                          </div>
+                        </div>
+                        {secretInputMsgId === m.id ? (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <Input autoFocus value={secretPasswordInput} onChange={(e) => setSecretPasswordInput(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') revealSecret(m.id); if (e.key === 'Escape') { setSecretInputMsgId(null); setSecretPasswordInput(''); } }}
+                              placeholder="输入密码" className="h-8 text-sm" />
+                            <Button size="sm" onClick={() => revealSecret(m.id)} disabled={!secretPasswordInput.trim()} className="h-8 px-3"><KeyRound className="w-3.5 h-3.5" />解密</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setSecretInputMsgId(null); setSecretPasswordInput(''); }} className="h-8 px-2"><X className="w-3.5 h-3.5" /></Button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setSecretInputMsgId(m.id)}
+                            className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium transition-colors">
+                            <KeyRound className="w-3.5 h-3.5" />输入密码查看
+                          </button>
+                        )}
+                        <div className={`flex items-center gap-1 mt-1.5 ${isMine ? 'justify-end' : ''}`}>
+                          <span className="text-[10px] text-gray-400">{formatMsgTime(m.createdAt)}</span>
+                        </div>
+                      </div>
+
+                    ) : isBurnHidden ? (
                       <div onClick={() => revealMessage(m.id)}
                         className="relative px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 border-2 border-dashed border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 hover:border-amber-400 animate-pulse select-none">
                         <div className="flex items-center gap-3">
@@ -1108,23 +1477,62 @@ export default function ChatPage() {
 
                     ) : (
                       <div>
-                        <div className={`px-3 py-2 rounded-2xl text-sm ${
-                          m.encrypted ? 'bg-purple-50 border border-purple-200 text-purple-800' :
-                          isMine ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-800'
-                        } ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
-                          {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">已加密</span></div>)}
-                          <p className="break-words">{m.content}</p>
-                          <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
-                            <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt)}</span>
-                            {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-blue-100" /> : <Check className="w-3 h-3 text-blue-100" />)}
+                        {/* 编辑消息输入框 */}
+                        {editingMsgId === m.id ? (
+                          <div className="px-3 py-2 rounded-2xl bg-yellow-50 border border-yellow-300">
+                            <div className="flex items-center gap-1 mb-1.5">
+                              <span className="text-[10px] font-medium text-yellow-700">编辑消息</span>
+                            </div>
+                            <Input autoFocus value={editingText} onChange={(e) => setEditingText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }} className="h-8 text-sm" />
+                            <div className="flex justify-end gap-1.5 mt-1.5">
+                              <button onClick={cancelEdit} className="px-2 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600">取消</button>
+                              <button onClick={saveEdit} disabled={!editingText.trim()} className="px-2 py-0.5 text-[10px] bg-blue-500 hover:bg-blue-600 rounded text-white disabled:opacity-50">保存</button>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className={`px-3 py-2 rounded-2xl text-sm ${
+                            m.encrypted ? 'bg-purple-50 border border-purple-200 text-purple-800' :
+                            isMine ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-800'
+                          } ${isMine ? 'rounded-br-md' : 'rounded-bl-md'}`}>
+                            {/* 转发来源 */}
+                            {m.forwardFrom && (
+                              <div className={`flex items-center gap-1 mb-1 ${isMine ? 'text-blue-100' : 'text-gray-400'} text-[10px]`}>
+                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                <span>转发自 {userMap.get(m.forwardFrom.sender)?.name || m.forwardFrom.sender}</span>
+                              </div>
+                            )}
+                            {m.encrypted && (<div className="flex items-center gap-1 mb-1"><Lock className="w-3 h-3 opacity-60" /><span className="text-[10px] opacity-60">{m.secretTarget ? `已加密 · 发送给 ${userMap.get(m.secretTarget)?.name || m.secretTarget}` : '已加密'}</span></div>)}
+                            <p className="break-words">{m.content}</p>
+                            <div className={`flex items-center gap-1 mt-1 ${isMine ? 'justify-end' : ''}`}>
+                              <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt)}</span>
+                              {m.edited && <span className={`text-[9px] ${isMine ? 'text-blue-100' : 'text-gray-300'}`}>已编辑</span>}
+                              {m.pinned && <span className="text-[9px] text-amber-500">📌</span>}
+                              {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-blue-100" /> : <Check className="w-3 h-3 text-blue-100" />)}
+                            </div>
+                          </div>
+                        )}
+                        {/* 表情回应展示 */}
+                        {!isNoInteract && (m.reactions || []).length > 0 && (
+                          <div className={`flex gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                            {m.reactions.map((r: any) => {
+                              const reacted = (r.users || []).includes(me?.username);
+                              return (
+                                <button key={r.emoji} onClick={() => toggleReaction(m.id, r.emoji)}
+                                  className={`px-1.5 py-0.5 rounded-full text-[10px] border transition-colors ${reacted ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-white border-gray-200 text-gray-500 hover:border-amber-300'}`}>
+                                  {r.emoji} {r.users.length}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
+                </div>
               );
-            })}
+            });
+            })()}
             {typingList.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-gray-400 ml-2"><Clock className="w-3 h-3 animate-spin" />{typingList.join('、')} 正在输入...</div>
             )}
@@ -1143,7 +1551,22 @@ export default function ChatPage() {
             )}
             <div className="flex items-center gap-2">
               <Button size="sm" variant="ghost" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="h-8 px-2" title="表情"><span className="text-lg">😊</span></Button>
-              <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密' : '开启加密'}><Lock className="w-3.5 h-3.5" /></Button>
+              <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密（需指定接收人）' : '开启加密（指定接收人）'}><Lock className="w-3.5 h-3.5" /></Button>
+              {encrypted && (
+                <>
+                  {selectedConv?.type === 'group' ? (
+                    <select value={secretTarget} onChange={(e) => setSecretTarget(e.target.value)} className="h-8 text-xs rounded-lg border border-purple-200 bg-purple-50 px-2 focus:outline-none max-w-[160px]">
+                      <option value="">选择接收人</option>
+                      {selectedConv.members.filter((m: string) => m !== me?.username).map((m: string) => {
+                        const user = userMap.get(m);
+                        return <option key={m} value={m}>{user?.name || m}</option>;
+                      })}
+                    </select>
+                  ) : (
+                    <span className="h-8 flex items-center px-2 rounded-lg bg-purple-50 text-[11px] text-purple-500 border border-purple-200">自动发给对方</span>
+                  )}
+                </>
+              )}
               <Button size="sm" variant={burn ? 'default' : 'ghost'} onClick={() => { setBurn(!burn); if (!burn) setEncrypted(true); }} className={`h-8 px-2 ${burn ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title={burn ? '已开启阅后即焚' : '开启阅后即焚'}><Flame className="w-3.5 h-3.5" /></Button>
               {burn && (
                 <>
@@ -1161,8 +1584,8 @@ export default function ChatPage() {
                   )}
                 </>
               )}
-              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? '输入加密消息...' : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
-              <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
+              <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? (selectedConv?.type === 'group' ? (secretTarget ? `输入加密消息（发送给 ${userMap.get(secretTarget)?.name || secretTarget}）...` : '请选择接收人...') : '输入加密消息...') : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
+              <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget) || (encrypted && selectedConv?.type === 'group' && !secretTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
             </div>
             {/* 表情选择器 */}
             {showEmojiPicker && (
@@ -1197,6 +1620,22 @@ export default function ChatPage() {
                   <button onClick={() => { setSelectedMembersToAdd([]); setAddMemberSearch(''); setShowAddMembersDialog(true); }}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs font-medium transition-colors">
                     <UserPlus className="w-3.5 h-3.5" />添加
+                  </button>
+                  <button onClick={openGroupEdit}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-medium transition-colors">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>编辑
+                  </button>
+                  <button onClick={leaveGroup}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>退群
+                  </button>
+                </div>
+              )}
+              {!isGroupAdmin && (
+                <div className="px-4 py-2 border-b border-gray-100 flex gap-2">
+                  <button onClick={leaveGroup}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium transition-colors">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>退出群聊
                   </button>
                 </div>
               )}
@@ -1278,6 +1717,15 @@ export default function ChatPage() {
                   <div className="flex items-center text-sm"><span className="text-gray-400 w-16 flex-shrink-0">部门</span><span className="text-gray-700 truncate">{memberInfo.department || '未分配'}</span></div>
                   {memberInfo.position && <div className="flex items-center text-sm"><span className="text-gray-400 w-16 flex-shrink-0">职位</span><span className="text-gray-700">{memberInfo.position}</span></div>}
                   {memberInfo.isOwner && <div className="flex items-center text-sm"><span className="text-gray-400 w-16 flex-shrink-0">身份</span><span className="text-amber-600 font-medium">群主</span></div>}
+                  {memberInfo.department && (
+                    <div className="flex items-center text-sm">
+                      <span className="text-gray-400 w-16 flex-shrink-0">机构</span>
+                      <button onClick={() => { gotoDept(memberInfo.department); setMemberInfo(null); }}
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs font-medium">
+                        <Contact className="w-3 h-3" />查看机构
+                      </button>
+                    </div>
+                  )}
                   <div className="pt-2">
                     <button onClick={() => { openSingle(memberInfo.username); setMemberInfo(null); }}
                       className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm font-medium transition-colors">
@@ -1315,16 +1763,15 @@ export default function ChatPage() {
              <div>
                <label className="text-sm font-medium text-gray-700 mb-1 block">选择成员</label>
                <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg">
-                  {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                    const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
-                    return group.children?.map((dept: any) => {
+                  {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                       const members = dept.members.filter((m: any) => !newGroupMembers.includes(m.username));
                       const expanded = groupDialogDeptSections[dept.id] === true;
                       if (members.length === 0 && dept.members.filter((m: any) => newGroupMembers.includes(m.username)).length === 0) return null;
                       return (
                         <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                           <div onClick={() => setGroupDialogDeptSections((p) => ({ ...p, [dept.id]: !expanded }))}
-                            className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none">
+                            className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none"
+                            style={{ paddingLeft: `${6 + depth * 14}px` }}>
                             <span className={`text-[10px] text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
                             <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
                             <span className="text-[10px] text-gray-400">{dept.members.length}人</span>
@@ -1333,7 +1780,8 @@ export default function ChatPage() {
                             const selected = newGroupMembers.includes(u.username);
                             return (
                               <div key={u.username} onClick={() => setNewGroupMembers((prev) => selected ? prev.filter((m) => m !== u.username) : [...prev, u.username])}
-                                className={`flex items-center gap-2.5 pl-10 pr-3 py-1.5 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                                className={`flex items-center gap-2.5 pl-10 pr-3 py-1.5 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                style={{ paddingLeft: `${10 + depth * 14}px` }}>
                                 <Avatar className="w-6 h-6"><AvatarFallback className="text-[10px] bg-gray-100">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback></Avatar>
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm">{u.name || u.username}</span>
@@ -1345,8 +1793,7 @@ export default function ChatPage() {
                           })}
                         </div>
                       );
-                    });
-                  })}
+                    })}
               </div>
               {newGroupMembers.length > 0 && <p className="text-xs text-gray-400 mt-1">已选 {newGroupMembers.length} 人</p>}
             </div>
@@ -1366,21 +1813,22 @@ export default function ChatPage() {
           </DialogHeader>
            <div className="mt-2">
              <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg">
-                {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                  return group.children?.map((dept: any) => {
+                {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                     if (dept.members.length === 0) return null;
                     const expanded = singleDialogDeptSections[dept.id] === true;
                     return (
                       <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                         <div onClick={() => setSingleDialogDeptSections((p) => ({ ...p, [dept.id]: !expanded }))}
-                          className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none">
+                          className="flex items-center gap-2 pl-6 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 select-none"
+                          style={{ paddingLeft: `${6 + depth * 14}px` }}>
                           <span className={`text-[10px] text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}>▶</span>
                           <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
                           <span className="text-[10px] text-gray-400">{dept.members.length}人</span>
                         </div>
                         {expanded && dept.members.map((u: any) => (
                           <div key={u.username} onClick={() => { openSingle(u.username); setShowSingleDialog(false); }}
-                            className="flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 last:border-b-0 transition-colors select-none">
+                            className="flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 last:border-b-0 transition-colors select-none"
+                            style={{ paddingLeft: `${10 + depth * 14}px` }}>
                             <Avatar className="w-7 h-7">
                               <AvatarFallback className="bg-blue-100 text-blue-600 text-[10px]">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                             </Avatar>
@@ -1395,8 +1843,7 @@ export default function ChatPage() {
                         ))}
                       </div>
                     );
-                  });
-              })}
+                  })}
              </div>
            </div>
         </DialogContent>
@@ -1414,8 +1861,7 @@ export default function ChatPage() {
               <Input placeholder="搜索姓名、职位..." className="h-9 pl-8 text-sm" value={addMemberSearch} onChange={(e) => setAddMemberSearch(e.target.value)} />
             </div>
             <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
-              {deptContacts.filter((g: any) => !g.isVirtual).map((group: any) => {
-                return group.children?.map((dept: any) => {
+              {flattenDeptTree(deptContacts.filter((g: any) => !g.isVirtual)).map(({ dept, depth }) => {
                   const filtered = addMemberSearch
                     ? dept.members.filter((m: any) =>
                         (m.name.toLowerCase().includes(addMemberSearch.toLowerCase()) || m.position.toLowerCase().includes(addMemberSearch.toLowerCase()))
@@ -1427,7 +1873,8 @@ export default function ChatPage() {
                   return (
                     <div key={dept.id} className="border-b border-gray-50 last:border-b-0">
                       <div onClick={() => setAddMemberDeptSections((prev) => ({ ...prev, [dept.id]: !isExpanded }))}
-                        className="flex items-center justify-between pl-6 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none">
+                        className="flex items-center justify-between pl-6 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
+                        style={{ paddingLeft: `${6 + depth * 14}px` }}>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                           <span className="text-xs font-semibold text-gray-600">{dept.name}</span>
@@ -1438,7 +1885,8 @@ export default function ChatPage() {
                         const selected = selectedMembersToAdd.includes(u.username);
                         return (
                           <div key={u.username} onClick={() => setSelectedMembersToAdd((prev) => selected ? prev.filter((m) => m !== u.username) : [...prev, u.username])}
-                            className={`flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                            className={`flex items-center gap-2.5 pl-10 pr-3 py-2 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            style={{ paddingLeft: `${10 + depth * 14}px` }}>
                             <Avatar className="w-7 h-7"><AvatarFallback className="text-xs bg-gray-100">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback></Avatar>
                             <div className="flex-1 min-w-0">
                               <span className="text-sm">{u.name || u.username}</span>
@@ -1450,13 +1898,68 @@ export default function ChatPage() {
                       })}
                     </div>
                   );
-                });
-              })}
+                })}
             </div>
             {selectedMembersToAdd.length > 0 && <p className="text-xs text-gray-400 mt-1">已选 {selectedMembersToAdd.length} 人</p>}
             <div className="flex justify-end gap-2 mt-3">
               <Button variant="outline" size="sm" onClick={() => { setShowAddMembersDialog(false); setSelectedMembersToAdd([]); }}>取消</Button>
               <Button size="sm" onClick={addMembersToGroup} disabled={selectedMembersToAdd.length === 0}><UserPlus className="w-3.5 h-3.5 mr-1" />添加</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showForwardDialog} onOpenChange={setShowForwardDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>转发消息</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">选择要转发的目标会话：</p>
+            <div className="max-h-64 overflow-y-auto border rounded-lg divide-y divide-gray-100">
+              {convs.filter((c) => c.id !== selectedId).map((c) => {
+                const otherUsername = c.type === 'single' ? (c.members.find((m: string) => m !== me?.username) || me?.username) : null;
+                const displayName = c.type === 'group' ? c.name : (otherUsername ? (userMap.get(otherUsername)?.name || otherUsername) : c.name);
+                return (
+                  <div key={c.id} onClick={() => setForwardTarget(c.id)}
+                    className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 ${forwardTarget === c.id ? 'bg-blue-50' : ''}`}>
+                    <Avatar className="w-7 h-7">
+                      <AvatarFallback className="bg-gray-100 text-gray-500 text-[10px]">{c.type === 'group' ? <Users className="w-3 h-3" /> : (displayName?.[0]?.toUpperCase() || 'U')}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-gray-700 truncate">{displayName}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowForwardDialog(false)}>取消</Button>
+              <Button size="sm" disabled={!forwardTarget} onClick={doForward}>转发</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showGroupEditDialog} onOpenChange={setShowGroupEditDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold flex items-center gap-2"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>编辑群信息</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">群名称</label>
+              <Input value={groupEditName} onChange={(e) => setGroupEditName(e.target.value)} placeholder="群名称" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">群简介</label>
+              <Input value={groupEditDesc} onChange={(e) => setGroupEditDesc(e.target.value)} placeholder="群简介（可选）" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">头像（可选）</label>
+              <Input value={groupEditAvatar} onChange={(e) => setGroupEditAvatar(e.target.value)} placeholder="头像颜色或名称" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowGroupEditDialog(false)}>取消</Button>
+              <Button size="sm" disabled={!groupEditName.trim()} onClick={saveGroupProfile}>保存</Button>
             </div>
           </div>
         </DialogContent>

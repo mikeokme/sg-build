@@ -18,6 +18,7 @@ import '@xyflow/react/dist/style.css';
 import {
   Building2, Plus, Pencil, Trash2, ChevronDown, ChevronRight,
   Users, X, Save, UserPlus, Search, LayoutGrid, List,
+  UserMinus, UserX, Shield, Crown, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -248,6 +249,10 @@ export default function OrgChartPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'chart' | 'members'>('chart');
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const [allMembers, setAllMembers] = useState<any[]>([]);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberAction, setMemberAction] = useState<any>(null);
 
   // Dialog states
   const [deptDialogOpen, setDeptDialogOpen] = useState(false);
@@ -257,6 +262,9 @@ export default function OrgChartPage() {
   const [editingPos, setEditingPos] = useState<Position | null>(null);
   const [posDeptId, setPosDeptId] = useState<string>('');
   const [expandedDepts, setExpandedDepts] = useState<Set<string>>(new Set());
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState('');
+  const [addMemberSelected, setAddMemberSelected] = useState<Set<string>>(new Set());
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -285,9 +293,19 @@ export default function OrgChartPage() {
     }
   }, []);
 
-  useEffect(() => { fetchTree(); }, [fetchTree]);
+  const fetchMembers = useCallback(async () => {
+    setMemberLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/org/members`, { headers });
+      if (res.ok) {
+        const list = await res.json();
+        setAllMembers(list);
+      }
+    } catch {}
+    setMemberLoading(false);
+  }, []);
 
-  // Re-layout when departments change
+  useEffect(() => { fetchTree(); }, [fetchTree]);
   useEffect(() => {
     const filtered = search
       ? departments.filter((d) => d.name.includes(search))
@@ -411,6 +429,70 @@ export default function OrgChartPage() {
     return find(departments);
   }, [departments, selectedDeptId]);
 
+  // ── 成员管理 ──
+  const updateMember = async (username: string, patch: any) => {
+    setMemberAction(username);
+    try {
+      const res = await fetch(`${API_BASE}/org/members/${encodeURIComponent(username)}`, {
+        method: 'PUT', headers, body: JSON.stringify(patch),
+      });
+      if (res.ok) {
+        await fetchMembers();
+        await fetchTree();
+      }
+    } catch {}
+    setMemberAction(null);
+  };
+
+  const moveMemberToDept = async (username: string, deptId: string) => {
+    const dept = findDeptById(departments, deptId);
+    if (!dept) return;
+    await updateMember(username, { department: dept.name });
+  };
+
+  const toggleMemberActive = async (m: any) => {
+    if (!confirm(`确认${m.isActive === false ? '启用' : '停用'}「${m.name || m.username}」？停用后将自动退出所有部门群`)) return;
+    await updateMember(m.username, { isActive: !(m.isActive === false) });
+  };
+
+  const openAddMember = () => {
+    setAddMemberOpen(true);
+    setAddMemberSearch('');
+    setAddMemberSelected(new Set());
+    fetchMembers();
+  };
+
+  const confirmAddMembers = async () => {
+    if (!selectedDept || addMemberSelected.size === 0) return;
+    for (const username of Array.from(addMemberSelected)) {
+      await updateMember(username, { department: selectedDept.name });
+    }
+    setAddMemberOpen(false);
+  };
+
+  const unassignedMembers = useMemo(() => {
+    const q = addMemberSearch.trim().toLowerCase();
+    return allMembers
+      .filter((m) => !m.department || m.department === '')
+      .filter((m) => !q || m.username?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q));
+  }, [allMembers, addMemberSearch]);
+
+  const filteredMembers = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!selectedDept) return [];
+    return (selectedDept.directMembers || []).filter((m: any) =>
+      !q || m.username?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q));
+  }, [selectedDept, memberSearch]);
+
+  function findDeptById(depts: Department[], id: string): Department | null {
+    for (const d of depts) {
+      if (d.id === id) return d;
+      const found = findDeptById(d.children || [], id);
+      if (found) return found;
+    }
+    return null;
+  }
+
   // Sidebar department list
   function DeptList({ depts, depth = 0 }: { depts: Department[]; depth?: number }) {
     return (
@@ -486,7 +568,7 @@ export default function OrgChartPage() {
           <DeptList depts={departments} />
         </div>
         <div className="p-3 border-t border-gray-100">
-          <Button size="sm" variant="outline" onClick={() => handleAdd('hq')} className="w-full text-xs h-8">
+          <Button size="sm" variant="outline" onClick={() => handleAdd('group')} className="w-full text-xs h-8">
             <Plus className="w-3.5 h-3.5 mr-1" /> 新建部门
           </Button>
         </div>
@@ -570,12 +652,19 @@ export default function OrgChartPage() {
                     <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900">{selectedDept.name}</h3>
-                      <p className="text-xs text-gray-500">{selectedDept.directMembers?.length || 0} 名直属成员</p>
+                      <p className="text-xs text-gray-500">{selectedDept.directMembers?.length || 0} 名直属成员 · 部门群成员自动同步</p>
                     </div>
+                    <Button size="sm" className="text-xs h-8" onClick={openAddMember}>
+                      <UserPlus className="w-3.5 h-3.5 mr-1" /> 添加成员
+                    </Button>
                   </div>
-                  {selectedDept.directMembers && selectedDept.directMembers.length > 0 ? (
+                  <div className="relative mb-3 max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} placeholder="搜索部门成员..." className="pl-8 h-8 text-xs" />
+                  </div>
+                  {filteredMembers.length > 0 ? (
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                       <table className="w-full">
                         <thead>
@@ -584,10 +673,11 @@ export default function OrgChartPage() {
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">职位</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">角色</th>
                             <th className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">状态</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-medium text-gray-500">操作</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedDept.directMembers.map((m: any) => (
+                          {filteredMembers.map((m: any) => (
                             <tr key={m.username} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2.5">
@@ -602,14 +692,40 @@ export default function OrgChartPage() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-600">{m.position}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600">{m.position || '-'}</td>
                               <td className="px-4 py-3">
                                 {m.isHead && <Badge className="bg-amber-100 text-amber-700 text-[10px]">负责人</Badge>}
                                 {m.isDeputy && <Badge className="bg-blue-100 text-blue-700 text-[10px]">副职</Badge>}
                                 {!m.isHead && !m.isDeputy && <span className="text-xs text-gray-400">-</span>}
                               </td>
                               <td className="px-4 py-3">
-                                <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">正常</Badge>
+                                <Badge className={m.isActive === false ? 'bg-red-100 text-red-700 text-[10px]' : 'bg-emerald-100 text-emerald-700 text-[10px]'}>
+                                  {m.isActive === false ? '已停用' : '正常'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-amber-600 hover:bg-amber-50"
+                                    onClick={() => updateMember(m.username, { isHead: !m.isHead, isDeputy: m.isHead ? m.isDeputy : false })}
+                                    disabled={memberAction === m.username} title="设/取消负责人">
+                                    <Crown className="w-3.5 h-3.5 mr-1" />{m.isHead ? '取消负责人' : '设负责人'}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-blue-600 hover:bg-blue-50"
+                                    onClick={() => updateMember(m.username, { isDeputy: !m.isDeputy, isHead: m.isDeputy ? m.isHead : m.isHead })}
+                                    disabled={memberAction === m.username} title="设/取消副职">
+                                    <Shield className="w-3.5 h-3.5 mr-1" />{m.isDeputy ? '取消副职' : '设副职'}
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-gray-500 hover:bg-gray-100"
+                                    onClick={() => updateMember(m.username, { department: '' })}
+                                    disabled={memberAction === m.username} title="移出本部门">
+                                    <UserMinus className="w-3.5 h-3.5 mr-1" />移出
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-red-600 hover:bg-red-50"
+                                    onClick={() => toggleMemberActive(m)}
+                                    disabled={memberAction === m.username} title={m.isActive === false ? '启用' : '停用'}>
+                                    <UserX className="w-3.5 h-3.5 mr-1" />{m.isActive === false ? '启用' : '停用'}
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -672,13 +788,26 @@ export default function OrgChartPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium">负责人</label>
-              <Input value={formLeader} onChange={(e) => setFormLeader(e.target.value)} placeholder="部门负责人" className="mt-1" />
+              <select value={formLeader} onChange={(e) => setFormLeader(e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                <option value="">— 不设置 —</option>
+                {(editingDept ? (editingDept.directMembers || []) : []).map((m: any) => (
+                  <option key={m.username} value={m.username}>{m.name || m.username}</option>
+                ))}
+                {allMembers.filter((m) => m.isHead === true && (editingDept?.directMembers || []).every((d: any) => d.username !== m.username)).map((m) => (
+                  <option key={m.username} value={m.username}>{m.name || m.username}（负责人）</option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-400 mt-1">负责人将自动成为部门群群主</p>
             </div>
             <div>
               <label className="text-sm font-medium">联系电话</label>
               <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="联系电话" className="mt-1" />
             </div>
           </div>
+          {!editingDept && (
+            <p className="text-[11px] text-blue-600 bg-blue-50 rounded-md px-3 py-2">新建部门将自动创建部门群，并与部门成员实时同步（钉钉/飞书式联动）</p>
+          )}
           <div>
             <label className="text-sm font-medium">部门描述</label>
             <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" rows={2} />
@@ -717,6 +846,51 @@ export default function OrgChartPage() {
             <Button variant="outline" size="sm" onClick={() => setPosDialogOpen(false)}>取消</Button>
             <Button size="sm" onClick={savePos} disabled={!formName.trim()}>
               <Save className="w-4 h-4 mr-1" /> {editingPos ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Add member dialog */}
+      <Dialog open={addMemberOpen} onClose={() => setAddMemberOpen(false)} title={`添加成员到「${selectedDept?.name || ''}」`}>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input value={addMemberSearch} onChange={(e) => setAddMemberSearch(e.target.value)} placeholder="搜索未分配部门成员..." className="pl-8 h-9 text-sm" />
+          </div>
+          {memberLoading ? (
+            <div className="flex items-center justify-center py-10 text-gray-400 gap-2 text-sm"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+          ) : unassignedMembers.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 text-sm">暂无未分配部门的成员</div>
+          ) : (
+            <div className="max-h-80 overflow-y-auto space-y-1">
+              {unassignedMembers.map((m) => (
+                <label key={m.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  addMemberSelected.has(m.username) ? 'border-blue-400 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'
+                }`}>
+                  <input type="checkbox" className="w-4 h-4 accent-blue-600"
+                    checked={addMemberSelected.has(m.username)}
+                    onChange={(e) => {
+                      const next = new Set(addMemberSelected);
+                      if (e.target.checked) next.add(m.username);
+                      else next.delete(m.username);
+                      setAddMemberSelected(next);
+                    }} />
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                    m.isHead ? 'bg-amber-100 text-amber-700' : m.isDeputy ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                  }`}>{m.name?.[0] || m.username?.[0] || 'U'}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{m.name || m.username}</div>
+                    <div className="text-xs text-gray-500 truncate">{m.username} · {m.position || '无岗位'}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" onClick={() => setAddMemberOpen(false)}>取消</Button>
+            <Button size="sm" onClick={confirmAddMembers} disabled={addMemberSelected.size === 0}>
+              <UserPlus className="w-4 h-4 mr-1" /> 添加 {addMemberSelected.size} 人
             </Button>
           </div>
         </div>

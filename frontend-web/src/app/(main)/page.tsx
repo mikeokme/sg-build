@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowRight, Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
   Users, Settings, Database, Bell, Truck, ClipboardCheck, Clock, AlertTriangle,
-  TrendingUp, Briefcase, Banknote, FileText, CircleCheck,
+  TrendingUp, Briefcase, Banknote, FileText, CircleCheck, Handshake,
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -20,6 +20,7 @@ const API_BASE = 'http://localhost:3000';
 
 const categoryIcons: Record<string, any> = {
   oa: Bell, market: Target, engineering: Building2, procurement: ShoppingCart,
+  subcontract: Handshake,
   material: Boxes, equipment: Truck, finance: Wallet, quality: ShieldCheck,
   hr: Users, platform: Settings, resource: Database,
 };
@@ -257,7 +258,7 @@ export default function HomePage() {
                     </div>
                     <ArrowRight className={`w-4 h-4 ${c.text} mt-1`} />
                   </Link>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+<div className="mt-3 flex flex-wrap gap-1.5">
                     {cat.features.slice(0, 4).map((f) => (
                       <Link key={f.key} href={`/${cat.key}/${f.key}`}
                         className="text-xs px-2 py-1 rounded-md bg-white/70 border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-300 transition-colors">

@@ -18,6 +18,8 @@ const COLLECTION_ROUTE: Record<string, string> = {
   subcontractPlans: '/engineering/subcontract-plans',
   changes: '/engineering/changes',
   completions: '/engineering/completion',
+  constructionLogs: '/engineering/construction-logs',
+  milestones: '/engineering/milestones',
   majorRequests: '/procurement/major-requests',
   groupContracts: '/procurement/group-contracts',
   purchaseContracts: '/procurement/purchase-contracts',
@@ -25,6 +27,18 @@ const COLLECTION_ROUTE: Record<string, string> = {
   rentalContracts: '/procurement/rental-contracts',
   subcontracts: '/procurement/subcontracts',
   procurementReports: '/procurement/reports',
+  procurementPlans: '/procurement/procurement-plans',
+  purchaseReceipts: '/procurement/receipts',
+  supplierEvaluations: '/procurement/supplier-eval',
+  suppliers: '/procurement/supplier-archives',
+  laborSubcontractors: '/subcontract/labor-subcontractors',
+  proSubcontractors: '/subcontract/pro-subcontractors',
+  laborContracts: '/subcontract/labor-contracts',
+  proContracts: '/subcontract/pro-contracts',
+  subcontractChanges: '/subcontract/subcontract-changes',
+  subcontractSettlements: '/subcontract/subcontract-settlements',
+  subcontractPayments: '/subcontract/subcontract-payments',
+  subcontractEvaluations: '/subcontract/subcontract-eval',
   materialReceiving: '/material/receiving',
   materialDiscount: '/material/discount',
   materialIssue: '/material/issue',
@@ -113,8 +127,34 @@ export class DashboardController {
     const schedules = get('schedules');
     const purchaseOrders = get('purchaseOrders');
     const materialReceiving = get('materialReceiving');
+    const procurementPlans = get('procurementPlans');
+    const purchaseReceipts = get('purchaseReceipts');
+    const supplierEvaluations = get('supplierEvaluations');
+    const groupContracts = get('groupContracts');
+    const purchaseContracts = get('purchaseContracts');
+    const rentalContracts = get('rentalContracts');
+    const subcontracts = get('subcontracts');
+    const suppliers = get('suppliers');
     const opportunities = get('opportunities');
     const bids = get('bids');
+    const plans = get('plans');
+    const budgets = get('budgets');
+    const changes = get('changes');
+    const completions = get('completions');
+    const progress = get('progress');
+    const subcontractPlans = get('subcontractPlans');
+    const rentalPlans = get('rentalPlans');
+    const projectInits = get('projectInits');
+    const constructionLogs = get('constructionLogs');
+    const milestones = get('milestones');
+    const laborSubcontractors = get('laborSubcontractors');
+    const proSubcontractors = get('proSubcontractors');
+    const laborContracts = get('laborContracts');
+    const proContracts = get('proContracts');
+    const subcontractChanges = get('subcontractChanges');
+    const subcontractSettlements = get('subcontractSettlements');
+    const subcontractPayments = get('subcontractPayments');
+    const subcontractEvaluations = get('subcontractEvaluations');
 
     // 待办汇总（审批类集合 + 待付款 + 预警 + 整改）
     const isAdmin = ADMIN_ROLES.includes(req.user?.role || '');
@@ -124,10 +164,13 @@ export class DashboardController {
         { name: 'approvals', label: '审批' },
         { name: 'projectInits', label: '项目立项' },
         { name: 'majorRequests', label: '大宗采购' },
+        { name: 'procurementPlans', label: '采购计划' },
         { name: 'plans', label: '需用计划' },
         { name: 'changes', label: '变更签证' },
         { name: 'reimbursements', label: '报销' },
         { name: 'subcontractPlans', label: '分包计划' },
+        { name: 'subcontractChanges', label: '分包合同变更' },
+        { name: 'subcontractSettlements', label: '分包结算' },
       ];
       for (const d of defs) {
         const items = get(d.name).filter((x: any) => x.status === '待审批');
@@ -210,6 +253,42 @@ export class DashboardController {
         orders: purchaseOrders.length,
         receiving: materialReceiving.length,
       },
+      procurement: {
+        plans: procurementPlans.length,
+        planPending: procurementPlans.filter((p: any) => p.status === '待审批').length,
+        requests: get('majorRequests').length,
+        requestPending: get('majorRequests').filter((r: any) => r.status === '待审批').length,
+        orders: purchaseOrders.length,
+        orderPending: purchaseOrders.filter((o: any) => o.status === '待确认' || o.status === '已下单').length,
+        receipts: purchaseReceipts.length,
+        receiptPending: purchaseReceipts.filter((r: any) => r.status === '待验收').length,
+        contractAmount: groupContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + purchaseContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + rentalContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + subcontracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        groupContracts: groupContracts.length,
+        purchaseContracts: purchaseContracts.length,
+        rentalContracts: rentalContracts.length,
+        subcontracts: subcontracts.length,
+        supplierCount: suppliers.length,
+        evalCount: supplierEvaluations.length,
+        evalExcellent: supplierEvaluations.filter((e: any) => e.result === 'A级-优秀').length,
+      },
+      subcontract: {
+        laborCount: laborSubcontractors.length,
+        proCount: proSubcontractors.length,
+        laborContractAmount: laborContracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        proContractAmount: proContracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        laborActive: laborContracts.filter((c: any) => c.status === '履行中').length,
+        proActive: proContracts.filter((c: any) => c.status === '履行中').length,
+        changesPending: subcontractChanges.filter((c: any) => c.status === '待审批').length,
+        settlementPending: subcontractSettlements.filter((c: any) => c.status === '待审批').length,
+        paymentPending: subcontractPayments.filter((c: any) => c.status === '待支付').length,
+        paymentTotal: subcontractPayments.reduce((s: number, c: any) => s + num(c.amount), 0),
+        settlementTotal: subcontractSettlements.reduce((s: number, c: any) => s + num(c.amount), 0),
+        evalCount: subcontractEvaluations.length,
+        evalExcellent: subcontractEvaluations.filter((e: any) => e.result === '优秀').length,
+      },
       hr: {
         staff: staff.length,
         attendanceToday: attendances.length,
@@ -224,6 +303,24 @@ export class DashboardController {
         opportunities: opportunities.length,
         oppTotal,
         bidWon,
+      },
+      engineering: {
+        projectArchiveTotal: projectArchives.length,
+        projectArchiveAmount: projectArchives.reduce((s: number, p: any) => s + num(p.amount), 0),
+        inConstruction: projectArchives.filter((p: any) => p.status === '在建').length,
+        completed: projectArchives.filter((p: any) => p.status === '竣工' || p.status === '完工').length,
+        productionThisMonth: productionValues.filter((pv: any) => pv.month === productionTrend[productionTrend.length - 1]?.month).reduce((s: number, pv: any) => s + num(pv.value), 0),
+        pendingPlans: plans.filter((p: any) => p.status === '待审批').length,
+        pendingChanges: changes.filter((c: any) => c.status === '待审批').length,
+        budgetTotal: budgets.reduce((s: number, b: any) => s + num(b.amount), 0),
+        progressItems: progress.length,
+        activeProgress: progress.filter((p: any) => p.progress && p.progress < 100).length,
+        subcontractPlans: subcontractPlans.length,
+        rentalPlans: rentalPlans.length,
+        completions: completions.length,
+        constructionLogs: constructionLogs.length,
+        milestones: milestones.filter((m: any) => m.status !== '已完成').length,
+        milestoneTotal: milestones.length,
       },
       alerts: alerts.filter((a: any) => a.status === '未处理').slice(0, 5),
       notices: notices.slice(0, 4),

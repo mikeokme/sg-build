@@ -151,8 +151,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('super_admin')
   updateUser(@Param('id') id: string, @Body() body: any) {
+    const prev = this.dataService.getUser(id);
     const u = this.dataService.updateUser(id, body);
     if (!u) throw new Error('用户不存在');
+    // 部门调动/停用联动部门群
+    if (prev && prev.username) {
+      const newDept = u.department !== prev.department ? u.department : prev.department;
+      this.dataService.syncUserDepartmentGroups(prev.department, newDept, prev.username);
+    }
     const { password, ...rest } = u;
     this.dataService.logAudit({ action: '修改用户', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u.username, change: body } });
     return rest;
@@ -164,6 +170,8 @@ export class AuthController {
   deleteUser(@Param('id') id: string) {
     const u = this.dataService.getUser(id);
     this.dataService.deleteUser(id);
+    // 从所有部门群移除该用户
+    if (u?.username) this.dataService.syncUserDepartmentGroups(u.department, undefined, u.username);
     this.dataService.logAudit({ action: '删除用户', module: 'auth/users', operator: 'system', role: 'super_admin', detail: { target: u?.username } });
     return { message: '已删除用户' };
   }
