@@ -69,6 +69,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     oa: true, market: true, finance: true, quality: true,
     hr: true, platform: true, resource: true,
   });
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -148,6 +149,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           if (next[catKey] === undefined) next[catKey] = false;
           return next;
         });
+        if (segments.length >= 2) {
+          const featKey = segments[1];
+          const feat = cat.features.find((f) => f.key === featKey);
+          if (feat?.group) {
+            // 自动展开当前功能所属分组
+            setCollapsedGroups((prev) => {
+              const next = { ...prev };
+              if (next[feat.group!] === undefined) next[feat.group!] = false;
+              return next;
+            });
+          }
+        }
       }
     }
   }, [pathname]);
@@ -226,21 +239,37 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         if (!groups.has(g)) groups.set(g, []);
                         groups.get(g)!.push(f);
                       }
-                      return Array.from(groups.entries()).map(([group, feats]) => (
-                        <div key={group || '_root'}>
-                          {group && <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-slate-500 tracking-wider">{group}</p>}
-                          {feats.map((f) => {
-                            const active = pathname === `/${cat.key}/${f.key}`;
-                            return (
-                              <Link key={f.key} href={`/${cat.key}/${f.key}`}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-                                <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
-                                <span className="truncate">{f.title}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      ));
+                      return Array.from(groups.entries()).map(([group, feats]) => {
+                        const gKey = `${cat.key}::${group}`;
+                        const gOpen = !collapsedGroups[gKey];
+                        return (
+                          <div key={gKey}>
+                            {group ? (
+                              <button
+                                onClick={() => setCollapsedGroups((prev) => ({ ...prev, [gKey]: !prev[gKey] }))}
+                                className="w-full flex items-center gap-1.5 px-3 pt-2 pb-1 text-left group/g">
+                                <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${gOpen ? '' : '-rotate-90'}`} />
+                                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase group-hover/g:text-slate-300">{group}</span>
+                                <span className="text-[9px] text-slate-600 ml-auto">{feats.length}</span>
+                              </button>
+                            ) : null}
+                            {gOpen && (
+                              <div className="space-y-0.5">
+                                {feats.map((f) => {
+                                  const active = pathname === `/${cat.key}/${f.key}`;
+                                  return (
+                                    <Link key={f.key} href={`/${cat.key}/${f.key}`}
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                                      <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
+                                      <span className="truncate">{f.title}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
                     })()}
                   </div>
                 )}
