@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Search, Pencil, Trash2, Loader2, Eye } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
+import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -35,6 +36,8 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const matchesProject = useProjectFilter(categoryKey);
+  const currentProject = useCurrentProject(categoryKey);
 
   const visibleFields = useMemo(
     () => feature.fields.filter((f) => canViewField(feature.collection, f.key, role)),
@@ -58,15 +61,19 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
   useEffect(() => { fetchItems(); }, [feature.collection]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return items;
+    let list = items.filter(matchesProject);
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return items.filter((it) => Object.values(it).some((v) => String(v ?? '').toLowerCase().includes(q)));
-  }, [items, search]);
+    return list.filter((it) => Object.values(it).some((v) => String(v ?? '').toLowerCase().includes(q)));
+  }, [items, search, matchesProject]);
 
   const openCreate = () => {
     setEditing(null);
     const form: Record<string, any> = {};
     for (const f of visibleFields) form[f.key] = f.type === 'number' ? 0 : '';
+    if (currentProject && feature.fields.some((f) => f.key === 'project')) {
+      form.project = currentProject.name;
+    }
     setForm(form);
     setDialogOpen(true);
   };

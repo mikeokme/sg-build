@@ -36,7 +36,7 @@ const statusOptions = (vals: string[]) => vals.map((v) => ({ value: v, label: v 
 export const categories: CategoryDef[] = [
   {
     key: 'engineering',
-    title: '工程管理',
+    title: '项目管理',
     icon: 'Building2',
     features: [
       {
@@ -307,6 +307,7 @@ export const categories: CategoryDef[] = [
           { key: 'name', label: '合同名称', required: true },
           { key: 'code', label: '合同编号' },
           { key: 'supplier', label: '供应商' },
+          { key: 'project', label: '所属项目' },
           { key: 'material', label: '集采物资' },
           { key: 'amount', label: '合同金额', type: 'number' },
           { key: 'signDate', label: '签订日期', type: 'date' },
@@ -341,6 +342,7 @@ export const categories: CategoryDef[] = [
           { key: 'name', label: '合同名称', required: true },
           { key: 'code', label: '合同编号' },
           { key: 'supplier', label: '出租方' },
+          { key: 'project', label: '所属项目' },
           { key: 'equipment', label: '设备' },
           { key: 'amount', label: '合同金额', type: 'number' },
           { key: 'startDate', label: '起租日期', type: 'date' },
@@ -358,6 +360,7 @@ export const categories: CategoryDef[] = [
         fields: [
           { key: 'code', label: '订单编号', required: true },
           { key: 'supplier', label: '供应商' },
+          { key: 'project', label: '所属项目' },
           { key: 'material', label: '物资' },
           { key: 'spec', label: '规格型号' },
           { key: 'quantity', label: '数量', type: 'number' },
@@ -381,6 +384,7 @@ export const categories: CategoryDef[] = [
           { key: 'receiptNo', label: '验收单号', required: true },
           { key: 'orderCode', label: '关联订单' },
           { key: 'supplier', label: '供应商' },
+          { key: 'project', label: '所属项目' },
           { key: 'material', label: '物资' },
           { key: 'quantity', label: '到货数量', type: 'number' },
           { key: 'unit', label: '单位' },
@@ -420,6 +424,7 @@ export const categories: CategoryDef[] = [
           { key: 'name', label: '供应商名称', required: true },
           { key: 'contact', label: '联系人' },
           { key: 'phone', label: '联系电话' },
+          { key: 'project', label: '所属项目' },
           { key: 'material', label: '供应物资' },
           { key: 'address', label: '地址', type: 'textarea' },
         ],
@@ -462,6 +467,7 @@ export const categories: CategoryDef[] = [
           { key: 'code', label: '编码' },
           { key: 'legalPerson', label: '负责人' },
           { key: 'phone', label: '联系电话' },
+          { key: 'project', label: '所属项目' },
           { key: 'workType', label: '劳务工种', type: 'select', options: statusOptions(['木工', '钢筋工', '混凝土工', '砌筑工', '抹灰工', '脚手架工', '电工', '焊工', '综合']) },
           { key: 'workerCount', label: '在册人数', type: 'number' },
           { key: 'qualification', label: '资质等级', type: 'select', options: statusOptions(['一级', '二级', '三级', '劳务分包资质', '无资质']) },
@@ -479,6 +485,7 @@ export const categories: CategoryDef[] = [
           { key: 'code', label: '编码' },
           { key: 'legalPerson', label: '负责人' },
           { key: 'phone', label: '联系电话' },
+          { key: 'project', label: '所属项目' },
           { key: 'category', label: '专业类别', type: 'select', options: statusOptions(['桩基', '钢结构', '幕墙', '防水防腐', '机电安装', '消防', '智能化', '装饰装修', '市政', '其他']) },
           { key: 'qualification', label: '资质等级', type: 'select', options: statusOptions(['特级', '一级', '二级', '三级', '其他']) },
           { key: 'licenseNo', label: '资质证书号' },
@@ -616,11 +623,11 @@ export const categories: CategoryDef[] = [
     icon: 'Boxes',
     features: [
       { key: 'receiving', title: '收料入库', collection: 'materialReceiving', fields: [
-        { key: 'code', label: '单据编号', required: true }, { key: 'supplier', label: '供应商' }, { key: 'material', label: '物资' },
+        { key: 'code', label: '单据编号', required: true }, { key: 'project', label: '所属项目' }, { key: 'supplier', label: '供应商' }, { key: 'material', label: '物资' },
         { key: 'quantity', label: '数量', type: 'number' }, { key: 'unit', label: '单位' }, { key: 'date', label: '入库日期', type: 'date' },
       ] },
       { key: 'discount', title: '入库折扣单', collection: 'materialDiscount', fields: [
-        { key: 'code', label: '单据编号', required: true }, { key: 'material', label: '物资' },
+        { key: 'code', label: '单据编号', required: true }, { key: 'project', label: '所属项目' }, { key: 'material', label: '物资' },
         { key: 'discount', label: '折扣率', type: 'number' }, { key: 'amount', label: '折扣金额', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
       ] },
       { key: 'issue', title: '领料出库', collection: 'materialIssue', fields: [
@@ -633,35 +640,35 @@ export const categories: CategoryDef[] = [
       ] },
       { key: 'transfer-out', title: '调拨出库', collection: 'materialTransferOut', fields: [
         { key: 'code', label: '单据编号', required: true }, { key: 'fromWarehouse', label: '调出仓库' }, { key: 'toWarehouse', label: '调入仓库' },
-        { key: 'material', label: '物资' }, { key: 'quantity', label: '数量', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
+        { key: 'project', label: '所属项目' }, { key: 'material', label: '物资' }, { key: 'quantity', label: '数量', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
       ] },
       { key: 'transfer-in', title: '调拨入库', collection: 'materialTransferIn', fields: [
         { key: 'code', label: '单据编号', required: true }, { key: 'fromWarehouse', label: '调出仓库' }, { key: 'toWarehouse', label: '调入仓库' },
-        { key: 'material', label: '物资' }, { key: 'quantity', label: '数量', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
+        { key: 'project', label: '所属项目' }, { key: 'material', label: '物资' }, { key: 'quantity', label: '数量', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
       ] },
       { key: 'return', title: '领料退库', collection: 'materialReturn', fields: [
         { key: 'code', label: '单据编号', required: true }, { key: 'project', label: '项目' }, { key: 'team', label: '班组' },
         { key: 'material', label: '物资' }, { key: 'quantity', label: '数量', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
       ] },
       { key: 'return-supplier', title: '物资退货', collection: 'materialReturnSupplier', fields: [
-        { key: 'code', label: '单据编号', required: true }, { key: 'supplier', label: '供应商' }, { key: 'material', label: '物资' },
+        { key: 'code', label: '单据编号', required: true }, { key: 'supplier', label: '供应商' }, { key: 'project', label: '所属项目' }, { key: 'material', label: '物资' },
         { key: 'quantity', label: '数量', type: 'number' }, { key: 'reason', label: '退货原因', type: 'textarea' }, { key: 'date', label: '日期', type: 'date' },
       ] },
       { key: 'warehouse', title: '仓库管理', collection: 'warehouses', fields: [
-        { key: 'name', label: '仓库名称', required: true }, { key: 'code', label: '仓库编号' }, { key: 'keeper', label: '保管员' },
+        { key: 'name', label: '仓库名称', required: true }, { key: 'code', label: '仓库编号' }, { key: 'project', label: '所属项目' }, { key: 'keeper', label: '保管员' },
         { key: 'location', label: '位置' }, { key: 'capacity', label: '容量', type: 'number' },
       ] },
       { key: 'inventory', title: '盘点管理', collection: 'inventories', fields: [
-        { key: 'name', label: '盘点单', required: true }, { key: 'warehouse', label: '仓库' }, { key: 'date', label: '盘点日期', type: 'date' },
+        { key: 'name', label: '盘点单', required: true }, { key: 'warehouse', label: '仓库' }, { key: 'project', label: '所属项目' }, { key: 'date', label: '盘点日期', type: 'date' },
         { key: 'status', label: '状态', type: 'select', options: statusOptions(['盘点中', '已确认']) },
       ] },
       { key: 'slow-moving', title: '呆滞物料处理', collection: 'slowMovingMaterials', fields: [
-        { key: 'material', label: '物资', required: true }, { key: 'quantity', label: '数量', type: 'number' },
+        { key: 'material', label: '物资', required: true }, { key: 'project', label: '所属项目' }, { key: 'quantity', label: '数量', type: 'number' },
         { key: 'days', label: '呆滞天数', type: 'number' }, { key: 'solution', label: '处理方案', type: 'select', options: statusOptions(['调拨', '退货', '报废', '促销']) },
         { key: 'status', label: '状态', type: 'select', options: statusOptions(['待处理', '处理中', '已处理']) },
       ] },
       { key: 'ledgers', title: '物资台账', collection: 'materialLedgers', fields: [
-        { key: 'name', label: '台账名称', required: true }, { key: 'type', label: '类型', type: 'select', options: statusOptions(['需用计划明细', '入库明细', '出库明细', '库存台账']) }, { key: 'date', label: '统计日期', type: 'date' },
+        { key: 'name', label: '台账名称', required: true }, { key: 'project', label: '所属项目' }, { key: 'type', label: '类型', type: 'select', options: statusOptions(['需用计划明细', '入库明细', '出库明细', '库存台账']) }, { key: 'date', label: '统计日期', type: 'date' },
       ] },
     ],
   },
@@ -672,22 +679,22 @@ export const categories: CategoryDef[] = [
     features: [
       { key: 'register', title: '设备台账', collection: 'equipments', fields: [
         { key: 'name', label: '设备名称', required: true }, { key: 'code', label: '设备编号' }, { key: 'category', label: '设备类别' },
-        { key: 'owner', label: '归属单位' }, { key: 'status', label: '状态', type: 'select', options: statusOptions(['在用', '闲置', '维修', '报废']) }, { key: 'date', label: '购置日期', type: 'date' },
+        { key: 'project', label: '所属项目' }, { key: 'owner', label: '归属单位' }, { key: 'status', label: '状态', type: 'select', options: statusOptions(['在用', '闲置', '维修', '报废']) }, { key: 'date', label: '购置日期', type: 'date' },
       ] },
       { key: 'lease', title: '设备租赁', collection: 'equipmentLeases', fields: [
-        { key: 'name', label: '租赁设备', required: true }, { key: 'lessor', label: '出租方' }, { key: 'amount', label: '租金', type: 'number' },
+        { key: 'name', label: '租赁设备', required: true }, { key: 'lessor', label: '出租方' }, { key: 'project', label: '所属项目' }, { key: 'amount', label: '租金', type: 'number' },
         { key: 'startDate', label: '起租日期', type: 'date' }, { key: 'endDate', label: '到期日期', type: 'date' }, { key: 'status', label: '状态', type: 'select', options: statusOptions(['租用中', '已归还']) },
       ] },
       { key: 'dispatch', title: '设备调度', collection: 'equipmentDispatches', fields: [
         { key: 'equipment', label: '设备', required: true }, { key: 'fromProject', label: '调出项目' }, { key: 'toProject', label: '调入项目' },
-        { key: 'date', label: '调度日期', type: 'date' }, { key: 'owner', label: '经办人' },
+        { key: 'project', label: '所属项目' }, { key: 'date', label: '调度日期', type: 'date' }, { key: 'owner', label: '经办人' },
       ] },
       { key: 'maintenance', title: '维护保养', collection: 'equipmentMaintenances', fields: [
         { key: 'equipment', label: '设备', required: true }, { key: 'type', label: '保养类型', type: 'select', options: statusOptions(['日常保养', '定期保养', '大修']) },
-        { key: 'date', label: '保养日期', type: 'date' }, { key: 'cost', label: '费用', type: 'number' }, { key: 'content', label: '保养内容', type: 'textarea' },
+        { key: 'project', label: '所属项目' }, { key: 'date', label: '保养日期', type: 'date' }, { key: 'cost', label: '费用', type: 'number' }, { key: 'content', label: '保养内容', type: 'textarea' },
       ] },
       { key: 'repair', title: '故障维修', collection: 'equipmentRepairs', fields: [
-        { key: 'equipment', label: '设备', required: true }, { key: 'fault', label: '故障描述', type: 'textarea' }, { key: 'date', label: '报修日期', type: 'date' },
+        { key: 'equipment', label: '设备', required: true }, { key: 'fault', label: '故障描述', type: 'textarea' }, { key: 'project', label: '所属项目' }, { key: 'date', label: '报修日期', type: 'date' },
         { key: 'cost', label: '维修费用', type: 'number' }, { key: 'status', label: '状态', type: 'select', options: statusOptions(['待维修', '维修中', '已修复']) },
       ] },
     ],

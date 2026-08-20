@@ -14,6 +14,7 @@ import {
   CartesianGrid, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import type { FeatureDef } from '@/config/features';
+import { useProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899'];
@@ -70,6 +71,7 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('全部');
+  const { matchesProject } = useProject();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -100,16 +102,16 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
     ).finally(() => setLoading(false));
   }, []);
 
-  const plans = data?.procurementPlans || [];
-  const requests = data?.majorRequests || [];
-  const orders = data?.purchaseOrders || [];
-  const receipts = data?.purchaseReceipts || [];
-  const evals = data?.supplierEvaluations || [];
-  const groupContracts = data?.groupContracts || [];
-  const purchaseContracts = data?.purchaseContracts || [];
-  const rentalContracts = data?.rentalContracts || [];
-  const subcontracts = data?.subcontracts || [];
-  const suppliers = data?.suppliers || [];
+  const plans = (data?.procurementPlans || []).filter(matchesProject);
+  const requests = (data?.majorRequests || []).filter(matchesProject);
+  const orders = (data?.purchaseOrders || []).filter(matchesProject);
+  const receipts = (data?.purchaseReceipts || []).filter(matchesProject);
+  const evals = (data?.supplierEvaluations || []).filter(matchesProject);
+  const groupContracts = (data?.groupContracts || []).filter(matchesProject);
+  const purchaseContracts = (data?.purchaseContracts || []).filter(matchesProject);
+  const rentalContracts = (data?.rentalContracts || []).filter(matchesProject);
+  const subcontracts = (data?.subcontracts || []).filter(matchesProject);
+  const suppliers = (data?.suppliers || []).filter(matchesProject);
 
   const contractsAll = [...groupContracts, ...purchaseContracts, ...rentalContracts, ...subcontracts];
   const contractTotal = contractsAll.reduce((s, c) => s + (Number(c.amount) || 0), 0);

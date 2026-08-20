@@ -1,18 +1,20 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
+import { useProjectFilter } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
 const COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500', 'bg-cyan-500', 'bg-rose-500'];
 
 export function StatPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
-  const [items, setItems] = useState<any[]>([]);
+  const [baseItems, setBaseItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const matchesProject = useProjectFilter(categoryKey);
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -21,12 +23,14 @@ export function StatPage({ feature, categoryTitle, categoryKey }: { feature: Fea
     });
     if (res.ok) {
       const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
+      setBaseItems(Array.isArray(data) ? data : []);
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchItems(); }, [feature.collection]);
+
+  const items = useMemo(() => baseItems.filter(matchesProject), [baseItems, matchesProject]);
 
   const numFields = feature.fields.filter((f) => f.type === 'number');
   const selectFields = feature.fields.filter((f) => f.type === 'select');
