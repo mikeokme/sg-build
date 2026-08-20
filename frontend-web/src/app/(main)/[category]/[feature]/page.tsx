@@ -19,6 +19,10 @@ import { SchedulePage } from '@/components/SchedulePage';
 import { ConstructionLogsPage } from '@/components/ConstructionLogsPage';
 import { MilestonesPage } from '@/components/MilestonesPage';
 import { ProductionValuePage } from '@/components/ProductionValuePage';
+import { ProcurementOverviewPage } from '@/components/ProcurementOverviewPage';
+import { ProcurementPlanPage } from '@/components/ProcurementPlanPage';
+import { ReceiptsPage } from '@/components/ReceiptsPage';
+import { SupplierEvalPage } from '@/components/SupplierEvalPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -59,6 +63,10 @@ export default function FeatureRoutePage() {
       {pageType === 'engineering-logs' && <ConstructionLogsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'engineering-milestones' && <MilestonesPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'engineering-production' && <ProductionValuePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'procurement-overview' && <ProcurementOverviewPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'procurement-plan' && <ProcurementPlanPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'receipts' && <ReceiptsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'supplier-eval' && <SupplierEvalPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>
   );

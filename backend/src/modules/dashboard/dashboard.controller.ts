@@ -27,6 +27,10 @@ const COLLECTION_ROUTE: Record<string, string> = {
   rentalContracts: '/procurement/rental-contracts',
   subcontracts: '/procurement/subcontracts',
   procurementReports: '/procurement/reports',
+  procurementPlans: '/procurement/procurement-plans',
+  purchaseReceipts: '/procurement/receipts',
+  supplierEvaluations: '/procurement/supplier-eval',
+  suppliers: '/procurement/supplier-archives',
   materialReceiving: '/material/receiving',
   materialDiscount: '/material/discount',
   materialIssue: '/material/issue',
@@ -115,6 +119,14 @@ export class DashboardController {
     const schedules = get('schedules');
     const purchaseOrders = get('purchaseOrders');
     const materialReceiving = get('materialReceiving');
+    const procurementPlans = get('procurementPlans');
+    const purchaseReceipts = get('purchaseReceipts');
+    const supplierEvaluations = get('supplierEvaluations');
+    const groupContracts = get('groupContracts');
+    const purchaseContracts = get('purchaseContracts');
+    const rentalContracts = get('rentalContracts');
+    const subcontracts = get('subcontracts');
+    const suppliers = get('suppliers');
     const opportunities = get('opportunities');
     const bids = get('bids');
     const plans = get('plans');
@@ -136,6 +148,7 @@ export class DashboardController {
         { name: 'approvals', label: '审批' },
         { name: 'projectInits', label: '项目立项' },
         { name: 'majorRequests', label: '大宗采购' },
+        { name: 'procurementPlans', label: '采购计划' },
         { name: 'plans', label: '需用计划' },
         { name: 'changes', label: '变更签证' },
         { name: 'reimbursements', label: '报销' },
@@ -221,6 +234,27 @@ export class DashboardController {
       material: {
         orders: purchaseOrders.length,
         receiving: materialReceiving.length,
+      },
+      procurement: {
+        plans: procurementPlans.length,
+        planPending: procurementPlans.filter((p: any) => p.status === '待审批').length,
+        requests: get('majorRequests').length,
+        requestPending: get('majorRequests').filter((r: any) => r.status === '待审批').length,
+        orders: purchaseOrders.length,
+        orderPending: purchaseOrders.filter((o: any) => o.status === '待确认' || o.status === '已下单').length,
+        receipts: purchaseReceipts.length,
+        receiptPending: purchaseReceipts.filter((r: any) => r.status === '待验收').length,
+        contractAmount: groupContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + purchaseContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + rentalContracts.reduce((s: number, c: any) => s + num(c.amount), 0)
+          + subcontracts.reduce((s: number, c: any) => s + num(c.amount), 0),
+        groupContracts: groupContracts.length,
+        purchaseContracts: purchaseContracts.length,
+        rentalContracts: rentalContracts.length,
+        subcontracts: subcontracts.length,
+        supplierCount: suppliers.length,
+        evalCount: supplierEvaluations.length,
+        evalExcellent: supplierEvaluations.filter((e: any) => e.result === 'A级-优秀').length,
       },
       hr: {
         staff: staff.length,

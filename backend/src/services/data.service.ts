@@ -631,6 +631,33 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'prr2', name: '2026年二季度物资价格表', type: '物资价格', date: '2026-06-30' },
   ];
 
+  // 采购计划
+  collections['procurementPlans'] = [
+    { id: 'pp1', name: '清河水库三季度钢材采购计划', project: '清河水库除险加固工程', material: 'HRB400螺纹钢', spec: 'Φ12-Φ25', quantity: 1200, unit: '吨', budget: 4380000, planDate: '2026-08-01', owner: '王采购', status: '待审批' },
+    { id: 'pp2', name: '南水北调支线水泥采购计划', project: '南水北调支线渠系工程', material: 'P.O42.5水泥', spec: '袋装', quantity: 3000, unit: '吨', budget: 1440000, planDate: '2026-08-05', owner: '王采购', status: '已批准' },
+    { id: 'pp3', name: '流域治理格宾网箱采购计划', project: '流域综合治理工程', material: '格宾网箱', spec: '3m×1m×1m', quantity: 5000, unit: '套', budget: 7500000, planDate: '2026-07-20', owner: '李采购', status: '已批准' },
+    { id: 'pp4', name: '农田水利灌溉PVC管采购计划', project: '农田水利灌溉工程', material: 'PVC排水管', spec: 'Φ110', quantity: 8000, unit: '米', budget: 320000, planDate: '2026-08-10', owner: '李采购', status: '草稿' },
+    { id: 'pp5', name: '湿地公园景观石采购计划', project: '湿地公园水系工程', material: '景观石材', spec: '黄蜡石', quantity: 500, unit: '吨', budget: 250000, planDate: '2026-06-15', owner: '王采购', status: '已驳回' },
+    { id: 'pp6', name: '城市防洪堤土工布采购计划', project: '城市防洪堤加固工程', material: '土工布', spec: '400g/㎡', quantity: 15000, unit: '㎡', budget: 270000, planDate: '2026-05-01', owner: '王采购', status: '已批准' },
+  ];
+
+  // 到货验收
+  collections['purchaseReceipts'] = [
+    { id: 'pr1', receiptNo: 'YS-2026-001', orderCode: 'CG-2026-001', supplier: '华北建材有限公司', material: 'P.O42.5水泥', quantity: 200, unit: '吨', qualified: 198, unqualified: 2, inspector: '赵验收', date: '2026-08-05', remark: '少量结块，已退回', status: '部分合格' },
+    { id: 'pr2', receiptNo: 'YS-2026-002', orderCode: 'CG-2026-002', supplier: '恒信钢材集团', material: 'HRB400螺纹钢', quantity: 80, unit: '吨', qualified: 80, unqualified: 0, inspector: '赵验收', date: '2026-08-18', remark: '质量合格，材质单齐全', status: '验收合格' },
+    { id: 'pr3', receiptNo: 'YS-2026-003', orderCode: 'CG-2026-003', supplier: '恒信钢材集团', material: 'HRB400螺纹钢', quantity: 200, unit: '吨', qualified: 0, unqualified: 0, inspector: '赵验收', date: '2026-08-20', remark: '待实验室检测', status: '待验收' },
+    { id: 'pr4', receiptNo: 'YS-2026-004', orderCode: 'CG-2026-004', supplier: '北方机械租赁', material: '塔式起重机', quantity: 2, unit: '台', qualified: 2, unqualified: 0, inspector: '孙验收', date: '2026-07-28', remark: '设备状态良好', status: '验收合格' },
+    { id: 'pr5', receiptNo: 'YS-2026-005', orderCode: 'CG-2026-005', supplier: '华安钢构', material: '钢结构构件', quantity: 500, unit: '吨', qualified: 460, unqualified: 40, inspector: '孙验收', date: '2026-08-12', remark: '部分构件尺寸偏差超限，已拒收', status: '部分合格' },
+  ];
+
+  // 供应商评价
+  collections['supplierEvaluations'] = [
+    { id: 'se1', supplier: '恒信钢材集团', project: '清河水库除险加固工程', qualityScore: 92, deliveryScore: 88, priceScore: 80, serviceScore: 85, date: '2026-07-31', content: '钢材质量稳定，交货及时，价格略高', result: 'A级-优秀' },
+    { id: 'se2', supplier: '华北建材有限公司', project: '南水北调支线渠系工程', qualityScore: 85, deliveryScore: 90, priceScore: 82, serviceScore: 80, date: '2026-07-31', content: '水泥供应稳定，部分批次有结块', result: 'B级-良好' },
+    { id: 'se3', supplier: '华安钢构', project: '滨江大桥工程', qualityScore: 70, deliveryScore: 75, priceScore: 78, serviceScore: 72, date: '2026-06-30', content: '构件质量波动较大，需加强出厂检验', result: 'C级-合格' },
+    { id: 'se4', supplier: '北方机械租赁', project: '流域综合治理工程', qualityScore: 88, deliveryScore: 92, priceScore: 75, serviceScore: 86, date: '2026-06-30', content: '设备状态良好，调度响应快', result: 'B级-良好' },
+  ];
+
   // 采购订单
   collections['purchaseOrders'] = [
     { id: 'po1', code: 'CG-2026-001', supplier: '华北建材有限公司', material: 'P.O42.5水泥', quantity: 200, unit: '吨', price: 480, status: '已收货' },

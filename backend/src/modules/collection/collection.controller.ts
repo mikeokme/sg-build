@@ -25,6 +25,7 @@ const APPROVAL_COLLECTIONS: Record<string, { titleField: string; category: strin
   approvals: { titleField: 'title', category: '审批' },
   projectInits: { titleField: 'name', category: '项目立项' },
   majorRequests: { titleField: 'name', category: '大宗采购' },
+  procurementPlans: { titleField: 'name', category: '采购计划' },
   plans: { titleField: 'name', category: '需用计划' },
   changes: { titleField: 'title', category: '变更签证' },
   subcontractPlans: { titleField: 'name', category: '分包计划' },
@@ -160,6 +161,7 @@ export class CollectionController {
   private categoryOf(collection: string): string {
     const map: Record<string, string> = {
       approvals: 'oa', projectInits: 'market', majorRequests: 'procurement',
+      procurementPlans: 'procurement',
       plans: 'engineering', changes: 'engineering', subcontractPlans: 'engineering',
       rentalPlans: 'engineering', completions: 'engineering',
       reimbursements: 'finance', safetyAccidents: 'quality', qualityAccidents: 'quality',

@@ -53,6 +53,7 @@ const COLLECTION_CATEGORY: Record<string, string> = {
   // procurement
   majorRequests: 'procurement', groupContracts: 'procurement', purchaseContracts: 'procurement',
   purchaseOrders: 'procurement', rentalContracts: 'procurement', subcontracts: 'procurement', procurementReports: 'procurement',
+  procurementPlans: 'procurement', purchaseReceipts: 'procurement', supplierEvaluations: 'procurement',
   // material
   materialReceiving: 'material', materialDiscount: 'material', materialIssue: 'material', materialDirect: 'material',
   materialTransferOut: 'material', materialTransferIn: 'material', materialReturn: 'material', materialReturnSupplier: 'material',
