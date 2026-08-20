@@ -96,7 +96,7 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
       await fetch(`${API_BASE}/projects/${selectedProjectId}/documents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ name: formName, type: formType, fileName: docFile, description: formDesc, uploader: '当前用户' }),
+        body: JSON.stringify({ name: formName, type: formType, fileName: formFile, description: formDesc, uploader: '当前用户' }),
       });
     } catch {}
     setAddOpen(false);

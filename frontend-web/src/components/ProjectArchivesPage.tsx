@@ -299,9 +299,9 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`${API_BASE}/collections/${feature.collection}`, {
-        headers: { Authorization: token ? `Bearer ${token}` : '' },
-      });
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}/collections/${feature.collection}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setItems(Array.isArray(data) ? data : []);
