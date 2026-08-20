@@ -9,12 +9,10 @@ dist/
 build/
 out/
 *.tsbuildinfo
+next-env.d.ts
 
 # Data files (persisted JSON)
 backend/data/
-
-# 其他项目的副本（非本项目代码）
-sg-build-main/
 
 # Expo
 .expo/
@@ -24,9 +22,7 @@ web-build/
 # Environment
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
 # Logs
 logs/
@@ -37,10 +33,10 @@ yarn-error.log*
 
 # Test / coverage
 coverage/
+.eslintcache
 
 # Cache
 .cache/
-.eslintcache
 
 # IDE
 .idea/
@@ -64,8 +60,6 @@ Thumbs.db
 *.mobileprovision
 
 # Node
-node_modules/
-.DS_Store
 *.local
 
 # Temporary
