@@ -68,9 +68,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     engineering: true, procurement: true, material: true, equipment: true,
     oa: true, market: true, finance: true, quality: true,
-    hr: true, platform: true, resource: true,
+    hr: true, platform: true, resource: true, subcontract: true,
   });
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    for (const cat of categories) {
+      for (const f of cat.features) {
+        if (f.group) map[`${cat.key}::${f.group}`] = true;
+      }
+    }
+    return map;
+  });
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -146,22 +154,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       if (cat) {
         setCollapsed((prev) => {
           const next = { ...prev };
-          // 默认展开当前分类，保留其他分类当前状态
-          if (next[catKey] === undefined) next[catKey] = false;
+          // 默认全部折叠，仅当用户主动展开
+          if (next[catKey] === undefined) next[catKey] = true;
           return next;
         });
-        if (segments.length >= 2) {
-          const featKey = segments[1];
-          const feat = cat.features.find((f) => f.key === featKey);
-          if (feat?.group) {
-            // 自动展开当前功能所属分组
-            setCollapsedGroups((prev) => {
-              const next = { ...prev };
-              if (next[feat.group!] === undefined) next[feat.group!] = false;
-              return next;
-            });
-          }
-        }
       }
     }
   }, [pathname]);
@@ -260,7 +256,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                   const active = pathname === `/${cat.key}/${f.key}`;
                                   return (
                                     <Link key={f.key} href={`/${cat.key}/${f.key}`}
-                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
                                       <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
                                       <span className="truncate">{f.title}</span>
                                     </Link>
