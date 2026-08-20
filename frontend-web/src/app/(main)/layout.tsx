@@ -249,8 +249,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                 onClick={() => setCollapsedGroups((prev) => ({ ...prev, [gKey]: !prev[gKey] }))}
                                 className="w-full flex items-center gap-1.5 px-3 pt-2 pb-1 text-left group/g">
                                 <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${gOpen ? '' : '-rotate-90'}`} />
-                                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase group-hover/g:text-slate-300">{group}</span>
-                                <span className="text-[9px] text-slate-600 ml-auto">{feats.length}</span>
+                                <span className="text-sm font-semibold text-slate-400 tracking-wide uppercase group-hover/g:text-slate-200">{group}</span>
+                                <span className="text-[10px] text-slate-600 ml-auto">{feats.length}</span>
                               </button>
                             ) : null}
                             {gOpen && (
@@ -259,7 +259,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                   const active = pathname === `/${cat.key}/${f.key}`;
                                   return (
                                     <Link key={f.key} href={`/${cat.key}/${f.key}`}
-                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
                                       <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
                                       <span className="truncate">{f.title}</span>
                                     </Link>
