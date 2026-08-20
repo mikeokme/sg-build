@@ -456,6 +456,37 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'cm1', project: '城东物流园工程', settleAmount: 23500000, settleDate: '2026-06-20', status: '已完成' },
   ];
 
+  // 施工日志
+  collections['constructionLogs'] = [
+    { id: 'cl1', project: '清河水库除险加固工程', date: '2026-08-18', weather: '晴', workContent: '大坝上游坝坡护砌砌筑，完成第12仓；溢洪道消力池底板钢筋绑扎', labor: 46, equipment: '挖掘机1台、自卸车4台、搅拌车2台', issues: '坝肩岩层渗水，已联系设计单位复核', recorder: '刘工' },
+    { id: 'cl2', project: '清河水库除险加固工程', date: '2026-08-19', weather: '多云', workContent: '溢洪道消力池底板浇筑混凝土120方；坝体心墙碾压试验段施工', labor: 52, equipment: '挖掘机2台、压路机1台、泵车1台', issues: '无', recorder: '刘工' },
+    { id: 'cl3', project: '南水北调支线渠系工程', date: '2026-08-18', weather: '小雨', workContent: '渠道土方开挖3000方；节制闸基坑降水施工', labor: 38, equipment: '挖掘机3台、自卸车6台、降水井泵8台', issues: '降雨影响土方压实，已安排覆盖', recorder: '马师傅' },
+    { id: 'cl4', project: '城市防洪堤加固工程', date: '2026-08-17', weather: '晴', workContent: '堤身加高培厚填筑，完成第8段；堤脚浆砌石护脚施工', labor: 44, equipment: '装载机2台、压路机1台、搅拌车3台', issues: '无', recorder: '张经理' },
+    { id: 'cl5', project: '流域综合治理工程', date: '2026-08-16', weather: '晴', workContent: '生态护岸格宾网箱安装80米；河道清淤验收', labor: 30, equipment: '挖掘机1台、吊车1台', issues: '部分格宾网箱石料粒径偏大，已要求更换', recorder: '周经理' },
+    { id: 'cl6', project: '农田水利灌溉工程', date: '2026-08-15', weather: '阴', workContent: '灌溉渠道衬砌施工150米；泵站机电设备安装', labor: 26, equipment: '搅拌车2台、吊车1台', issues: '无', recorder: '吴经理' },
+    { id: 'cl7', project: '湿地公园水系工程', date: '2026-08-14', weather: '多云', workContent: '湖底清淤完成验收；栈桥基础桩基施工', labor: 22, equipment: '挖掘机1台、打桩机1台', issues: '桩基检测安排中', recorder: '赵工' },
+    { id: 'cl8', project: '污水处理厂升级工程', date: '2026-08-13', weather: '晴', workContent: '生化池设备安装调试；二沉池刮泥机安装', labor: 18, equipment: '吊车2台', issues: '无', recorder: '孙工' },
+  ];
+
+  // 里程碑管理
+  collections['milestones'] = [
+    { id: 'ms1', project: '清河水库除险加固工程', name: '开工', planDate: '2024-04-01', actualDate: '2024-04-08', progress: 100, status: '已完成' },
+    { id: 'ms2', project: '清河水库除险加固工程', name: '大坝基础处理完成', planDate: '2024-09-30', actualDate: '2024-10-12', progress: 100, status: '已完成' },
+    { id: 'ms3', project: '清河水库除险加固工程', name: '坝体加高至设计高程', planDate: '2026-03-31', actualDate: '', progress: 82, status: '进行中' },
+    { id: 'ms4', project: '清河水库除险加固工程', name: '溢洪道改造完成', planDate: '2026-05-31', actualDate: '', progress: 60, status: '进行中' },
+    { id: 'ms5', project: '清河水库除险加固工程', name: '竣工验收', planDate: '2026-06-30', actualDate: '', progress: 0, status: '未开始' },
+    { id: 'ms6', project: '南水北调支线渠系工程', name: '开工', planDate: '2024-06-01', actualDate: '2024-06-10', progress: 100, status: '已完成' },
+    { id: 'ms7', project: '南水北调支线渠系工程', name: '渠道开挖完成', planDate: '2025-12-31', actualDate: '2026-01-15', progress: 100, status: '已完成' },
+    { id: 'ms8', project: '南水北调支线渠系工程', name: '衬砌施工完成80%', planDate: '2026-09-30', actualDate: '', progress: 45, status: '进行中' },
+    { id: 'ms9', project: '南水北调支线渠系工程', name: '竣工验收', planDate: '2027-01-31', actualDate: '', progress: 0, status: '未开始' },
+    { id: 'ms10', project: '城市防洪堤加固工程', name: '堤身填筑完成', planDate: '2025-12-31', actualDate: '2025-12-20', progress: 100, status: '已完成' },
+    { id: 'ms11', project: '城市防洪堤加固工程', name: '竣工验收', planDate: '2026-03-31', actualDate: '2026-03-25', progress: 100, status: '已完成' },
+    { id: 'ms12', project: '流域综合治理工程', name: '生态护岸完成', planDate: '2026-10-31', actualDate: '', progress: 35, status: '进行中' },
+    { id: 'ms13', project: '流域综合治理工程', name: '竣工验收', planDate: '2027-12-31', actualDate: '', progress: 0, status: '未开始' },
+    { id: 'ms14', project: '农田水利灌溉工程', name: '渠道工程完成', planDate: '2026-08-31', actualDate: '', progress: 70, status: '进行中' },
+    { id: 'ms15', project: '湿地公园水系工程', name: '湖底清淤验收完成', planDate: '2026-05-31', actualDate: '2026-05-28', progress: 100, status: '已完成' },
+  ];
+
   // 审批中心
   collections['approvals'] = [
     { id: 'a1', title: '采购一批钢材的审批', applicant: 'admin', type: '采购审批', amount: 85000, date: '2026-08-10', status: '待审批' },

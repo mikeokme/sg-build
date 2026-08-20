@@ -1,4 +1,8 @@
-export type PageType = 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage' | 'project-archives' | 'project-documents';
+export type PageType =
+  | 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage'
+  | 'project-archives' | 'project-documents'
+  | 'engineering-overview' | 'engineering-schedule' | 'engineering-logs'
+  | 'engineering-milestones' | 'engineering-module' | 'engineering-production';
 
 export interface FieldDef {
   key: string;
@@ -14,6 +18,7 @@ export interface FeatureDef {
   title: string;
   collection: string;
   pageType?: PageType;
+  group?: string;
   fields: FieldDef[];
 }
 
@@ -33,10 +38,19 @@ export const categories: CategoryDef[] = [
     icon: 'Building2',
     features: [
       {
+        key: 'project-overview',
+        title: '项目总览',
+        collection: 'projectArchives',
+        pageType: 'engineering-overview',
+        group: '项目中心',
+        fields: [],
+      },
+      {
         key: 'project-archives',
         title: '项目档案',
         collection: 'projectArchives',
         pageType: 'project-archives',
+        group: '项目中心',
         fields: [
           { key: 'name', label: '项目名称', required: true },
           { key: 'code', label: '项目编号' },
@@ -62,6 +76,7 @@ export const categories: CategoryDef[] = [
         title: '项目文档库',
         collection: 'projectDocuments',
         pageType: 'project-documents',
+        group: '项目中心',
         fields: [
           { key: 'projectId', label: '所属项目', type: 'text' },
           { key: 'name', label: '文档名称', required: true },
@@ -77,7 +92,8 @@ export const categories: CategoryDef[] = [
         key: 'progress',
         title: '施工进度',
         collection: 'progress',
-        pageType: 'gantt',
+        pageType: 'engineering-schedule',
+        group: '进度管理',
         fields: [
           { key: 'project', label: '项目', required: true },
           { key: 'task', label: '工作项' },
@@ -88,28 +104,65 @@ export const categories: CategoryDef[] = [
         ],
       },
       {
+        key: 'construction-logs',
+        title: '施工日志',
+        collection: 'constructionLogs',
+        pageType: 'engineering-logs',
+        group: '进度管理',
+        fields: [
+          { key: 'project', label: '所属项目', required: true },
+          { key: 'date', label: '日志日期', type: 'date' },
+          { key: 'weather', label: '天气', type: 'select', options: statusOptions(['晴', '多云', '阴', '小雨', '大雨', '雷雨']) },
+          { key: 'workContent', label: '施工内容', type: 'textarea' },
+          { key: 'labor', label: '出勤人数', type: 'number' },
+          { key: 'equipment', label: '设备使用' },
+          { key: 'issues', label: '当日问题', type: 'textarea' },
+          { key: 'recorder', label: '记录人' },
+        ],
+      },
+      {
+        key: 'milestones',
+        title: '里程碑管理',
+        collection: 'milestones',
+        pageType: 'engineering-milestones',
+        group: '进度管理',
+        fields: [
+          { key: 'project', label: '所属项目', required: true },
+          { key: 'name', label: '里程碑名称', required: true },
+          { key: 'planDate', label: '计划日期', type: 'date' },
+          { key: 'actualDate', label: '实际日期', type: 'date' },
+          { key: 'progress', label: '完成度', type: 'number' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['未开始', '进行中', '已完成', '已延期']) },
+        ],
+      },
+      {
         key: 'plans',
         title: '需用计划',
         collection: 'plans',
+        pageType: 'engineering-module',
+        group: '计划与成本',
         fields: [
           { key: 'name', label: '计划名称', required: true },
           { key: 'project', label: '所属项目' },
           { key: 'material', label: '物资' },
+          { key: 'spec', label: '规格型号' },
           { key: 'quantity', label: '数量', type: 'number' },
           { key: 'unit', label: '单位' },
           { key: 'planDate', label: '计划日期', type: 'date' },
-          { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回']) },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回', '已执行']) },
         ],
       },
       {
         key: 'production-value',
         title: '产值统计',
         collection: 'productionValues',
-        pageType: 'dashboard',
+        pageType: 'engineering-production',
+        group: '计划与成本',
         fields: [
           { key: 'project', label: '项目', required: true },
           { key: 'month', label: '统计月份', type: 'text' },
-          { key: 'value', label: '产值', type: 'number' },
+          { key: 'value', label: '本月产值（万元）', type: 'number' },
+          { key: 'cumulative', label: '累计产值（万元）', type: 'number' },
           { key: 'owner', label: '责任人' },
         ],
       },
@@ -117,46 +170,60 @@ export const categories: CategoryDef[] = [
         key: 'budgets',
         title: '施工预算',
         collection: 'budgets',
+        pageType: 'engineering-module',
+        group: '计划与成本',
         fields: [
           { key: 'name', label: '预算名称', required: true },
           { key: 'project', label: '所属项目' },
-          { key: 'amount', label: '预算金额', type: 'number' },
+          { key: 'category', label: '预算类别', type: 'select', options: statusOptions(['人工费', '材料费', '机械费', '其他直接费', '管理费', '措施费', '税金']) },
+          { key: 'amount', label: '预算金额（元）', type: 'number' },
+          { key: 'actualAmount', label: '已发生金额（元）', type: 'number' },
           { key: 'date', label: '编制日期', type: 'date' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['编制中', '已审定', '已封顶']) },
         ],
       },
       {
         key: 'rental-plans',
         title: '租赁计划',
         collection: 'rentalPlans',
+        pageType: 'engineering-module',
+        group: '分包与租赁',
         fields: [
           { key: 'name', label: '计划名称', required: true },
+          { key: 'project', label: '所属项目' },
           { key: 'equipment', label: '设备' },
           { key: 'quantity', label: '数量', type: 'number' },
-          { key: 'duration', label: '租赁时长', type: 'number' },
+          { key: 'duration', label: '租赁时长（月）', type: 'number' },
           { key: 'startDate', label: '开始日期', type: 'date' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回', '已归还']) },
         ],
       },
       {
         key: 'subcontract-plans',
         title: '分包计划',
         collection: 'subcontractPlans',
+        pageType: 'engineering-module',
+        group: '分包与租赁',
         fields: [
           { key: 'name', label: '计划名称', required: true },
           { key: 'project', label: '所属项目' },
           { key: 'content', label: '分包内容', type: 'textarea' },
-          { key: 'amount', label: '分包金额', type: 'number' },
+          { key: 'amount', label: '分包金额（元）', type: 'number' },
           { key: 'team', label: '分包队伍' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回', '履约中']) },
         ],
       },
       {
         key: 'changes',
         title: '变更签证',
         collection: 'changes',
+        pageType: 'engineering-module',
+        group: '变更与结算',
         fields: [
           { key: 'title', label: '变更事项', required: true },
           { key: 'project', label: '项目' },
-          { key: 'type', label: '变更类型', type: 'select', options: statusOptions(['设计变更', '签证变更', '材料代换', '其他']) },
-          { key: 'amount', label: '变更金额', type: 'number' },
+          { key: 'type', label: '变更类型', type: 'select', options: statusOptions(['设计变更', '签证变更', '材料代换', '工期顺延', '其他']) },
+          { key: 'amount', label: '变更金额（元）', type: 'number' },
           { key: 'content', label: '变更内容', type: 'textarea' },
           { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回']) },
         ],
@@ -165,9 +232,11 @@ export const categories: CategoryDef[] = [
         key: 'completion',
         title: '竣工结算',
         collection: 'completions',
+        pageType: 'engineering-module',
+        group: '变更与结算',
         fields: [
           { key: 'project', label: '项目', required: true },
-          { key: 'settleAmount', label: '结算金额', type: 'number' },
+          { key: 'settleAmount', label: '结算金额（元）', type: 'number' },
           { key: 'settleDate', label: '结算日期', type: 'date' },
           { key: 'status', label: '状态', type: 'select', options: statusOptions(['办理中', '已完成']) },
         ],

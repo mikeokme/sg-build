@@ -18,6 +18,8 @@ const COLLECTION_ROUTE: Record<string, string> = {
   subcontractPlans: '/engineering/subcontract-plans',
   changes: '/engineering/changes',
   completions: '/engineering/completion',
+  constructionLogs: '/engineering/construction-logs',
+  milestones: '/engineering/milestones',
   majorRequests: '/procurement/major-requests',
   groupContracts: '/procurement/group-contracts',
   purchaseContracts: '/procurement/purchase-contracts',
@@ -123,6 +125,8 @@ export class DashboardController {
     const subcontractPlans = get('subcontractPlans');
     const rentalPlans = get('rentalPlans');
     const projectInits = get('projectInits');
+    const constructionLogs = get('constructionLogs');
+    const milestones = get('milestones');
 
     // 待办汇总（审批类集合 + 待付款 + 预警 + 整改）
     const isAdmin = ADMIN_ROLES.includes(req.user?.role || '');
@@ -247,6 +251,9 @@ export class DashboardController {
         subcontractPlans: subcontractPlans.length,
         rentalPlans: rentalPlans.length,
         completions: completions.length,
+        constructionLogs: constructionLogs.length,
+        milestones: milestones.filter((m: any) => m.status !== '已完成').length,
+        milestoneTotal: milestones.length,
       },
       alerts: alerts.filter((a: any) => a.status === '未处理').slice(0, 5),
       notices: notices.slice(0, 4),

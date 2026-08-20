@@ -13,6 +13,12 @@ import { UserManagementPage } from '@/components/UserManagementPage';
 import { ProjectArchivesPage } from '@/components/ProjectArchivesPage';
 import ProjectDetailPage from '@/components/ProjectDetailPage';
 import { ProjectDocumentsPage } from '@/components/ProjectDocumentsPage';
+import { EngineeringOverviewPage } from '@/components/EngineeringOverviewPage';
+import { EngineeringModulePage } from '@/components/EngineeringModulePage';
+import { SchedulePage } from '@/components/SchedulePage';
+import { ConstructionLogsPage } from '@/components/ConstructionLogsPage';
+import { MilestonesPage } from '@/components/MilestonesPage';
+import { ProductionValuePage } from '@/components/ProductionValuePage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
 
@@ -47,6 +53,12 @@ export default function FeatureRoutePage() {
       {pageType === 'project-archives' && <ProjectArchivesPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'project-documents' && <ProjectDocumentsPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'user-manage' && <UserManagementPage />}
+      {pageType === 'engineering-overview' && <EngineeringOverviewPage feature={feature} categoryTitle={category.title} />}
+      {pageType === 'engineering-module' && <EngineeringModulePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-schedule' && <SchedulePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-logs' && <ConstructionLogsPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-milestones' && <MilestonesPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
+      {pageType === 'engineering-production' && <ProductionValuePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
     </div>
   );

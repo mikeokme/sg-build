@@ -219,16 +219,29 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </button>
                 {sidebarOpen && isOpen && (
                   <div className="ml-4 pl-3 border-l border-slate-700/50 space-y-0.5 mt-0.5">
-                    {cat.features.map((f) => {
-                      const active = pathname === `/${cat.key}/${f.key}`;
-                      return (
-                        <Link key={f.key} href={`/${cat.key}/${f.key}`}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-                          <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
-                          <span className="truncate">{f.title}</span>
-                        </Link>
-                      );
-                    })}
+                    {(() => {
+                      const groups = new Map<string, typeof cat.features>();
+                      for (const f of cat.features) {
+                        const g = f.group || '';
+                        if (!groups.has(g)) groups.set(g, []);
+                        groups.get(g)!.push(f);
+                      }
+                      return Array.from(groups.entries()).map(([group, feats]) => (
+                        <div key={group || '_root'}>
+                          {group && <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-slate-500 tracking-wider">{group}</p>}
+                          {feats.map((f) => {
+                            const active = pathname === `/${cat.key}/${f.key}`;
+                            return (
+                              <Link key={f.key} href={`/${cat.key}/${f.key}`}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+                                <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
+                                <span className="truncate">{f.title}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
               </div>

@@ -38,7 +38,7 @@ export const CATEGORY_DELETE_LEVEL: Record<string, number> = {
 };
 
 // 外协可写集合
-const OUTSOURCE_WRITE_COLLECTIONS = ['progress', 'plans', 'changes', 'safetyInspections', 'safetyTrainings', 'qualityInspections', 'qualityTrainings', 'siteRecords', 'schedules', 'tasks'];
+const OUTSOURCE_WRITE_COLLECTIONS = ['progress', 'plans', 'changes', 'constructionLogs', 'milestones', 'safetyInspections', 'safetyTrainings', 'qualityInspections', 'qualityTrainings', 'siteRecords', 'schedules', 'tasks'];
 
 // 集合 → 业务中心
 const COLLECTION_CATEGORY: Record<string, string> = {
@@ -49,6 +49,7 @@ const COLLECTION_CATEGORY: Record<string, string> = {
   // engineering
   projectArchives: 'engineering', progress: 'engineering', plans: 'engineering', productionValues: 'engineering',
   budgets: 'engineering', rentalPlans: 'engineering', subcontractPlans: 'engineering', changes: 'engineering', completions: 'engineering',
+  constructionLogs: 'engineering', milestones: 'engineering',
   // procurement
   majorRequests: 'procurement', groupContracts: 'procurement', purchaseContracts: 'procurement',
   purchaseOrders: 'procurement', rentalContracts: 'procurement', subcontracts: 'procurement', procurementReports: 'procurement',
