@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +12,13 @@ import { Label } from '@/components/ui/label';
 import {
   ArrowLeft, Building2, MapPin, CalendarDays, User, Wallet,
   FileText, Plus, Trash2, Eye, Loader2, Shield, CheckCircle2,
-  Clock, TrendingUp, Download, Paperclip,
+  Clock, TrendingUp, Download, Paperclip, GitBranch, ClipboardList,
+  Sun, Cloud, CloudRain, AlertCircle, Wrench, Users,
 } from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
+  CartesianGrid, PieChart, Pie, Cell, Legend,
+} from 'recharts';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -44,6 +49,13 @@ const DOC_TYPE_ICON: Record<string, string> = {
   设计变更: '📝', 评估报告: '📊', 设备清单: '📦', 合同文件: '📄', 其他: '📁',
 };
 
+const WEATHER_ICON: Record<string, any> = {
+  晴: Sun, 多云: Cloud, 阴: Cloud, 小雨: CloudRain, 大雨: CloudRain, 雷雨: CloudRain,
+};
+
+const BAR_COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500', 'bg-cyan-500', 'bg-rose-500'];
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
 function fmtBytes(b: number): string {
   if (!b) return '-';
   if (b < 1024) return `${b} B`;
@@ -67,24 +79,25 @@ function daysRemaining(endDate: string): { text: string; cls: string } {
   return { text: `剩余 ${diff} 天`, cls: 'text-gray-500' };
 }
 
-type TabKey = 'overview' | 'documents' | 'costs';
+function daysBetween(a: string, b: string) {
+  return Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
+}
+
+type TabKey = 'overview' | 'schedule' | 'logs' | 'milestones' | 'costs' | 'documents';
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const [project, setProject] = useState<any>(null);
-  const [documents, setDocuments] = useState<any[]>([]);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>('overview');
   const [viewDoc, setViewDoc] = useState<any>(null);
   const [addDocOpen, setAddDocOpen] = useState(false);
   const [delDocId, setDelDocId] = useState<string | null>(null);
 
-  // New document form
   const [docName, setDocName] = useState('');
   const [docType, setDocType] = useState('');
   const [docFile, setDocFile] = useState('');
@@ -92,11 +105,10 @@ export default function ProjectDetailPage() {
 
   const fetchProject = async () => {
     try {
-      const res = await fetch(`${API_BASE}/projects/${params.id}`, { headers });
+      const res = await fetch(`${API_BASE}/projects/${params.id}/overview`, { headers });
       if (res.ok) {
-        const data = await res.json();
-        setProject(data);
-        setDocuments(data.documents || []);
+        const d = await res.json();
+        setData(d);
       }
     } catch {}
     setLoading(false);
@@ -134,6 +146,7 @@ export default function ProjectDetailPage() {
       </div>
     );
   }
+  const project = data?.project;
   if (!project) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-4">
@@ -144,8 +157,62 @@ export default function ProjectDetailPage() {
     );
   }
 
+  const s = data.stats || {};
   const remaining = daysRemaining(project.endDate);
   const typeBadgeClass = TYPE_BADGE[project.type] || 'bg-gray-50 text-gray-500 border-gray-200';
+  const documents = data.documents || [];
+  const logs = data.logs || [];
+  const milestones = data.milestones || [];
+  const progressItems = data.progress || [];
+  const production = data.production || [];
+  const budgets = data.budgets || [];
+
+  // 甘特计算
+  const scheduleItems = progressItems.filter((it: any) => it.startDate);
+  const sMin = scheduleItems.length ? new Date(Math.min(...scheduleItems.map((it: any) => new Date(it.startDate).getTime()))) : new Date(project.startDate || Date.now());
+  const sMax = scheduleItems.length ? new Date(Math.max(...scheduleItems.map((it: any) => new Date(it.endDate || it.startDate).getTime()))) : new Date(project.endDate || Date.now());
+  const sTotal = Math.max(1, daysBetween(sMin.toISOString(), sMax.toISOString()));
+  const sMonths: { key: string; label: string; days: number }[] = [];
+  {
+    let cursor = new Date(sMin);
+    cursor.setDate(1);
+    while (cursor <= sMax) {
+      const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+      const days = Math.min(daysBetween(cursor.toISOString(), next.toISOString()), daysBetween(cursor.toISOString(), sMax.toISOString()) + 1);
+      sMonths.push({ key: cursor.toISOString(), label: `${cursor.getMonth() + 1}月`, days: Math.max(1, days) });
+      cursor = next;
+    }
+  }
+
+  // 产值月度趋势
+  const prodTrend = [...new Set(production.map((x: any) => x.month))]
+    .sort()
+    .map((m) => ({ month: m, value: production.filter((x: any) => x.month === m).reduce((sum: number, x: any) => sum + Number(x.value || 0), 0) }));
+
+  // 预算分布
+  const budgetData = (() => {
+    const map = new Map<string, number>();
+    for (const b of budgets) map.set(b.category || '其他', (map.get(b.category || '其他') || 0) + Number(b.amount || 0));
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  })();
+
+  const tabList: { key: TabKey; label: string; icon: any; count?: number }[] = [
+    { key: 'overview', label: '项目概况', icon: Building2 },
+    { key: 'schedule', label: '进度甘特', icon: TrendingUp, count: scheduleItems.length },
+    { key: 'logs', label: '施工日志', icon: ClipboardList, count: logs.length },
+    { key: 'milestones', label: '里程碑', icon: GitBranch, count: milestones.length },
+    { key: 'costs', label: '成本产值', icon: Wallet },
+    { key: 'documents', label: '项目文档', icon: FileText, count: documents.length },
+  ];
+
+  const topStats = [
+    { icon: Wallet, label: '合同金额', value: fmtMoney(project.amount), sub: project.contractType, tone: 'purple' },
+    { icon: TrendingUp, label: '累计产值', value: fmtMoney(s.productionCumulative || s.productionValue), sub: `${(s.productionValue || 0).toLocaleString()} 万本月`, tone: 'emerald' },
+    { icon: CalendarDays, label: '计划工期', value: project.planDuration ? `${project.planDuration}天` : '-', sub: remaining.text, cls: remaining.cls, tone: 'blue' },
+    { icon: CheckCircle2, label: '里程碑完成', value: `${s.milestoneDone ?? 0}/${s.milestoneTotal ?? 0}`, sub: `${s.milestoneActive ?? 0} 个进行中`, tone: 'cyan' },
+    { icon: TrendingUp, label: '平均进度', value: `${s.avgProgress ?? 0}%`, sub: `${s.progressItemCount ?? 0} 个工作项`, tone: 'amber' },
+    { icon: FileText, label: '项目文档', value: s.documentCount ?? 0, sub: '份资料', tone: 'sky' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -168,20 +235,23 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {/* Top stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {topStats.map((st) => (
+          <StatCard key={st.label} {...st} />
+        ))}
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {([
-          { key: 'overview', label: '项目概况', icon: Building2 },
-          { key: 'documents', label: '项目文档', icon: FileText, count: documents.length },
-          { key: 'costs', label: '成本进度', icon: TrendingUp },
-        ] as const).map((t) => (
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit flex-wrap">
+        {tabList.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm transition-all ${
               tab === t.key ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'
             }`}>
             <t.icon className="w-3.5 h-3.5" />
             {t.label}
-            {'count' in t && <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{t.count}</span>}
+            {typeof t.count === 'number' && <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">{t.count}</span>}
           </button>
         ))}
       </div>
@@ -189,7 +259,6 @@ export default function ProjectDetailPage() {
       {/* Overview Tab */}
       {tab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* 基本信息 */}
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><Building2 className="w-4 h-4 text-blue-500" />基本信息</CardTitle></CardHeader>
             <CardContent>
@@ -221,13 +290,228 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
 
-          {/* 统计卡片 */}
           <div className="space-y-4">
-            <StatCard icon={FileText} label="项目文档" value={documents.length} sub="份文档资料" color="blue" />
-            <StatCard icon={Wallet} label="合同金额" value={fmtMoney(project.amount)} sub={project.contractType} color="purple" />
-            <StatCard icon={CalendarDays} label="计划工期" value={project.planDuration ? `${project.planDuration}天` : '-'} sub={remaining.text} color={remaining.cls.includes('red') ? 'red' : 'emerald'} />
-            <StatCard icon={CheckCircle2} label="质量目标" value={project.qualityTarget || '-'} sub={project.safetyTarget} color="cyan" />
+            <Card>
+              <CardHeader><CardTitle className="text-base font-semibold">待办事项</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-sm p-2.5 rounded-lg bg-amber-50/60">
+                  <span className="text-gray-700">待审批计划</span><Badge className="bg-amber-500">{s.planPending ?? 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm p-2.5 rounded-lg bg-orange-50/60">
+                  <span className="text-gray-700">待审批变更</span><Badge className="bg-orange-500">{s.changePending ?? 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm p-2.5 rounded-lg bg-blue-50/60">
+                  <span className="text-gray-700">施工日志</span><Badge className="bg-blue-500">{s.logCount ?? 0} 篇</Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm p-2.5 rounded-lg bg-emerald-50/60">
+                  <span className="text-gray-700">累计出勤</span><Badge className="bg-emerald-500">{(s.logLaborTotal ?? 0).toLocaleString()} 人次</Badge>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base font-semibold">成本概览</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">预算总额</span><span className="font-semibold text-gray-900 tabular-nums">{fmtMoney(s.budgetAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">已发生成本</span><span className="font-semibold text-gray-900 tabular-nums">{fmtMoney(s.budgetActual)}</span>
+                </div>
+                {s.budgetAmount ? (
+                  <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.min(100, (s.budgetActual / s.budgetAmount) * 100)}%` }} />
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between text-sm pt-1">
+                  <span className="text-gray-500">变更签证金额</span><span className="font-semibold text-gray-900 tabular-nums">{fmtMoney(s.changeAmount)}</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      )}
+
+      {/* Schedule Tab */}
+      {tab === 'schedule' && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3 pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-blue-500" />进度甘特图</CardTitle>
+            <Badge variant="secondary" className="text-xs">{scheduleItems.length} 个工作项 · 平均 {s.avgProgress ?? 0}%</Badge>
+          </CardHeader>
+          <CardContent>
+            {scheduleItems.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <p>暂无进度数据</p>
+                <p className="text-sm mt-1">请在「施工进度」模块填报该项目的进度</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <div style={{ minWidth: 560 }}>
+                  <div className="flex border-b border-gray-200 pb-2 mb-2">
+                    <div className="w-44 flex-shrink-0 text-xs text-gray-500 font-medium">工作项</div>
+                    <div className="flex-1 relative" style={{ height: 20 }}>
+                      <div className="absolute inset-0 flex">
+                        {sMonths.map((m) => (
+                          <div key={m.key} className="flex-shrink-0 border-l border-gray-100" style={{ width: `${(m.days / sTotal) * 100}%` }}>
+                            <span className="text-xs text-gray-400 pl-1">{m.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {scheduleItems.map((it: any, idx: number) => {
+                      const start = new Date(it.startDate).getTime();
+                      const end = new Date(it.endDate || it.startDate).getTime();
+                      const offset = ((start - sMin.getTime()) / (sTotal * 86400000)) * 100;
+                      const width = Math.max(((end - start) / (sTotal * 86400000)) * 100, 1.5);
+                      const p = Number(it.progress || 0);
+                      return (
+                        <div key={it.id} className="flex items-center">
+                          <div className="w-44 flex-shrink-0 pr-3">
+                            <p className="text-sm text-gray-800 font-medium truncate">{it.task || it.id}</p>
+                            <p className="text-xs text-gray-400 truncate">{it.owner || ''}</p>
+                          </div>
+                          <div className="flex-1 relative h-7 rounded-md bg-gray-50" style={{ marginLeft: `${offset}%`, marginRight: `${100 - offset - width}%` }}>
+                            <div className={`absolute inset-y-0 left-0 rounded-md ${BAR_COLORS[idx % BAR_COLORS.length]} opacity-90`} style={{ width: `${width}%` }}>
+                              <div className="absolute inset-y-0 left-0 rounded-md bg-black/25" style={{ width: `${p}%` }} />
+                              <span className="absolute inset-0 flex items-center justify-center text-[10px] text-white font-medium">{p}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Logs Tab */}
+      {tab === 'logs' && (
+        <Card>
+          <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><ClipboardList className="w-4 h-4 text-blue-500" />施工日志 ({logs.length})</CardTitle></CardHeader>
+          <CardContent>
+            {logs.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <p>暂无施工日志</p>
+                <p className="text-sm mt-1">请在「施工日志」模块填写该项目的日志</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {logs.map((it: any) => {
+                  const WI = WEATHER_ICON[it.weather] || Sun;
+                  return (
+                    <div key={it.id} className="border border-gray-100 rounded-xl p-4 hover:border-blue-200 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-500 flex items-center gap-1"><CalendarDays className="w-3 h-3" />{it.date}</span>
+                        <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 bg-gray-50 text-gray-600"><WI className="w-3 h-3" />{it.weather}</Badge>
+                        <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0 bg-gray-50 text-gray-600"><Users className="w-3 h-3" />{it.labor || 0}人</Badge>
+                        {it.recorder && <span className="text-xs text-gray-400 ml-auto">记录人：{it.recorder}</span>}
+                      </div>
+                      <p className="text-sm text-gray-700 mt-2 leading-relaxed">{it.workContent || '-'}</p>
+                      {it.equipment && (
+                        <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1.5"><Wrench className="w-3 h-3 text-gray-400" />{it.equipment}</p>
+                      )}
+                      {it.issues && it.issues !== '无' ? (
+                        <p className="text-xs text-amber-600 flex items-start gap-1.5 bg-amber-50 rounded-lg px-2.5 py-1.5 mt-2"><AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />{it.issues}</p>
+                      ) : (
+                        <p className="text-xs text-emerald-600 flex items-center gap-1.5 mt-2"><AlertCircle className="w-3 h-3" />当日无问题</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Milestones Tab */}
+      {tab === 'milestones' && (
+        <Card>
+          <CardHeader><CardTitle className="text-base font-semibold flex items-center gap-2"><GitBranch className="w-4 h-4 text-blue-500" />里程碑 ({milestones.length})</CardTitle></CardHeader>
+          <CardContent>
+            {milestones.length === 0 ? (
+              <div className="text-center py-16 text-gray-400">
+                <p>暂无里程碑</p>
+                <p className="text-sm mt-1">请在「里程碑管理」模块建立该项目的关键节点</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {milestones.map((m: any) => (
+                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
+                    {m.status === '已完成' ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      : m.status === '进行中' ? <Loader2 className="w-4 h-4 text-blue-500 animate-spin flex-shrink-0" />
+                      : <Clock className="w-4 h-4 text-slate-300 flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-gray-900 truncate">{m.name}</p>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${
+                          m.status === '已完成' ? 'bg-emerald-100 text-emerald-700' : m.status === '进行中' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                        }`}>{m.status}</Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        计划 {m.planDate || '-'}
+                        {m.actualDate && <span className="ml-2 text-emerald-600">实际 {m.actualDate}</span>}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-xs">
+                          <div className={`h-full rounded-full ${m.status === '已完成' ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Number(m.progress || 0)}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-500 tabular-nums w-9 text-right">{Number(m.progress || 0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Costs Tab */}
+      {tab === 'costs' && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base font-semibold">月度产值趋势（万元）</CardTitle></CardHeader>
+            <CardContent>
+              {prodTrend.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">暂无产值数据</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={prodTrend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} 万`, '产值']} />
+                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base font-semibold">预算构成</CardTitle></CardHeader>
+            <CardContent>
+              {budgetData.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">暂无预算数据</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie data={budgetData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={({ name, value }: any) => `${name} ${fmtMoney(Number(value))}`}>
+                      {budgetData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: any) => [fmtMoney(Number(v)), '预算']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -252,7 +536,7 @@ export default function ProjectDetailPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {documents.map((doc) => (
+                {documents.map((doc: any) => (
                   <div key={doc.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className="text-2xl flex-shrink-0">{DOC_TYPE_ICON[doc.type] || '📁'}</div>
                     <div className="flex-1 min-w-0">
@@ -278,15 +562,6 @@ export default function ProjectDetailPage() {
             )}
           </CardContent>
         </Card>
-      )}
-
-      {/* Costs Tab */}
-      {tab === 'costs' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard icon={Wallet} label="合同金额" value={fmtMoney(project.amount)} sub={project.contractType} color="purple" />
-          <StatCard icon={TrendingUp} label="累计产值" value="¥0" sub="暂无产值数据" color="emerald" />
-          <StatCard icon={Clock} label="工期进度" value={project.planDuration ? `${Math.round((Date.now() - new Date(project.startDate).getTime()) / 86400000)} / ${project.planDuration} 天` : '-'} sub={remaining.text} color="blue" />
-        </div>
       )}
 
       {/* View document dialog */}
@@ -389,23 +664,23 @@ function InfoRow({ label, value, icon: Icon, accent, badgeClass, badge }: any) {
   );
 }
 
-function StatCard({ icon: Icon, label, value, sub, color }: any) {
+function StatCard({ icon: Icon, label, value, sub, tone, cls }: any) {
   const colors: Record<string, any> = {
     blue: 'text-blue-600 bg-blue-50', purple: 'text-purple-600 bg-purple-50',
     emerald: 'text-emerald-600 bg-emerald-50', red: 'text-red-600 bg-red-50',
-    cyan: 'text-cyan-600 bg-cyan-50', amber: 'text-amber-600 bg-amber-50',
+    cyan: 'text-cyan-600 bg-cyan-50', amber: 'text-amber-600 bg-amber-50', sky: 'text-sky-600 bg-sky-50',
   };
-  const c = colors[color] || colors.blue;
+  const c = colors[tone] || colors.blue;
   return (
     <Card>
       <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${c}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${c}`}>
           <Icon className="w-5 h-5" />
         </div>
-        <div>
-          <p className="text-lg font-bold text-gray-900">{value}</p>
+        <div className="min-w-0">
+          <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
           <p className="text-xs text-gray-500">{label}</p>
-          {sub && <p className="text-[10px] text-gray-400">{sub}</p>}
+          {sub && <p className={`text-[10px] truncate ${cls || 'text-gray-400'}`}>{sub}</p>}
         </div>
       </CardContent>
     </Card>

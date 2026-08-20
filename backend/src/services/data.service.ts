@@ -425,12 +425,31 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   ];
 
   collections['budgets'] = [
-    { id: 'bd1', name: '清河水库除险加固预算', project: '清河水库除险加固工程', amount: 68000000, date: '2024-04-01' },
-    { id: 'bd2', name: '南水北调渠系工程预算', project: '南水北调支线渠系工程', amount: 150000000, date: '2024-06-15' },
-    { id: 'bd3', name: '流域治理工程预算', project: '流域综合治理工程', amount: 320000000, date: '2025-02-01' },
-    { id: 'bd4', name: '农田水利灌溉预算', project: '农田水利灌溉工程', amount: 28000000, date: '2025-07-01' },
-    { id: 'bd5', name: '水文监测站预算', project: '跨河大桥水文监测站', amount: 12000000, date: '2026-02-01' },
-    { id: 'bd6', name: '生态廊道工程预算', project: '滨江生态廊道工程', amount: 56000000, date: '2025-05-01' },
+    { id: 'bd1', name: '清河水库除险加固-人工费预算', project: '清河水库除险加固工程', category: '人工费', amount: 15000000, actualAmount: 9800000, date: '2024-04-01', status: '已审定' },
+    { id: 'bd2', name: '清河水库除险加固-材料费预算', project: '清河水库除险加固工程', category: '材料费', amount: 38000000, actualAmount: 24500000, date: '2024-04-01', status: '已审定' },
+    { id: 'bd3', name: '清河水库除险加固-机械费预算', project: '清河水库除险加固工程', category: '机械费', amount: 9000000, actualAmount: 6200000, date: '2024-04-01', status: '已审定' },
+    { id: 'bd4', name: '清河水库除险加固-措施费预算', project: '清河水库除险加固工程', category: '措施费', amount: 4000000, actualAmount: 2100000, date: '2024-04-01', status: '已审定' },
+    { id: 'bd5', name: '清河水库除险加固-管理费预算', project: '清河水库除险加固工程', category: '管理费', amount: 2000000, actualAmount: 1800000, date: '2024-04-01', status: '已审定' },
+    { id: 'bd6', name: '南水北调支线渠系-人工费预算', project: '南水北调支线渠系工程', category: '人工费', amount: 22000000, actualAmount: 11000000, date: '2024-06-01', status: '已审定' },
+    { id: 'bd7', name: '南水北调支线渠系-材料费预算', project: '南水北调支线渠系工程', category: '材料费', amount: 48000000, actualAmount: 20500000, date: '2024-06-01', status: '已审定' },
+    { id: 'bd8', name: '南水北调支线渠系-机械费预算', project: '南水北调支线渠系工程', category: '机械费', amount: 12000000, actualAmount: 6400000, date: '2024-06-01', status: '已审定' },
+    { id: 'bd9', name: '城市防洪堤加固-人工费预算', project: '城市防洪堤加固工程', category: '人工费', amount: 11000000, actualAmount: 10800000, date: '2024-04-01', status: '已封顶' },
+    { id: 'bd10', name: '城市防洪堤加固-材料费预算', project: '城市防洪堤加固工程', category: '材料费', amount: 29000000, actualAmount: 28200000, date: '2024-04-01', status: '已封顶' },
+    { id: 'bd11', name: '城市防洪堤加固-机械费预算', project: '城市防洪堤加固工程', category: '机械费', amount: 6000000, actualAmount: 5900000, date: '2024-04-01', status: '已封顶' },
+    { id: 'bd12', name: '流域综合治理-人工费预算', project: '流域综合治理工程', category: '人工费', amount: 28000000, actualAmount: 5200000, date: '2025-06-01', status: '已审定' },
+    { id: 'bd13', name: '流域综合治理-材料费预算', project: '流域综合治理工程', category: '材料费', amount: 46000000, actualAmount: 7800000, date: '2025-06-01', status: '已审定' },
+    { id: 'bd14', name: '流域综合治理-机械费预算', project: '流域综合治理工程', category: '机械费', amount: 15000000, actualAmount: 2400000, date: '2025-06-01', status: '已审定' },
+    { id: 'bd15', name: '流域综合治理-措施费预算', project: '流域综合治理工程', category: '措施费', amount: 6000000, actualAmount: 900000, date: '2025-06-01', status: '已审定' },
+    { id: 'bd16', name: '农田水利灌溉-人工费预算', project: '农田水利灌溉工程', category: '人工费', amount: 8000000, actualAmount: 4700000, date: '2025-05-01', status: '已审定' },
+    { id: 'bd17', name: '农田水利灌溉-材料费预算', project: '农田水利灌溉工程', category: '材料费', amount: 15000000, actualAmount: 8600000, date: '2025-05-01', status: '已审定' },
+    { id: 'bd18', name: '农田水利灌溉-机械费预算', project: '农田水利灌溉工程', category: '机械费', amount: 5000000, actualAmount: 2400000, date: '2025-05-01', status: '已审定' },
+    { id: 'bd19', name: '跨河大桥水文监测-材料费预算', project: '跨河大桥水文监测站', category: '材料费', amount: 7000000, actualAmount: 2100000, date: '2026-01-01', status: '编制中' },
+    { id: 'bd20', name: '滨江生态廊道-人工费预算', project: '滨江生态廊道工程', category: '人工费', amount: 13000000, actualAmount: 3100000, date: '2025-04-01', status: '已审定' },
+    { id: 'bd21', name: '滨江生态廊道-材料费预算', project: '滨江生态廊道工程', category: '材料费', amount: 18000000, actualAmount: 4200000, date: '2025-04-01', status: '已审定' },
+    { id: 'bd22', name: '滨江生态廊道-机械费预算', project: '滨江生态廊道工程', category: '机械费', amount: 8000000, actualAmount: 1500000, date: '2025-04-01', status: '已审定' },
+    { id: 'bd23', name: '湿地公园水系-人工费预算', project: '湿地公园水系工程', category: '人工费', amount: 14000000, actualAmount: 13600000, date: '2024-08-01', status: '已封顶' },
+    { id: 'bd24', name: '湿地公园水系-材料费预算', project: '湿地公园水系工程', category: '材料费', amount: 22000000, actualAmount: 21500000, date: '2024-08-01', status: '已封顶' },
+    { id: 'bd25', name: '湿地公园水系-机械费预算', project: '湿地公园水系工程', category: '机械费', amount: 5000000, actualAmount: 4900000, date: '2024-08-01', status: '已封顶' },
   ];
 
   collections['rentalPlans'] = [

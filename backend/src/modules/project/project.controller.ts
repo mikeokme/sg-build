@@ -52,6 +52,62 @@ export class ProjectController {
     return { ...item, documents: docs };
   }
 
+  @Get(':id/overview')
+  overview(@Param('id') id: string, @Req() req: AuthedRequest) {
+    const items = this.dataService.getCollectionItems('projectArchives');
+    const item = items.find((p: any) => p.id === id);
+    if (!item) throw new NotFoundException('项目不存在');
+    const name = item.name;
+    const byName = (col: string) => this.dataService.getCollectionItems(col)
+      .filter((d: any) => d.project === name);
+    const byId = (col: string) => this.dataService.getCollectionItems(col)
+      .filter((d: any) => d.projectId === id);
+    const sum = (arr: any[], key: string) => arr.reduce((s: number, x: any) => s + (Number(x[key]) || 0), 0);
+    const docs = byId('projectDocuments');
+    const logs = byName('constructionLogs').sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''));
+    const milestones = byName('milestones');
+    const progressItems = byName('progress');
+    const production = byName('productionValues');
+    const budgets = byName('budgets');
+    const plans = byName('plans');
+    const changes = byName('changes');
+    const completions = byName('completions');
+    const rentalPlans = byName('rentalPlans');
+    const subcontractPlans = byName('subcontractPlans');
+    return {
+      project: item,
+      documents: docs,
+      logs,
+      milestones,
+      progress: progressItems,
+      production,
+      budgets,
+      plans,
+      changes,
+      completions,
+      rentalPlans,
+      subcontractPlans,
+      stats: {
+        documentCount: docs.length,
+        logCount: logs.length,
+        logLaborTotal: sum(logs, 'labor'),
+        milestoneTotal: milestones.length,
+        milestoneDone: milestones.filter((m: any) => m.status === '已完成').length,
+        milestoneActive: milestones.filter((m: any) => m.status === '进行中').length,
+        progressItemCount: progressItems.length,
+        avgProgress: progressItems.length ? Math.round(sum(progressItems, 'progress') / progressItems.length) : 0,
+        productionValue: sum(production, 'value'),
+        productionCumulative: sum(production, 'cumulative'),
+        budgetAmount: sum(budgets, 'amount'),
+        budgetActual: sum(budgets, 'actualAmount'),
+        changeAmount: sum(changes, 'amount'),
+        changePending: changes.filter((c: any) => c.status === '待审批').length,
+        planCount: plans.length,
+        planPending: plans.filter((p: any) => p.status === '待审批').length,
+      },
+    };
+  }
+
   @Post()
   create(@Body() data: any, @Req() req: AuthedRequest) {
     if (!canEditProject(req.user?.role)) throw new NotFoundException('权限不足');
