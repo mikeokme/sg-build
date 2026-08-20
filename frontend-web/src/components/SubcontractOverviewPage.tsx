@@ -14,6 +14,7 @@ import {
   CartesianGrid, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import type { FeatureDef } from '@/config/features';
+import { useProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444'];
@@ -69,6 +70,7 @@ export function SubcontractOverviewPage({ feature, categoryTitle }: { feature: F
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('全部');
+  const { matchesProject } = useProject();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -91,14 +93,14 @@ export function SubcontractOverviewPage({ feature, categoryTitle }: { feature: F
     ).finally(() => setLoading(false));
   }, []);
 
-  const labor = data?.laborSubcontractors || [];
-  const pro = data?.proSubcontractors || [];
-  const laborContracts = data?.laborContracts || [];
-  const proContracts = data?.proContracts || [];
-  const changes = data?.subcontractChanges || [];
-  const settlements = data?.subcontractSettlements || [];
-  const payments = data?.subcontractPayments || [];
-  const evals = data?.subcontractEvaluations || [];
+  const labor = (data?.laborSubcontractors || []).filter(matchesProject);
+  const pro = (data?.proSubcontractors || []).filter(matchesProject);
+  const laborContracts = (data?.laborContracts || []).filter(matchesProject);
+  const proContracts = (data?.proContracts || []).filter(matchesProject);
+  const changes = (data?.subcontractChanges || []).filter(matchesProject);
+  const settlements = (data?.subcontractSettlements || []).filter(matchesProject);
+  const payments = (data?.subcontractPayments || []).filter(matchesProject);
+  const evals = (data?.subcontractEvaluations || []).filter(matchesProject);
 
 const contractAll = [...laborContracts, ...proContracts];
   const contractAmount = contractAll.reduce((s: any, c: any) => s + (Number(c.amount) || 0), 0);

@@ -207,7 +207,7 @@ export function EngineeringOverviewPage({ feature, categoryTitle }: { feature: F
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">工程管理驾驶舱</h1>
+          <h1 className="text-2xl font-bold text-gray-900">项目管理驾驶舱</h1>
         </div>
         <div className="flex items-center gap-2">
           {allowCreate && (

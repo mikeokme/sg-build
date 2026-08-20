@@ -11,6 +11,7 @@ import { Plus, Pencil, Trash2, Loader2, Eye, Star, TrendingUp } from 'lucide-rea
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -34,6 +35,8 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const matchesProject = useProjectFilter(categoryKey);
+  const currentProject = useCurrentProject(categoryKey);
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -51,26 +54,32 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
 
   useEffect(() => { fetchItems(); }, [feature.collection]);
 
+  const scopedItems = useMemo(() => items.filter(matchesProject), [items, matchesProject]);
+
+  useEffect(() => {
+    setActive((prev: any) => (prev && scopedItems.find((l: any) => l.id === prev.id)) || scopedItems[0] || null);
+  }, [scopedItems]);
+
   const ranked = useMemo(() => {
-    return [...items].sort((a, b) => {
+    return [...scopedItems].sort((a, b) => {
       const avgA = (Number(a.qualityScore) + Number(a.deliveryScore) + Number(a.priceScore) + Number(a.serviceScore)) / 4;
       const avgB = (Number(b.qualityScore) + Number(b.deliveryScore) + Number(b.priceScore) + Number(b.serviceScore)) / 4;
       return avgB - avgA;
     });
-  }, [items]);
+  }, [scopedItems]);
 
   const rankDist = useMemo(() => {
     const map = new Map<string, number>();
-    for (const it of items) map.set(it.result || '未评级', (map.get(it.result || '未评级') || 0) + 1);
+    for (const it of scopedItems) map.set(it.result || '未评级', (map.get(it.result || '未评级') || 0) + 1);
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [items]);
+  }, [scopedItems]);
 
-  const avgQuality = items.length ? Math.round(items.reduce((s, it) => s + (Number(it.qualityScore) || 0), 0) / items.length) : 0;
-  const avgDelivery = items.length ? Math.round(items.reduce((s, it) => s + (Number(it.deliveryScore) || 0), 0) / items.length) : 0;
-  const avgPrice = items.length ? Math.round(items.reduce((s, it) => s + (Number(it.priceScore) || 0), 0) / items.length) : 0;
-  const avgService = items.length ? Math.round(items.reduce((s, it) => s + (Number(it.serviceScore) || 0), 0) / items.length) : 0;
-  const excellent = items.filter((it) => it.result === 'A级-优秀').length;
-  const bad = items.filter((it) => it.result === 'D级-淘汰').length;
+  const avgQuality = scopedItems.length ? Math.round(scopedItems.reduce((s, it) => s + (Number(it.qualityScore) || 0), 0) / scopedItems.length) : 0;
+  const avgDelivery = scopedItems.length ? Math.round(scopedItems.reduce((s, it) => s + (Number(it.deliveryScore) || 0), 0) / scopedItems.length) : 0;
+  const avgPrice = scopedItems.length ? Math.round(scopedItems.reduce((s, it) => s + (Number(it.priceScore) || 0), 0) / scopedItems.length) : 0;
+  const avgService = scopedItems.length ? Math.round(scopedItems.reduce((s, it) => s + (Number(it.serviceScore) || 0), 0) / scopedItems.length) : 0;
+  const excellent = scopedItems.filter((it) => it.result === 'A级-优秀').length;
+  const bad = scopedItems.filter((it) => it.result === 'D级-淘汰').length;
 
   const radarData = [
     { metric: '质量', value: avgQuality },
@@ -86,6 +95,9 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
     setForm({ qualityScore: 0, deliveryScore: 0, priceScore: 0, serviceScore: 0, result: 'B级-良好' });
     for (const f of feature.fields) if (f.type === 'number') setForm((prev) => ({ ...prev, [f.key]: 0 }));
     setForm((prev) => ({ ...prev, result: 'B级-良好' }));
+    if (currentProject && feature.fields.some((f) => f.key === 'project')) {
+      setForm((prev) => ({ ...prev, project: currentProject.name }));
+    }
     setDialogOpen(true);
   };
 
@@ -140,7 +152,7 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { icon: Star, label: '评价总数', value: items.length, tone: 'text-purple-600 bg-purple-50' },
+          { icon: Star, label: '评价总数', value: scopedItems.length, tone: 'text-purple-600 bg-purple-50' },
           { icon: TrendingUp, label: 'A级优秀', value: excellent, tone: 'text-emerald-600 bg-emerald-50' },
           { icon: Star, label: '平均质量分', value: avgQuality, tone: 'text-blue-600 bg-blue-50' },
           { icon: Star, label: '平均交期分', value: avgDelivery, tone: 'text-cyan-600 bg-cyan-50' },

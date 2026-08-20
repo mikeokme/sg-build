@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, Loader2, Eye, Truck, CheckCircle2, XCircle, MinusCircle, ClipboardCheck } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -33,6 +34,8 @@ export function ReceiptsPage({ feature, categoryTitle, categoryKey }: { feature:
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const matchesProject = useProjectFilter(categoryKey);
+  const currentProject = useCurrentProject(categoryKey);
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -48,25 +51,30 @@ export function ReceiptsPage({ feature, categoryTitle, categoryKey }: { feature:
 
   useEffect(() => { fetchItems(); }, [feature.collection]);
 
+  const scopedItems = useMemo(() => items.filter(matchesProject), [items, matchesProject]);
+
   const filtered = useMemo(() => {
-    if (statusFilter === '全部') return items;
-    return items.filter((it) => it.status === statusFilter);
-  }, [items, statusFilter]);
+    if (statusFilter === '全部') return scopedItems;
+    return scopedItems.filter((it) => it.status === statusFilter);
+  }, [scopedItems, statusFilter]);
 
   const sorted = useMemo(() => [...filtered].sort((a, b) => (b.date || '').localeCompare(a.date || '')), [filtered]);
 
   const statusOptions = ['待验收', '验收合格', '部分合格', '拒收'];
-  const totalQty = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
-  const totalQualified = items.reduce((s, it) => s + (Number(it.qualified) || 0), 0);
-  const totalUnqualified = items.reduce((s, it) => s + (Number(it.unqualified) || 0), 0);
-  const pendingCount = items.filter((it) => it.status === '待验收').length;
-  const rejectCount = items.filter((it) => it.status === '拒收').length;
+  const totalQty = scopedItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  const totalQualified = scopedItems.reduce((s, it) => s + (Number(it.qualified) || 0), 0);
+  const totalUnqualified = scopedItems.reduce((s, it) => s + (Number(it.unqualified) || 0), 0);
+  const pendingCount = scopedItems.filter((it) => it.status === '待验收').length;
+  const rejectCount = scopedItems.filter((it) => it.status === '拒收').length;
 
   const openCreate = () => {
     setEditing(null);
     setForm({ status: '待验收', quantity: 0, qualified: 0, unqualified: 0 });
     for (const f of feature.fields) if (f.type === 'number') setForm((prev) => ({ ...prev, [f.key]: 0 }));
     setForm((prev) => ({ ...prev, status: '待验收' }));
+    if (currentProject && feature.fields.some((f) => f.key === 'project')) {
+      setForm((prev) => ({ ...prev, project: currentProject.name }));
+    }
     setDialogOpen(true);
   };
 
@@ -121,7 +129,7 @@ export function ReceiptsPage({ feature, categoryTitle, categoryKey }: { feature:
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: ClipboardCheck, label: '验收单总数', value: items.length, tone: 'text-blue-600 bg-blue-50' },
+          { icon: ClipboardCheck, label: '验收单总数', value: scopedItems.length, tone: 'text-blue-600 bg-blue-50' },
           { icon: Truck, label: '累计到货', value: `${totalQty.toLocaleString()} 件`, tone: 'text-cyan-600 bg-cyan-50' },
           { icon: CheckCircle2, label: '合格数量', value: totalQualified.toLocaleString(), tone: 'text-emerald-600 bg-emerald-50' },
           { icon: XCircle, label: '不合格/拒收', value: `${totalUnqualified.toLocaleString()} / ${rejectCount}单`, tone: 'text-red-600 bg-red-50' },

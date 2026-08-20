@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Search, Pencil, Trash2, Loader2, Eye, Wallet, Clock, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
+import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -73,6 +74,8 @@ export function EngineeringModulePage({ feature, categoryTitle, categoryKey }: {
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const matchesProject = useProjectFilter(categoryKey);
+  const currentProject = useCurrentProject(categoryKey);
   const meta = DEFAULTS[feature.collection] || { title: feature.title, amountLabel: '金额' };
 
   const statusField = feature.fields.find((f) => f.key === 'status');
@@ -101,36 +104,38 @@ export function EngineeringModulePage({ feature, categoryTitle, categoryKey }: {
 
   useEffect(() => { fetchItems(); }, [feature.collection]);
 
+  const scopedItems = useMemo(() => items.filter(matchesProject), [items, matchesProject]);
+
   const filtered = useMemo(() => {
-    let list = items;
+    let list = scopedItems;
     if (statusFilter !== '全部') list = list.filter((it) => it.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((it) => Object.values(it).some((v) => String(v ?? '').toLowerCase().includes(q)));
     }
     return list;
-  }, [items, search, statusFilter]);
+  }, [scopedItems, search, statusFilter]);
 
   const statusCount = useMemo(() => {
     const map = new Map<string, number>();
-    for (const it of items) map.set(it.status || '未设置', (map.get(it.status || '未设置') || 0) + 1);
+    for (const it of scopedItems) map.set(it.status || '未设置', (map.get(it.status || '未设置') || 0) + 1);
     return map;
-  }, [items]);
+  }, [scopedItems]);
 
   const pendingCount = statusOptions.includes('待审批')
-    ? items.filter((it) => it.status === '待审批').length
+    ? scopedItems.filter((it) => it.status === '待审批').length
     : statusOptions.includes('编制中')
-      ? items.filter((it) => it.status === '编制中').length
+      ? scopedItems.filter((it) => it.status === '编制中').length
       : 0;
   const doneCount = statusOptions.includes('已完成')
-    ? items.filter((it) => it.status === '已完成').length
+    ? scopedItems.filter((it) => it.status === '已完成').length
     : statusOptions.includes('已执行')
-      ? items.filter((it) => it.status === '已执行').length
+      ? scopedItems.filter((it) => it.status === '已执行').length
       : 0;
-  const totalAmount = items.reduce((s, it) => s + (Number(it[amountField?.key || 'amount']) || 0), 0);
+  const totalAmount = scopedItems.reduce((s, it) => s + (Number(it[amountField?.key || 'amount']) || 0), 0);
 
   const summaryCards = [
-    { icon: FileText, label: '记录总数', value: items.length, tone: 'blue' },
+    { icon: FileText, label: '记录总数', value: scopedItems.length, tone: 'blue' },
     { icon: Clock, label: '待办', value: pendingCount, tone: 'amber' },
     { icon: CheckCircle2, label: '已完成', value: doneCount, tone: 'emerald' },
     { icon: Wallet, label: meta.amountLabel, value: fmtMoney(totalAmount), tone: 'purple' },
@@ -140,6 +145,9 @@ export function EngineeringModulePage({ feature, categoryTitle, categoryKey }: {
     setEditing(null);
     const form: Record<string, any> = {};
     for (const f of visibleFields) form[f.key] = f.type === 'number' ? 0 : '';
+    if (currentProject && feature.fields.some((f) => f.key === 'project')) {
+      form.project = currentProject.name;
+    }
     setForm(form);
     setDialogOpen(true);
   };
@@ -238,7 +246,7 @@ export function EngineeringModulePage({ feature, categoryTitle, categoryKey }: {
           <div className="flex items-center gap-1.5 flex-wrap">
             <button onClick={() => setStatusFilter('全部')}
               className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              全部{items.length ? ` (${items.length})` : ''}
+              全部{scopedItems.length ? ` (${scopedItems.length})` : ''}
             </button>
             {statusOptions.map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}

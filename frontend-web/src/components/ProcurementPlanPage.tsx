@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Search, Pencil, Trash2, Loader2, Eye, FileText, CheckCircle2, XCircle, Clock, Check } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canApprove, getCurrentRole } from '@/config/roles';
+import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 
 const API_BASE = 'http://localhost:3000';
 
@@ -42,6 +43,8 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
   const allowApprove = canApprove(role);
+  const matchesProject = useProjectFilter(categoryKey);
+  const currentProject = useCurrentProject(categoryKey);
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -57,30 +60,32 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
 
   useEffect(() => { fetchItems(); }, [feature.collection]);
 
+  const scopedItems = useMemo(() => items.filter(matchesProject), [items, matchesProject]);
+
   const filtered = useMemo(() => {
-    let list = items;
+    let list = scopedItems;
     if (statusFilter !== '全部') list = list.filter((it) => it.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((it) => Object.values(it).some((v) => String(v ?? '').toLowerCase().includes(q)));
     }
     return list;
-  }, [items, search, statusFilter]);
+  }, [scopedItems, search, statusFilter]);
 
   const statusOptions = ['草稿', '待审批', '已批准', '已驳回'];
   const statusCount = useMemo(() => {
     const map = new Map<string, number>();
-    for (const it of items) map.set(it.status || '未设置', (map.get(it.status || '未设置') || 0) + 1);
+    for (const it of scopedItems) map.set(it.status || '未设置', (map.get(it.status || '未设置') || 0) + 1);
     return map;
-  }, [items]);
+  }, [scopedItems]);
 
-  const totalBudget = items.reduce((s, it) => s + (Number(it.budget) || 0), 0);
-  const pendingCount = items.filter((it) => it.status === '待审批').length;
-  const approvedCount = items.filter((it) => it.status === '已批准').length;
-  const totalQty = items.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  const totalBudget = scopedItems.reduce((s, it) => s + (Number(it.budget) || 0), 0);
+  const pendingCount = scopedItems.filter((it) => it.status === '待审批').length;
+  const approvedCount = scopedItems.filter((it) => it.status === '已批准').length;
+  const totalQty = scopedItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
   const summaryCards = [
-    { icon: FileText, label: '计划总数', value: items.length, tone: 'blue' },
+    { icon: FileText, label: '计划总数', value: scopedItems.length, tone: 'blue' },
     { icon: Clock, label: '待审批', value: pendingCount, tone: 'amber' },
     { icon: CheckCircle2, label: '已批准', value: approvedCount, tone: 'emerald' },
     { icon: Check, label: '预算总额', value: fmtMoney(totalBudget), tone: 'purple' },
@@ -91,6 +96,9 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
     setForm({ status: '草稿', quantity: 0, budget: 0 });
     for (const f of feature.fields) if (f.type === 'number') setForm((prev) => ({ ...prev, [f.key]: 0 }));
     setForm((prev) => ({ ...prev, status: '草稿' }));
+    if (currentProject && feature.fields.some((f) => f.key === 'project')) {
+      setForm((prev) => ({ ...prev, project: currentProject.name }));
+    }
     setDialogOpen(true);
   };
 
@@ -181,7 +189,7 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
           <div className="flex items-center gap-1.5 flex-wrap">
             <button onClick={() => setStatusFilter('全部')}
               className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              全部{items.length ? ` (${items.length})` : ''}
+              全部{scopedItems.length ? ` (${scopedItems.length})` : ''}
             </button>
             {statusOptions.map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}

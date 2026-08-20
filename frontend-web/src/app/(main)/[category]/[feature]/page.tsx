@@ -26,6 +26,8 @@ import { SupplierEvalPage } from '@/components/SupplierEvalPage';
 import { SubcontractOverviewPage } from '@/components/SubcontractOverviewPage';
 import { getFeature, getCategory } from '@/config/features';
 import { Button } from '@/components/ui/button';
+import { ProjectProvider, PROJECT_FILTERED_CATEGORIES } from '@/context/ProjectContext';
+import { ProjectSwitcher } from '@/components/ProjectSwitcher';
 
 export default function FeatureRoutePage() {
   const params = useParams<{ category: string; feature: string }>();
@@ -42,14 +44,19 @@ export default function FeatureRoutePage() {
   }
 
   const pageType = feature.pageType || 'list';
+  const filteredCategory = PROJECT_FILTERED_CATEGORIES.includes(category.key);
 
   return (
-    <div>
-      <div className="flex items-center gap-1 text-sm text-gray-400 mb-4">
-        <Link href="/" className="hover:text-blue-600">{category.title}</Link>
-        <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-gray-700">{feature.title}</span>
-      </div>
+    <ProjectProvider>
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-1 text-sm text-gray-400">
+            <Link href="/" className="hover:text-blue-600">{category.title}</Link>
+            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="text-gray-700">{feature.title}</span>
+          </div>
+          {filteredCategory && <ProjectSwitcher />}
+        </div>
       {pageType === 'dashboard' && <StatPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'approval' && <ApprovalPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'gantt' && <GanttPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
@@ -70,6 +77,7 @@ export default function FeatureRoutePage() {
       {pageType === 'supplier-eval' && <SupplierEvalPage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
       {pageType === 'subcontract-overview' && <SubcontractOverviewPage feature={feature} categoryTitle={category.title} />}
       {pageType === 'list' && <FeaturePage feature={feature} categoryTitle={category.title} categoryKey={category.key} />}
-    </div>
+      </div>
+    </ProjectProvider>
   );
 }
