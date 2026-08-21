@@ -2,11 +2,11 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const STORAGE_KEY = 'selectedProjectId';
 
-export const PROJECT_FILTERED_CATEGORIES = ['procurement', 'subcontract', 'material', 'equipment'];
+export const PROJECT_FILTERED_CATEGORIES = ['procurement', 'subcontract', 'material', 'equipment', 'engineering', 'finance', 'safety', 'quality'];
 
 export function useProjectFilter(categoryKey: string) {
   const { matchesProject } = useProject();
@@ -82,7 +82,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       if (!selectedProject) return true;
       if (!item) return false;
       if (item.projectId) return item.projectId === selectedProject.id;
-      if (item.project) return item.project === selectedProject.name;
+      const p = item.project;
+      if (!p) return true;
+      const name = selectedProject.name;
+      if (p === name) return true;
+      if (p.includes(name) && name.length >= 4) return true;
+      if (name.includes(p) && p.length >= 4) return true;
       return false;
     },
     [selectedProject],

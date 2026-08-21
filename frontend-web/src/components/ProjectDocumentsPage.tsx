@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const DOC_TYPE_BADGE: Record<string, string> = {
   技术方案: 'text-blue-600 bg-blue-50 border-blue-200',
@@ -35,7 +36,7 @@ function fmtBytes(b: number): string {
   return `${(b / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: FeatureDef; categoryTitle: string }) {
+export function ProjectDocumentsPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [projects, setProjects] = useState<any[]>([]);
   const [docs, setDocs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,8 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
   const [delId, setDelId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { lang, t, tCat, tFeat } = useT();
+  const isZh = lang === 'zh';
 
   const role = getCurrentRole();
   const allowCreate = canCreate('engineering', role);
@@ -130,60 +133,60 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         {allowCreate && selectedProjectId && (
-          <Button onClick={() => setAddOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-xs"><Plus className="w-4 h-4 mr-1" />上传文档</Button>
+          <Button onClick={() => setAddOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-xs"><Plus className="w-4 h-4 mr-1" />{isZh ? '上传文档' : 'Upload Document'}</Button>
         )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><Building2 className="w-5 h-5 text-blue-600" /></div><div><p className="text-lg font-bold">{projects.length}</p><p className="text-xs text-gray-500">项目总数</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><FileText className="w-5 h-5 text-emerald-600" /></div><div><p className="text-lg font-bold">{docs.length}</p><p className="text-xs text-gray-500">当前项目文档</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><Paperclip className="w-5 h-5 text-purple-600" /></div><div><p className="text-lg font-bold">{projects.reduce((s,p)=>s+(p.documentCount||0),0)}</p><p className="text-xs text-gray-500">全部文档</p></div></CardContent></Card>
-        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-amber-600" /></div><div><p className="text-lg font-bold">{fmtBytes(docs.reduce((s,d)=>s+(d.size||0),0))}</p><p className="text-xs text-gray-500">文档总量</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><Building2 className="w-5 h-5 text-blue-600" /></div><div><p className="text-lg font-bold">{projects.length}</p><p className="text-xs text-gray-500">{isZh ? '项目总数' : 'Total Projects'}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><FileText className="w-5 h-5 text-emerald-600" /></div><div><p className="text-lg font-bold">{docs.length}</p><p className="text-xs text-gray-500">{isZh ? '当前项目文档' : 'Current Project Docs'}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center"><Paperclip className="w-5 h-5 text-purple-600" /></div><div><p className="text-lg font-bold">{projects.reduce((s,p)=>s+(p.documentCount||0),0)}</p><p className="text-xs text-gray-500">{isZh ? '全部文档' : 'All Documents'}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-amber-600" /></div><div><p className="text-lg font-bold">{fmtBytes(docs.reduce((s,d)=>s+(d.size||0),0))}</p><p className="text-xs text-gray-500">{isZh ? '文档总量' : 'Total Storage'}</p></div></CardContent></Card>
       </div>
 
       {/* Project selector + docs table */}
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-blue-500" />文档库
+            <FolderOpen className="w-4 h-4 text-blue-500" />{isZh ? '文档库' : 'Document Library'}
           </CardTitle>
           {projects.length > 0 && (
             <select value={selectedProjectId} onChange={(e) => handleProjectSelect(e.target.value)}
               className="h-9 px-3 rounded-md border border-gray-300 bg-white text-sm min-w-[200px]">
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.documentCount || 0}份)</option>)}
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.documentCount || 0}{isZh ? '份' : ' files'})</option>)}
             </select>
           )}
           <div className="relative flex-1 max-w-xs ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索文档..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={isZh ? '搜索文档...' : 'Search documents...'} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge variant="secondary" className="text-xs">{filtered.length} 份</Badge>
+          <Badge variant="secondary" className="text-xs">{filtered.length} {t('count')}</Badge>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-              <p>{selectedProjectId ? '该项目中暂无文档' : '请先选择一个项目'}</p>
+              <p>{selectedProjectId ? (isZh ? '该项目中暂无文档' : 'No documents in this project') : (isZh ? '请先选择一个项目' : 'Select a project first')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8" />
-                  <TableHead>文档名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>文件名</TableHead>
-                  <TableHead>大小</TableHead>
-                  <TableHead>上传人</TableHead>
-                  <TableHead>日期</TableHead>
-                  <TableHead className="w-20 text-right">操作</TableHead>
+                  <TableHead>{isZh ? '文档名称' : 'Document Name'}</TableHead>
+                  <TableHead>{isZh ? '类型' : 'Type'}</TableHead>
+                  <TableHead>{isZh ? '文件名' : 'File Name'}</TableHead>
+                  <TableHead>{isZh ? '大小' : 'Size'}</TableHead>
+                  <TableHead>{isZh ? '上传人' : 'Uploader'}</TableHead>
+                  <TableHead>{isZh ? '日期' : 'Date'}</TableHead>
+                  <TableHead className="w-20 text-right">{t('operation')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -205,9 +208,9 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
                     <TableCell><span className="text-xs text-gray-500">{doc.date || '-'}</span></TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => setViewDoc(doc)} title="查看" className="text-blue-600"><Eye className="w-3.5 h-3.5" /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setViewDoc(doc)} title={isZh ? '查看' : 'View'} className="text-blue-600"><Eye className="w-3.5 h-3.5" /></Button>
                         {allowDelete && (
-                          <Button variant="ghost" size="icon-sm" onClick={() => setDelId(doc.id)} title="删除" className="text-red-500 hover:text-red-700" disabled={deleting === doc.id}>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setDelId(doc.id)} title={t('delete')} className="text-red-500 hover:text-red-700" disabled={deleting === doc.id}>
                             {deleting === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                           </Button>
                         )}
@@ -224,24 +227,24 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
       {/* View dialog */}
       <Dialog open={!!viewDoc} onOpenChange={(o) => !o && setViewDoc(null)}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>文档详情</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isZh ? '文档详情' : 'Document Detail'}</DialogTitle></DialogHeader>
           {viewDoc && (
             <div className="space-y-3 py-2">
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <span className="text-3xl">{DOC_TYPE_BADGE[viewDoc.type] ? '📄' : '📁'}</span>
                 <div>
                   <p className="font-medium text-sm">{viewDoc.name}</p>
-                  <p className="text-xs text-gray-500">{viewDoc.fileName || '未命名文件'}</p>
+                  <p className="text-xs text-gray-500">{viewDoc.fileName || (isZh ? '未命名文件' : 'Unnamed file')}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{fmtBytes(viewDoc.size)} · {viewDoc.type || '-'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-500">上传人:</span> <span className="ml-1">{viewDoc.uploader || '-'}</span></div>
-                <div><span className="text-gray-500">日期:</span> <span className="ml-1">{viewDoc.date || '-'}</span></div>
+                <div><span className="text-gray-500">{isZh ? '上传人' : 'Uploader'}:</span> <span className="ml-1">{viewDoc.uploader || '-'}</span></div>
+                <div><span className="text-gray-500">{isZh ? '日期' : 'Date'}:</span> <span className="ml-1">{viewDoc.date || '-'}</span></div>
               </div>
               {viewDoc.description && <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{viewDoc.description}</p>}
               <div className="flex justify-end gap-2 pt-1">
-                <Button variant="outline" size="sm" onClick={() => setViewDoc(null)}>关闭</Button>
+                <Button variant="outline" size="sm" onClick={() => setViewDoc(null)}>{isZh ? '关闭' : 'Close'}</Button>
               </div>
             </div>
           )}
@@ -251,33 +254,33 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
       {/* Add doc dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>上传项目文档</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isZh ? '上传项目文档' : 'Upload Project Document'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>文档名称 *</Label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="输入文档名称" className="mt-1" />
+              <Label>{isZh ? '文档名称' : 'Document Name'} *</Label>
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder={isZh ? '输入文档名称' : 'Enter document name'} className="mt-1" />
             </div>
             <div>
-              <Label>文档类型</Label>
+              <Label>{isZh ? '文档类型' : 'Document Type'}</Label>
               <select value={formType} onChange={(e) => setFormType(e.target.value)} className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm">
-                <option value="">请选择类型</option>
+                <option value="">{isZh ? '请选择类型' : 'Select type'}</option>
                 {['技术方案', '图纸', '检测报告', '验收记录', '设计变更', '评估报告', '设备清单', '合同文件', '其他'].map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>
             <div>
-              <Label>文件名</Label>
+              <Label>{isZh ? '文件名' : 'File Name'}</Label>
               <Input value={formFile} onChange={(e) => setFormFile(e.target.value)} placeholder="如: xxx.pdf" className="mt-1" />
             </div>
             <div>
-              <Label>描述</Label>
-              <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} className="mt-1 w-full min-h-16 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm" placeholder="文档描述..." />
+              <Label>{isZh ? '描述' : 'Description'}</Label>
+              <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} className="mt-1 w-full min-h-16 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm" placeholder={isZh ? '文档描述...' : 'Document description...'} />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>取消</Button>
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>{isZh ? '取消' : 'Cancel'}</Button>
               <Button onClick={handleAdd} disabled={saving || !formName.trim()} className="bg-blue-600 hover:bg-blue-700 text-xs">
-                {saving && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}确认上传
+                {saving && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}{isZh ? '确认上传' : 'Upload'}
               </Button>
             </div>
           </div>
@@ -287,11 +290,11 @@ export function ProjectDocumentsPage({ feature, categoryTitle }: { feature: Feat
       {/* Delete confirm */}
       <Dialog open={!!delId} onOpenChange={(o) => !o && setDelId(null)}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>确认删除</DialogTitle></DialogHeader>
-          <p className="text-sm text-gray-600 py-2">确认删除该文档？此操作不可恢复。</p>
+          <DialogHeader><DialogTitle>{t('confirmDelete')}</DialogTitle></DialogHeader>
+          <p className="text-sm text-gray-600 py-2">{isZh ? '确认删除该文档？此操作不可恢复。' : 'Delete this document? This cannot be undone.'}</p>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDelId(null)}>取消</Button>
-            <Button size="sm" onClick={() => delId && handleDelete(delId)} className="bg-red-600 hover:bg-red-700 text-xs">确认删除</Button>
+            <Button variant="outline" size="sm" onClick={() => setDelId(null)}>{isZh ? '取消' : 'Cancel'}</Button>
+            <Button size="sm" onClick={() => delId && handleDelete(delId)} className="bg-red-600 hover:bg-red-700 text-xs">{t('confirmDelete')}</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -6,6 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact, KeyRound,
+  Mic, MicOff, Phone, PhoneOff, Video, VideoOff, Play, Pause,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 const BURN_SECONDS = [
   { value: 5, label: '5秒' },
   { value: 10, label: '10秒' },
@@ -211,6 +212,25 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const [groupEditDesc, setGroupEditDesc] = useState('');
   const [groupEditAvatar, setGroupEditAvatar] = useState('');
   const REACTION_EMOJIS = ['👍', '❤️', '😂', '🔥', '👏', '🎉', '🙏', '😮'];
+
+  // ── 语音消息 ──
+  const [recording, setRecording] = useState(false);
+  const [recordingSec, setRecordingSec] = useState(0);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioPlayRef = useRef<HTMLAudioElement | null>(null);
+
+  // ── 单聊视频通话（WebRTC） ──
+  const [callState, setCallState] = useState<'idle' | 'calling' | 'incoming' | 'connected'>('idle');
+  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [callMuted, setCallMuted] = useState(false);
+  const [callCamOff, setCallCamOff] = useState(false);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   // 用户信息快速查找 & 部门标签
   const userMap = useMemo(() => {
@@ -432,6 +452,25 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
     });
     s.on('chat:presence-list', (data: any) => { setOnlineUsers(new Set(data.online || [])); });
 
+    s.on('chat:call:offer', (data: any) => {
+      if (data.from === user.username) return;
+      setIncomingCall(data);
+      setCallState('incoming');
+    });
+    s.on('chat:call:answer', async (data: any) => {
+      try {
+        if (pcRef.current && data.answer) {
+          await pcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+          setCallState('connected');
+        }
+      } catch {}
+    });
+    s.on('chat:call:ice', async (data: any) => {
+      try { if (pcRef.current && data.candidate) await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch {}
+    });
+    s.on('chat:call:end', () => cleanupCall());
+    s.on('chat:call:decline', () => cleanupCall());
+
     fetch(`${API_BASE}/chat/users`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setAvailableUsers(Array.isArray(d) ? d : []))
@@ -634,6 +673,133 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       await api(`/chat/conversations/${selectedId}/pinned-message`, 'PUT', { messageId: null });
       fetchConvs();
     } catch {}
+  };
+
+  // ── 语音录制 ──
+  const startRecording = async () => {
+    if (recording || !selectedId) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (audioChunksRef.current.length === 0) return;
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const dur = recordingSec;
+        if (dur < 1) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result as string;
+          socket?.emit('chat:send', { conversationId: selectedId, content: base64, contentType: 'voice', duration: dur });
+        };
+        reader.readAsDataURL(blob);
+      };
+      mediaRecorderRef.current = mr;
+      mr.start();
+      setRecording(true);
+      setRecordingSec(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSec((s) => s + 1), 1000);
+    } catch (e: any) {
+      alert(e?.message || '无法访问麦克风');
+    }
+  };
+  const stopRecording = (cancel = false) => {
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      if (cancel) {
+        mr.onstop = null;
+        mr.stop();
+        mr.stream.getTracks().forEach((t: any) => t.stop());
+      } else {
+        mr.stop();
+      }
+    }
+    setRecording(false);
+    setRecordingSec(0);
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+  };
+  const playVoice = (id: string, base64: string) => {
+    if (playingVoiceId === id) {
+      audioPlayRef.current?.pause();
+      setPlayingVoiceId(null);
+      return;
+    }
+    try {
+      if (audioPlayRef.current) { audioPlayRef.current.pause(); }
+      const a = new Audio(base64);
+      audioPlayRef.current = a;
+      setPlayingVoiceId(id);
+      a.onended = () => setPlayingVoiceId(null);
+      a.onerror = () => setPlayingVoiceId(null);
+      a.play();
+    } catch { setPlayingVoiceId(null); }
+  };
+
+  // ── 视频通话 ──
+  const RTC_CFG: RTCConfiguration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  const cleanupCall = useCallback(() => {
+    try { pcRef.current?.close(); } catch {}
+    pcRef.current = null;
+    try { localStreamRef.current?.getTracks().forEach((t) => t.stop()); } catch {}
+    localStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    setCallState('idle');
+    setIncomingCall(null);
+    setCallMuted(false);
+    setCallCamOff(false);
+  }, []);
+  const startVideoCall = async () => {
+    if (!selectedConv || selectedConv.type !== 'single' || !otherUsername || !socket) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) { localVideoRef.current.srcObject = stream; }
+      const pc = new RTCPeerConnection(RTC_CFG);
+      pcRef.current = pc;
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      pc.ontrack = (e) => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]; };
+      pc.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('chat:call:ice', { conversationId: selectedId, target: otherUsername, candidate: e.candidate });
+      };
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socket.emit('chat:call:offer', { conversationId: selectedId, target: otherUsername, offer });
+      setCallState('calling');
+    } catch (e: any) { alert(e?.message || '无法启动摄像头/麦克风'); cleanupCall(); }
+  };
+  const acceptCall = async () => {
+    if (!incomingCall || !socket) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      const pc = new RTCPeerConnection(RTC_CFG);
+      pcRef.current = pc;
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      pc.ontrack = (e) => { if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]; };
+      pc.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('chat:call:ice', { conversationId: incomingCall.conversationId, target: incomingCall.from, candidate: e.candidate });
+      };
+      await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('chat:call:answer', { conversationId: incomingCall.conversationId, target: incomingCall.from, answer });
+      setCallState('connected');
+    } catch (e: any) { alert(e?.message || '接听失败'); cleanupCall(); }
+  };
+  const declineCall = () => {
+    if (incomingCall && socket) socket.emit('chat:call:decline', { conversationId: incomingCall.conversationId, target: incomingCall.from });
+    cleanupCall();
+  };
+  const hangupCall = () => {
+    if (socket && otherUsername) socket.emit('chat:call:end', { conversationId: selectedId, target: otherUsername });
+    if (incomingCall && socket) socket.emit('chat:call:end', { conversationId: incomingCall.conversationId, target: incomingCall.from });
+    cleanupCall();
   };
 
   useEffect(() => { fetchConvs(); }, [fetchConvs]);
@@ -1261,6 +1427,11 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               )}
               <Button size="sm" variant="ghost" onClick={() => setShowMsgSearch(!showMsgSearch)} className="h-7 px-1.5" title="搜索消息"><Search className="w-3.5 h-3.5" /></Button>
               <Button size="sm" variant="ghost" onClick={openGroupEdit} className="h-7 px-1.5" title="群信息编辑"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></Button>
+              {selectedConv.type === 'single' && (
+                <Button size="sm" variant={callState !== 'idle' ? 'default' : 'ghost'} onClick={() => { if (callState === 'idle') startVideoCall(); else hangupCall(); }} className={`h-7 px-2 ${callState !== 'idle' ? 'bg-emerald-600 text-white' : ''}`} title={callState === 'idle' ? '视频通话' : '挂断'}>
+                  {callState === 'idle' ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+                </Button>
+              )}
               {selectedConv.type === 'group' && (
                 <Button size="sm" variant={showGroupInfo ? 'default' : 'ghost'} onClick={() => setShowGroupInfo(!showGroupInfo)} className="h-7 px-2" title="群成员管理">
                   <Users className="w-3.5 h-3.5" />
@@ -1302,8 +1473,9 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               const isBurnRevealed = m.burn && (m.revealedForMe || isMine);
               const isSecretKeyCard = m.contentType === 'secret-key';
               const isSecretLocked = m.encrypted && m.secretTarget && !isMine && !(m.secretRevealedBy || []).includes(me?.username);
+              const isVoice = m.contentType === 'voice';
               // 加密/阅后即焚消息：不提供转发、点赞、编辑、公告等操作
-              const isNoInteract = !!(m.encrypted || m.burn);
+              const isNoInteract = !!(m.encrypted || m.burn || isVoice);
 
               return (
                 <div key={m.id}>
@@ -1475,6 +1647,20 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         )}
                       </div>
 
+                    ) : isVoice ? (
+                      <div className={`px-3 py-2 rounded-2xl flex items-center gap-2.5 ${isMine ? 'bg-blue-500 text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'} shadow-sm`}>
+                        <button onClick={() => playVoice(m.id, m.content)} className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} transition-colors`}>
+                          {playingVoiceId === m.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                        </button>
+                        <div className="flex items-center gap-[2px] flex-1">
+                          {Array.from({ length: Math.min(24, Math.max(8, Math.ceil((m.duration || 1) * 1.5))) }).map((_, i) => (
+                            <div key={i} className={`w-[2px] rounded-full ${isMine ? 'bg-white/60' : 'bg-blue-300'} ${playingVoiceId === m.id ? 'animate-pulse' : ''}`} style={{ height: `${6 + Math.abs(Math.sin(i * 1.2)) * 10}px` }} />
+                          ))}
+                        </div>
+                        <span className={`text-xs font-mono tabular-nums flex-shrink-0 ${isMine ? 'text-blue-100' : 'text-gray-500'}`}>{m.duration || 0}″</span>
+                        <span className={`text-[10px] ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>{formatMsgTime(m.createdAt).slice(11, 16)}</span>
+                        {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3 text-blue-100 flex-shrink-0" /> : <Check className="w-3 h-3 text-blue-100 flex-shrink-0" />)}
+                      </div>
                     ) : (
                       <div>
                         {/* 编辑消息输入框 */}
@@ -1550,6 +1736,17 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               </div>
             )}
             <div className="flex items-center gap-2">
+              {recording && (
+                <div className="flex items-center gap-2 flex-1 bg-red-50 border border-red-200 rounded-lg px-3 h-9">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-mono text-red-600 tabular-nums">{Math.floor(recordingSec / 60)}:{String(recordingSec % 60).padStart(2, '0')}</span>
+                  <span className="text-xs text-red-400 flex-1">正在录音...</span>
+                  <Button size="sm" variant="ghost" onClick={() => stopRecording(true)} className="h-7 px-2 text-gray-500"><X className="w-3.5 h-3.5" /></Button>
+                  <Button size="sm" onClick={() => stopRecording(false)} className="h-7 px-3 bg-red-500 hover:bg-red-600 text-white"><Send className="w-3.5 h-3.5 mr-1" />发送 {recordingSec}″</Button>
+                </div>
+              )}
+              <div className={`flex items-center gap-2 flex-1 ${recording ? 'hidden' : ''}`}>
+              <Button size="sm" variant={recording ? 'default' : 'ghost'} onClick={() => { if (recording) stopRecording(false); else startRecording(); }} className={`h-8 px-2 ${recording ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' : ''}`} title={recording ? '点击发送' : '按住录音'}><Mic className="w-3.5 h-3.5" /></Button>
               <Button size="sm" variant="ghost" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="h-8 px-2" title="表情"><span className="text-lg">😊</span></Button>
               <Button size="sm" variant={encrypted ? 'default' : 'ghost'} onClick={() => { setEncrypted(!encrypted); if (!encrypted) setBurn(false); }} className={`h-8 px-2 ${encrypted ? 'bg-purple-500 hover:bg-purple-600 text-white' : ''}`} title={encrypted ? '已开启加密（需指定接收人）' : '开启加密（指定接收人）'}><Lock className="w-3.5 h-3.5" /></Button>
               {encrypted && (
@@ -1586,7 +1783,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               )}
               <Input ref={inputRef} value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder={encrypted ? (selectedConv?.type === 'group' ? (secretTarget ? `输入加密消息（发送给 ${userMap.get(secretTarget)?.name || secretTarget}）...` : '请选择接收人...') : '输入加密消息...') : burn ? `输入阅后即焚消息（${burnSec}s后销毁）...` : '输入消息... @提及某人'} className="flex-1 h-9 text-sm" />
               <Button size="sm" onClick={sendMessage} disabled={!input.trim() || (burn && selectedConv?.type === 'group' && !burnTarget) || (encrypted && selectedConv?.type === 'group' && !secretTarget)} className="h-9 px-3"><Send className="w-4 h-4" /></Button>
-            </div>
+              </div>
+              </div>
             {/* 表情选择器 */}
             {showEmojiPicker && (
               <div className="absolute bottom-16 right-4 bg-white border rounded-lg shadow-lg p-2 flex gap-1 flex-wrap w-48 z-50">
@@ -1964,6 +2162,55 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 来电弹窗 */}
+      {callState === 'incoming' && incomingCall && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <Card className="w-80 p-6 text-center">
+            <Avatar className="w-16 h-16 mx-auto mb-3">
+              <AvatarFallback className="bg-blue-100 text-blue-600 text-xl">{userMap.get(incomingCall.from)?.name?.[0] || incomingCall.from?.[0]}</AvatarFallback>
+            </Avatar>
+            <p className="font-semibold text-gray-900">{userMap.get(incomingCall.from)?.name || incomingCall.from}</p>
+            <p className="text-xs text-gray-500 mt-1">邀请你进行视频通话...</p>
+            <div className="flex gap-3 justify-center mt-5">
+              <Button onClick={declineCall} variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50"><PhoneOff className="w-4 h-4 mr-1" />拒绝</Button>
+              <Button onClick={acceptCall} className="flex-1 bg-emerald-600 hover:bg-emerald-700"><Video className="w-4 h-4 mr-1" />接听</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* 视频通话界面 */}
+      {callState !== 'idle' && callState !== 'incoming' && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain bg-black" />
+            {!remoteVideoRef.current?.srcObject && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60">
+                <Video className="w-12 h-12 mb-3 opacity-50" />
+                <p className="text-sm">{callState === 'calling' ? '正在呼叫...' : '等待对方...'}</p>
+                <p className="text-xs mt-1">{otherUserName || otherUsername}</p>
+              </div>
+            )}
+            <video ref={localVideoRef} autoPlay playsInline muted className={`absolute bottom-4 right-4 w-32 h-24 rounded-lg bg-gray-900 object-cover border-2 border-white/20 shadow-lg ${callCamOff ? 'hidden' : ''}`} />
+            <div className="absolute top-4 left-4 flex items-center gap-2 text-white text-sm">
+              <span className={`w-2 h-2 rounded-full ${callState === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+              {callState === 'calling' ? '呼叫中' : '通话中'} · {otherUserName || otherUsername}
+            </div>
+          </div>
+          <div className="h-20 bg-black flex items-center justify-center gap-4">
+            <button onClick={() => { if (localStreamRef.current) { const t = localStreamRef.current.getAudioTracks()[0]; if (t) { t.enabled = !t.enabled; setCallMuted(!t.enabled); } } }} className={`w-12 h-12 rounded-full flex items-center justify-center ${callMuted ? 'bg-red-600 text-white' : 'bg-white/15 text-white hover:bg-white/25'}`}>
+              {callMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+            <button onClick={hangupCall} className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center">
+              <PhoneOff className="w-6 h-6" />
+            </button>
+            <button onClick={() => { if (localStreamRef.current) { const t = localStreamRef.current.getVideoTracks()[0]; if (t) { t.enabled = !t.enabled; setCallCamOff(!t.enabled); } } }} className={`w-12 h-12 rounded-full flex items-center justify-center ${callCamOff ? 'bg-red-600 text-white' : 'bg-white/15 text-white hover:bg-white/25'}`}>
+              {callCamOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

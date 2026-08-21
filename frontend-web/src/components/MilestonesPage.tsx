@@ -9,9 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Pencil, Trash2, Eye, GitBranch, CheckCircle2, Loader, Circle, AlertTriangle } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
+import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const STATUS_STYLE: Record<string, string> = {
   未开始: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -33,6 +35,8 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -93,7 +97,7 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除里程碑「${item.name || item.id}」吗？`)) return;
+    if (!confirm(`${t('confirmDelete')}${isZh ? '里程碑「' : ' milestone "'}${item.name || item.id}${isZh ? '」吗？' : '"?'}`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'DELETE',
@@ -113,57 +117,46 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />新增里程碑</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{t('add')}{isZh ? '里程碑' : ' Milestone'}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{t('readonly')}</Badge>
         )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: GitBranch, label: '里程碑总数', value: items.length, tone: 'text-blue-600 bg-blue-50' },
-          { icon: CheckCircle2, label: '已完成', value: doneCount, tone: 'text-emerald-600 bg-emerald-50' },
-          { icon: Loader, label: '进行中', value: activeCount, tone: 'text-purple-600 bg-purple-50' },
-          { icon: AlertTriangle, label: '逾期风险', value: overdueCount, tone: 'text-red-600 bg-red-50' },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.tone}`}>
-                <s.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-500">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          { icon: GitBranch, label: isZh ? '里程碑总数' : 'Total Milestones', value: items.length, tone: 'blue' },
+          { icon: CheckCircle2, label: isZh ? '已完成' : 'Completed', value: doneCount, tone: 'emerald' },
+          { icon: Loader, label: isZh ? '进行中' : 'In Progress', value: activeCount, tone: 'purple' },
+          { icon: AlertTriangle, label: isZh ? '逾期风险' : 'Overdue Risk', value: overdueCount, tone: 'red' },
+
+        ].map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3 flex-wrap">
-          <CardTitle className="text-base font-semibold">里程碑计划</CardTitle>
+          <CardTitle className="text-base font-semibold">{isZh ? '里程碑计划' : 'Milestone Plan'}</CardTitle>
           <div className="flex items-center gap-1.5 flex-wrap">
             <button onClick={() => setProjectFilter('全部')}
-              className={`px-2 py-1 rounded-full text-xs transition-colors ${projectFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>全部</button>
+              className={`px-2 py-1 rounded-full text-xs transition-colors ${projectFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('all')}</button>
             {projects.map((p) => (
               <button key={p} onClick={() => setProjectFilter(p)}
                 className={`px-2 py-1 rounded-full text-xs transition-colors ${projectFilter === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{p}</button>
             ))}
           </div>
-          <Badge variant="secondary" className="text-xs ml-auto">平均进度 {avgProgress}%</Badge>
+          <Badge variant="secondary" className="text-xs ml-auto">{isZh ? '平均进度' : 'Avg Progress'} {avgProgress}%</Badge>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : sorted.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p>暂无里程碑</p>
-              {allowCreate && <p className="text-sm mt-1">点击右上角「新增里程碑」建立关键节点</p>}
+              <p>{isZh ? '暂无里程碑' : 'No milestones'}</p>
+              {allowCreate && <p className="text-sm mt-1">{isZh ? '点击右上角「新增里程碑」建立关键节点' : 'Click "Add Milestone" at the top right to create key milestones'}</p>}
             </div>
           ) : (
             <div className="space-y-3">
@@ -177,8 +170,8 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5 truncate">
                       {it.project}
-                      {it.planDate && <span className="ml-2">计划 {it.planDate}</span>}
-                      {it.actualDate && <span className="ml-2 text-emerald-600">实际 {it.actualDate}</span>}
+                      {it.planDate && <span className="ml-2">{isZh ? '计划' : 'Plan'} {it.planDate}</span>}
+                      {it.actualDate && <span className="ml-2 text-emerald-600">{isZh ? '实际' : 'Actual'} {it.actualDate}</span>}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-xs">
@@ -188,8 +181,8 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
                     </div>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title="编辑"><Pencil className="w-4 h-4 text-blue-600" /></Button>}
-                    {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title="删除"><Trash2 className="w-4 h-4 text-red-600" /></Button>}
+                    {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title={t('edit')}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
+                    {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title={t('delete')}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
                   </div>
                 </div>
               ))}
@@ -200,18 +193,18 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? '编辑' : '新增'}里程碑</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {feature.fields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -226,7 +219,7 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
                     type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
-                    placeholder={`请输入${f.label}`}
+                    placeholder={`${t('inputPlaceholder')}${tField(f.key, f.label)}`}
                   />
                 )}
               </div>
@@ -234,7 +227,7 @@ export function MilestonesPage({ feature, categoryTitle, categoryKey }: { featur
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {editing ? '保存修改' : '确认新增'}
+            {editing ? t('save') : t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

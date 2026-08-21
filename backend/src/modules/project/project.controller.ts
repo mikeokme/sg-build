@@ -60,6 +60,15 @@ export class ProjectController {
     const name = item.name;
     const byName = (col: string) => this.dataService.getCollectionItems(col)
       .filter((d: any) => d.project === name);
+    const byNameFuzzy = (col: string) => this.dataService.getCollectionItems(col)
+      .filter((d: any) => {
+        const p = d.project;
+        if (!p) return false;
+        if (p === name) return true;
+        if (name.includes(p) && p.length >= 4) return true;
+        if (p.includes(name) && name.length >= 4) return true;
+        return false;
+      });
     const byId = (col: string) => this.dataService.getCollectionItems(col)
       .filter((d: any) => d.projectId === id);
     const sum = (arr: any[], key: string) => arr.reduce((s: number, x: any) => s + (Number(x[key]) || 0), 0);
@@ -74,6 +83,44 @@ export class ProjectController {
     const completions = byName('completions');
     const rentalPlans = byName('rentalPlans');
     const subcontractPlans = byName('subcontractPlans');
+    // 关联业务数据（模糊名称匹配，跨模块互通）
+    const purchaseOrders = byNameFuzzy('purchaseOrders');
+    const purchaseReceipts = byNameFuzzy('purchaseReceipts');
+    const procurementPlans = byNameFuzzy('procurementPlans');
+    const majorRequests = byNameFuzzy('majorRequests');
+    const supplierEvaluations = byNameFuzzy('supplierEvaluations');
+    const materialReceiving = byNameFuzzy('materialReceiving');
+    const materialIssue = byNameFuzzy('materialIssue');
+    const materialDirect = byNameFuzzy('materialDirect');
+    const materialReturn = byNameFuzzy('materialReturn');
+    const inventories = byNameFuzzy('inventories');
+    const equipments = byNameFuzzy('equipments');
+    const equipmentLeases = byNameFuzzy('equipmentLeases');
+    const equipmentMaintenances = byNameFuzzy('equipmentMaintenances');
+    const equipmentRepairs = byNameFuzzy('equipmentRepairs');
+    const laborContracts = byNameFuzzy('laborContracts');
+    const proContracts = byNameFuzzy('proContracts');
+    const subcontractChanges = byNameFuzzy('subcontractChanges');
+    const subcontractSettlements = byNameFuzzy('subcontractSettlements');
+    const subcontractPayments = byNameFuzzy('subcontractPayments');
+    const subcontractEvaluations = byNameFuzzy('subcontractEvaluations');
+    const safetyInspections = byNameFuzzy('safetyInspections');
+    const safetyTrainings = byNameFuzzy('safetyTrainings');
+    const safetyPunishments = byNameFuzzy('safetyPunishments');
+    const safetyRewards = byNameFuzzy('safetyRewards');
+    const safetyAccidents = byNameFuzzy('safetyAccidents');
+    const safetyInputLedgers = byNameFuzzy('safetyInputLedgers');
+    const riskLedgers = byNameFuzzy('riskLedgers');
+    const emergencyPlans = byNameFuzzy('emergencyPlans');
+    const qualityInspections = byNameFuzzy('qualityInspections');
+    const qualityTrainings = byNameFuzzy('qualityTrainings');
+    const qualityPunishments = byNameFuzzy('qualityPunishments');
+    const qualityRewards = byNameFuzzy('qualityRewards');
+    const qualityAccidents = byNameFuzzy('qualityAccidents');
+    const qualityDefects = byNameFuzzy('qualityDefects');
+    const costAnalyses = byNameFuzzy('costAnalyses');
+    const teams = byNameFuzzy('teams');
+    const suppliers = byNameFuzzy('suppliers');
     return {
       project: item,
       documents: docs,
@@ -87,6 +134,44 @@ export class ProjectController {
       completions,
       rentalPlans,
       subcontractPlans,
+      // 关联业务数据块
+      purchaseOrders,
+      purchaseReceipts,
+      procurementPlans,
+      majorRequests,
+      supplierEvaluations,
+      materialReceiving,
+      materialIssue,
+      materialDirect,
+      materialReturn,
+      inventories,
+      equipments,
+      equipmentLeases,
+      equipmentMaintenances,
+      equipmentRepairs,
+      laborContracts,
+      proContracts,
+      subcontractChanges,
+      subcontractSettlements,
+      subcontractPayments,
+      subcontractEvaluations,
+      safetyInspections,
+      safetyTrainings,
+      safetyPunishments,
+      safetyRewards,
+      safetyAccidents,
+      safetyInputLedgers,
+      riskLedgers,
+      emergencyPlans,
+      qualityInspections,
+      qualityTrainings,
+      qualityPunishments,
+      qualityRewards,
+      qualityAccidents,
+      qualityDefects,
+      costAnalyses,
+      teams,
+      suppliers,
       stats: {
         documentCount: docs.length,
         logCount: logs.length,
@@ -104,6 +189,38 @@ export class ProjectController {
         changePending: changes.filter((c: any) => c.status === '待审批').length,
         planCount: plans.length,
         planPending: plans.filter((p: any) => p.status === '待审批').length,
+        // 关联统计
+        purchaseOrderCount: purchaseOrders.length,
+        purchaseOrderAmount: sum(purchaseOrders, 'amount'),
+        receiptCount: purchaseReceipts.length,
+        materialReceivingCount: materialReceiving.length,
+        materialIssueCount: materialIssue.length,
+        materialReceivingAmount: sum(materialReceiving, 'amount'),
+        equipmentCount: equipments.length,
+        equipmentLeaseCount: equipmentLeases.length,
+        equipmentMaintenanceCount: equipmentMaintenances.length,
+        equipmentRepairCount: equipmentRepairs.length,
+        laborContractCount: laborContracts.length,
+        proContractCount: proContracts.length,
+        subcontractAmount: sum(laborContracts, 'amount') + sum(proContracts, 'amount'),
+        subcontractSettlementCount: subcontractSettlements.length,
+        subcontractPaymentCount: subcontractPayments.length,
+        subcontractPaymentAmount: sum(subcontractPayments, 'amount'),
+        safetyInspectionCount: safetyInspections.length,
+        safetyPending: safetyInspections.filter((i: any) => i.status === '整改中' || i.status === '待整改').length,
+        riskCount: riskLedgers.length,
+        riskWarning: riskLedgers.filter((r: any) => r.status !== '受控').length,
+        safetyAccidentCount: safetyAccidents.length,
+        qualityInspectionCount: qualityInspections.length,
+        qualityPending: qualityInspections.filter((i: any) => i.status === '整改中' || i.status === '待整改').length,
+        qualityAccidentCount: qualityAccidents.length,
+        qualityDefectCount: qualityDefects.length,
+        costPlanned: sum(costAnalyses, 'plannedCost'),
+        costActual: sum(costAnalyses, 'actualCost'),
+        costProfit: sum(costAnalyses, 'profit'),
+        teamCount: teams.length,
+        teamMembers: sum(teams, 'members'),
+        supplierCount: suppliers.length,
       },
     };
   }

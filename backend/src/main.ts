@@ -19,7 +19,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.use('/api', new CorsMiddleware().use.bind(new CorsMiddleware()));
   
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`SG-Build API 运行在: http://localhost:${process.env.PORT ?? 3000}`);
+  await app.listen(process.env.PORT ?? 14725);
+  console.log(`SG-Build API 运行在: http://localhost:${process.env.PORT ?? 14725}`);
 }
 bootstrap();

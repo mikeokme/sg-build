@@ -378,6 +378,38 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'p11', name: '山区小型水库建设', code: 'SL-2026-011', manager: '吴经理', budget: 2500, startDate: '2026-03-01', endDate: '2027-08-31', status: '在建' },
   ];
 
+  // 企业云盘
+  collections['cloudFiles'] = [
+    { id: 'fd1', name: '项目部资料', type: 'folder', size: 0, parentId: null, owner: 'admin', date: '2026-01-05', starred: false, shared: false },
+    { id: 'fd2', name: '合同与制度', type: 'folder', size: 0, parentId: null, owner: 'admin', date: '2026-01-10', starred: false, shared: false },
+    { id: 'fd3', name: '图纸与技术', type: 'folder', size: 0, parentId: null, owner: '周海涛', date: '2026-02-01', starred: false, shared: false },
+    { id: 'fd4', name: '培训课件', type: 'folder', size: 0, parentId: null, owner: '王安全', date: '2026-03-12', starred: false, shared: false },
+    { id: 'fd5', name: '影像资料', type: 'folder', size: 0, parentId: null, owner: '刘工', date: '2026-04-20', starred: false, shared: false },
+    { id: 'fd11', name: '城南地铁站项目', type: 'folder', size: 0, parentId: 'fd1', owner: '陈国强', date: '2026-01-15', starred: false, shared: false },
+    { id: 'fd12', name: '滨江大桥项目', type: 'folder', size: 0, parentId: 'fd1', owner: '周海涛', date: '2026-01-16', starred: false, shared: false },
+    { id: 'fd21', name: '分包合同', type: 'folder', size: 0, parentId: 'fd2', owner: '王磊', date: '2026-02-05', starred: false, shared: false },
+    { id: 'cf1', name: '城南地铁站主体结构施工方案', type: 'doc', size: 2621440, parentId: 'fd11', owner: '陈国强', date: '2026-07-20', starred: false, shared: false, version: 3 },
+    { id: 'cf2', name: '车站深基坑开挖专项方案', type: 'doc', size: 3250586, parentId: 'fd11', owner: '周海涛', date: '2026-07-22', starred: false, shared: false, version: 2 },
+    { id: 'cf3', name: '主体结构钢筋验收记录', type: 'xls', size: 1258291, parentId: 'fd11', owner: '吴刚', date: '2026-08-11', starred: false, shared: true, version: 1 },
+    { id: 'cf4', name: '滨江大桥墩柱施工方案', type: 'doc', size: 4404019, parentId: 'fd12', owner: '周海涛', date: '2026-06-18', starred: false, shared: false, version: 2 },
+    { id: 'cf5', name: '墩柱混凝土配合比设计', type: 'xls', size: 943718, parentId: 'fd12', owner: '周芳', date: '2026-07-05', starred: false, shared: false, version: 1 },
+    { id: 'cf6', name: '分包合同-土方分包', type: 'pdf', size: 2936013, parentId: 'fd21', owner: '王磊', date: '2026-03-15', starred: true, shared: true, version: 1 },
+    { id: 'cf7', name: '分包合同-防水专业分包', type: 'pdf', size: 3670016, parentId: 'fd21', owner: '王磊', date: '2026-04-08', starred: false, shared: false, version: 1 },
+    { id: 'cf8', name: '安全文明施工管理制度', type: 'doc', size: 1677722, parentId: 'fd2', owner: '王安全', date: '2026-02-20', starred: false, shared: true, version: 2 },
+    { id: 'cf9', name: '项目管理办法汇编', type: 'pdf', size: 5452595, parentId: 'fd2', owner: 'admin', date: '2026-05-01', starred: false, shared: false, version: 1 },
+    { id: 'cf10', name: '城南地铁站结构施工图', type: 'cad', size: 12582912, parentId: 'fd3', owner: '周海涛', date: '2026-07-01', starred: false, shared: false, version: 5 },
+    { id: 'cf11', name: '滨江大桥桥墩节点详图', type: 'cad', size: 8808038, parentId: 'fd3', owner: '周海涛', date: '2026-07-10', starred: false, shared: true, version: 3 },
+    { id: 'cf12', name: '渠道衬砌断面图', type: 'cad', size: 7130317, parentId: 'fd3', owner: '李明', date: '2026-06-25', starred: false, shared: false, version: 2 },
+    { id: 'cf13', name: '新员工入场安全教育课件', type: 'ppt', size: 8912896, parentId: 'fd4', owner: '王安全', date: '2026-08-01', starred: true, shared: true, version: 2 },
+    { id: 'cf14', name: '混凝土质量控制培训课件', type: 'ppt', size: 7549747, parentId: 'fd4', owner: '吴刚', date: '2026-08-09', starred: false, shared: false, version: 1 },
+    { id: 'cf15', name: '有限空间作业安全培训', type: 'video', size: 47185920, parentId: 'fd4', owner: '王安全', date: '2026-07-28', starred: false, shared: false, version: 1 },
+    { id: 'cf16', name: '主体结构施工全景照片', type: 'img', size: 3355443, parentId: 'fd5', owner: '刘工', date: '2026-08-10', starred: false, shared: false, version: 1 },
+    { id: 'cf17', name: '无人机航拍-施工现场', type: 'video', size: 85983232, parentId: 'fd5', owner: '刘工', date: '2026-08-12', starred: true, shared: false, version: 2 },
+    { id: 'cf18', name: '防汛演练现场影像', type: 'img', size: 2516582, parentId: 'fd5', owner: '王安全', date: '2026-07-15', starred: false, shared: true, version: 1 },
+    { id: 'cf19', name: '物资采购计划表-8月', type: 'xls', size: 1153434, parentId: 'fd2', owner: '周芳', date: '2026-08-02', starred: false, shared: false, version: 1 },
+    { id: 'cf20', name: '结算资料包', type: 'zip', size: 18874368, parentId: 'fd12', owner: '赵丽', date: '2026-08-14', starred: false, shared: true, version: 1 },
+  ];
+
   // 项目管理
   collections['projectArchives'] = [
     { id: 'pa1', name: '清河水库除险加固工程', code: 'SL-2024-001', location: '河北省石家庄市鹿泉区', type: '水利枢纽', scope: '大坝除险加固、溢洪道改造、涵洞重建', manager: '刘工', supervisor: '张伟', customer: '市水利局', contractType: '总价合同', amount: 68000000, qualityTarget: '合格', safetyTarget: '零事故', startDate: '2024-03-01', endDate: '2026-06-30', planDuration: 822, status: '在建', description: '对清河水库大坝进行除险加固，提高防洪标准至50年一遇' },
@@ -542,21 +574,21 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
 
   // 施工进度（甘特图）
   collections['progress'] = [
-    { id: 'pr1', project: '城南地铁站项目', task: '土方开挖', startDate: '2026-03-01', endDate: '2026-04-30', progress: 100, owner: '张工' },
-    { id: 'pr2', project: '城南地铁站项目', task: '主体结构施工', startDate: '2026-05-01', endDate: '2026-09-30', progress: 60, owner: '陈国强' },
-    { id: 'pr3', project: '城南地铁站项目', task: '机电安装', startDate: '2026-08-01', endDate: '2026-12-31', progress: 15, owner: '刘工' },
-    { id: 'pr4', project: '滨江大桥工程', task: '桩基施工', startDate: '2026-05-15', endDate: '2026-08-31', progress: 80, owner: '周海涛' },
-    { id: 'pr5', project: '滨江大桥工程', task: '墩柱施工', startDate: '2026-08-01', endDate: '2026-11-30', progress: 25, owner: '孙工' },
-    { id: 'pr6', project: '地铁3号线二期土建', task: '地质勘察', startDate: '2026-01-15', endDate: '2026-04-30', progress: 100, owner: '张伟' },
-    { id: 'pr7', project: '地铁3号线二期土建', task: '围护结构施工', startDate: '2026-05-01', endDate: '2026-10-31', progress: 45, owner: '李明' },
-    { id: 'pr8', project: '城北新区道路改造', task: '路基处理', startDate: '2026-06-01', endDate: '2026-08-31', progress: 70, owner: '李明' },
-    { id: 'pr9', project: '城北新区道路改造', task: '路面铺设', startDate: '2026-09-01', endDate: '2026-11-30', progress: 0, owner: '李明' },
-    { id: 'pr10', project: '高铁站交通枢纽', task: '基坑开挖', startDate: '2026-03-01', endDate: '2026-06-30', progress: 100, owner: '孙强' },
-    { id: 'pr11', project: '高铁站交通枢纽', task: '主体结构', startDate: '2026-07-01', endDate: '2027-06-30', progress: 35, owner: '孙强' },
-    { id: 'pr12', project: '城南商业综合体', task: '桩基施工', startDate: '2026-04-01', endDate: '2026-07-31', progress: 90, owner: '周芳' },
-    { id: 'pr13', project: '城南商业综合体', task: '地下室施工', startDate: '2026-08-01', endDate: '2026-12-31', progress: 20, owner: '周芳' },
-    { id: 'pr14', project: '城北学校扩建工程', task: '基础施工', startDate: '2026-03-01', endDate: '2026-05-31', progress: 100, owner: '吴刚' },
-    { id: 'pr15', project: '城北学校扩建工程', task: '主体施工', startDate: '2026-06-01', endDate: '2026-10-31', progress: 55, owner: '吴刚' },
+    { id: 'pr1', project: '城南地铁站项目', task: '土方开挖', startDate: '2026-03-01', endDate: '2026-04-30', progress: 100, owner: '张工' , plannedProgress: 100},
+    { id: 'pr2', project: '城南地铁站项目', task: '主体结构施工', startDate: '2026-05-01', endDate: '2026-09-30', progress: 60, owner: '陈国强' , predecessors: ["pr1"], plannedProgress: 73},
+    { id: 'pr3', project: '城南地铁站项目', task: '机电安装', startDate: '2026-08-01', endDate: '2026-12-31', progress: 15, owner: '刘工' , predecessors: ["pr2"], plannedProgress: 13},
+    { id: 'pr4', project: '滨江大桥工程', task: '桩基施工', startDate: '2026-05-15', endDate: '2026-08-31', progress: 80, owner: '周海涛' , plannedProgress: 90},
+    { id: 'pr5', project: '滨江大桥工程', task: '墩柱施工', startDate: '2026-08-01', endDate: '2026-11-30', progress: 25, owner: '孙工' , predecessors: ["pr4"], plannedProgress: 16},
+    { id: 'pr6', project: '地铁3号线二期土建', task: '地质勘察', startDate: '2026-01-15', endDate: '2026-04-30', progress: 100, owner: '张伟' , plannedProgress: 100},
+    { id: 'pr7', project: '地铁3号线二期土建', task: '围护结构施工', startDate: '2026-05-01', endDate: '2026-10-31', progress: 45, owner: '李明' , predecessors: ["pr6"], plannedProgress: 61},
+    { id: 'pr8', project: '城北新区道路改造', task: '路基处理', startDate: '2026-06-01', endDate: '2026-08-31', progress: 70, owner: '李明' , plannedProgress: 88},
+    { id: 'pr9', project: '城北新区道路改造', task: '路面铺设', startDate: '2026-09-01', endDate: '2026-11-30', progress: 0, owner: '李明' , predecessors: ["pr8"], plannedProgress: 0},
+    { id: 'pr10', project: '高铁站交通枢纽', task: '基坑开挖', startDate: '2026-03-01', endDate: '2026-06-30', progress: 100, owner: '孙强' , plannedProgress: 100},
+    { id: 'pr11', project: '高铁站交通枢纽', task: '主体结构', startDate: '2026-07-01', endDate: '2027-06-30', progress: 35, owner: '孙强' , predecessors: ["pr10"], plannedProgress: 14},
+    { id: 'pr12', project: '城南商业综合体', task: '桩基施工', startDate: '2026-04-01', endDate: '2026-07-31', progress: 90, owner: '周芳' , plannedProgress: 100},
+    { id: 'pr13', project: '城南商业综合体', task: '地下室施工', startDate: '2026-08-01', endDate: '2026-12-31', progress: 20, owner: '周芳' , predecessors: ["pr12"], plannedProgress: 13},
+    { id: 'pr14', project: '城北学校扩建工程', task: '基础施工', startDate: '2026-03-01', endDate: '2026-05-31', progress: 100, owner: '吴刚' , plannedProgress: 100},
+    { id: 'pr15', project: '城北学校扩建工程', task: '主体施工', startDate: '2026-06-01', endDate: '2026-10-31', progress: 55, owner: '吴刚' , predecessors: ["pr14"], plannedProgress: 53},
   ];
 
   // 设备台账
@@ -1292,11 +1324,11 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   ];
 
   collections['reimbursements'] = [
-    { id: 'rm1', title: '出差差旅费报销', applicant: '周海涛', amount: 3600, date: '2026-08-11', status: '待审批' },
-    { id: 'rm2', title: '办公用品采购报销', applicant: '李材料', amount: 1200, date: '2026-08-02', status: '已批准' },
-    { id: 'rm3', title: '设备维修费报销', applicant: '张机械', amount: 15000, date: '2026-08-08', status: '待审批' },
-    { id: 'rm4', title: '孙强出差差旅费报销', applicant: '孙强', amount: 2800, date: '2026-08-14', status: '待审批' },
-    { id: 'rm5', title: '质量检测费报销', applicant: '吴刚', amount: 4500, date: '2026-08-07', status: '已批准' },
+    { id: 'rm1', title: '出差差旅费报销', applicant: '周海涛', type: '差旅费', amount: 3600, date: '2026-08-11', status: '待审批' },
+    { id: 'rm2', title: '办公用品采购报销', applicant: '李材料', type: '办公费', amount: 1200, date: '2026-08-02', status: '已批准' },
+    { id: 'rm3', title: '设备维修费报销', applicant: '张机械', type: '其他', amount: 15000, date: '2026-08-08', status: '待审批' },
+    { id: 'rm4', title: '孙强出差差旅费报销', applicant: '孙强', type: '差旅费', amount: 2800, date: '2026-08-14', status: '待审批' },
+    { id: 'rm5', title: '质量检测费报销', applicant: '吴刚', type: '交通费', amount: 4500, date: '2026-08-07', status: '已批准' },
   ];
 
   collections['funds'] = [
@@ -1324,21 +1356,21 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
 
   // 人事档案
   collections['staff'] = [
-    { id: 'st1', name: '陈国强', department: '工程管理部', position: '项目经理', phone: '13811110001', hireDate: '2018-03-01', status: '在职' },
-    { id: 'st2', name: '周海涛', department: '工程管理部', position: '项目总工', phone: '13811110002', hireDate: '2019-06-15', status: '在职' },
-    { id: 'st3', name: '王安全', department: '安全管理部', position: '安全员', phone: '13811110003', hireDate: '2020-01-10', status: '在职' },
-    { id: 'st4', name: '张伟', department: '工程管理部', position: '项目经理', phone: '13800000001', hireDate: '2017-05-20', status: '在职' },
-    { id: 'st5', name: '李明', department: '工程管理部', position: '技术负责人', phone: '13800000002', hireDate: '2019-09-01', status: '在职' },
-    { id: 'st6', name: '王磊', department: '市场经营部', position: '商务经理', phone: '13800000003', hireDate: '2020-03-15', status: '在职' },
-    { id: 'st7', name: '赵丽', department: '财务管理部', position: '财务主管', phone: '13800000004', hireDate: '2018-07-01', status: '在职' },
-    { id: 'st8', name: '孙强', department: '安全管理部', position: '安全员', phone: '13800000005', hireDate: '2021-02-10', status: '在职' },
-    { id: 'st9', name: '周芳', department: '物资管理部', position: '材料员', phone: '13800000006', hireDate: '2020-06-01', status: '在职' },
-    { id: 'st10', name: '吴刚', department: '质量管理部', position: '质检员', phone: '13800000007', hireDate: '2021-08-15', status: '在职' },
-    { id: 'st11', name: '郑敏', department: '综合管理部', position: '行政专员', phone: '13800000008', hireDate: '2022-01-10', status: '在职' },
-    { id: 'st12', name: '刘工', department: '城南地铁站项目部', position: '施工员', phone: '13800000009', hireDate: '2023-04-01', status: '在职' },
-    { id: 'st13', name: '马师傅', department: '滨江大桥项目部', position: '班组长', phone: '13800000010', hireDate: '2022-09-01', status: '在职' },
-    { id: 'st14', name: '钱建国', department: '工程管理部', position: '项目副经理', phone: '13800000011', hireDate: '2016-11-20', status: '在职' },
-    { id: 'st15', name: '孙建国', department: '工程管理部', position: '施工队长', phone: '13800000012', hireDate: '2021-05-01', status: '在职' },
+    { id: 'st1', name: '陈国强', department: '工程管理部', position: '项目经理', gender: '男', birthDate: '1978-05-12', education: '本科', phone: '13811110001', hireDate: '2018-03-01', status: '在职' },
+    { id: 'st2', name: '周海涛', department: '工程管理部', position: '项目总工', gender: '男', birthDate: '1985-09-23', education: '本科', phone: '13811110002', hireDate: '2019-06-15', status: '在职' },
+    { id: 'st3', name: '王安全', department: '安全管理部', position: '安全员', gender: '男', birthDate: '1990-11-02', education: '大专', phone: '13811110003', hireDate: '2020-01-10', status: '在职' },
+    { id: 'st4', name: '张伟', department: '工程管理部', position: '项目经理', gender: '男', birthDate: '1982-03-15', education: '本科', phone: '13800000001', hireDate: '2017-05-20', status: '在职' },
+    { id: 'st5', name: '李明', department: '工程管理部', position: '技术负责人', gender: '男', birthDate: '1988-07-30', education: '硕士及以上', phone: '13800000002', hireDate: '2019-09-01', status: '在职' },
+    { id: 'st6', name: '王磊', department: '市场经营部', position: '商务经理', gender: '男', birthDate: '1986-12-08', education: '本科', phone: '13800000003', hireDate: '2020-03-15', status: '在职' },
+    { id: 'st7', name: '赵丽', department: '财务管理部', position: '财务主管', gender: '女', birthDate: '1990-01-20', education: '本科', phone: '13800000004', hireDate: '2018-07-01', status: '在职' },
+    { id: 'st8', name: '孙强', department: '安全管理部', position: '安全员', gender: '男', birthDate: '1993-04-05', education: '大专', phone: '13800000005', hireDate: '2021-02-10', status: '在职' },
+    { id: 'st9', name: '周芳', department: '物资管理部', position: '材料员', gender: '女', birthDate: '1992-08-16', education: '大专', phone: '13800000006', hireDate: '2020-06-01', status: '在职' },
+    { id: 'st10', name: '吴刚', department: '质量管理部', position: '质检员', gender: '男', birthDate: '1991-10-11', education: '大专', phone: '13800000007', hireDate: '2021-08-15', status: '在职' },
+    { id: 'st11', name: '郑敏', department: '综合管理部', position: '行政专员', gender: '女', birthDate: '1995-06-28', education: '本科', phone: '13800000008', hireDate: '2022-01-10', status: '在职' },
+    { id: 'st12', name: '刘工', department: '城南地铁站项目部', position: '施工员', gender: '男', birthDate: '1989-12-03', education: '高中/中专', phone: '13800000009', hireDate: '2023-04-01', status: '在职' },
+    { id: 'st13', name: '马师傅', department: '滨江大桥项目部', position: '班组长', gender: '男', birthDate: '1984-02-19', education: '初中及以下', phone: '13800000010', hireDate: '2022-09-01', status: '在职' },
+    { id: 'st14', name: '钱建国', department: '工程管理部', position: '项目副经理', gender: '男', birthDate: '1975-08-07', education: '本科', phone: '13800000011', hireDate: '2016-11-20', status: '在职' },
+    { id: 'st15', name: '孙建国', department: '工程管理部', position: '施工队长', gender: '男', birthDate: '1987-05-25', education: '高中/中专', phone: '13800000012', hireDate: '2021-05-01', status: '在职' },
   ];
 
   // 人力资源
@@ -1382,6 +1414,33 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   ];
 
   // 安全与质量
+  collections['riskLedgers'] = [
+    { id: 'rl1', name: '深基坑开挖边坡坍塌', project: '城南地铁站项目', category: '施工', source: '深基坑开挖支护不到位易引发坍塌', level: '重大', method: '直接评定法', measures: '专项支护方案、分层开挖、及时支护、监测预警', monitor: '基坑位移/沉降自动化监测', owner: '王安全', status: '受控', updateDate: '2026-08-01' },
+    { id: 'rl2', name: '隧洞爆破作业', project: '南水北调支线渠系工程', category: '施工', source: '火工品使用不当、爆破飞石', level: '重大', method: '直接评定法', measures: '爆破专项方案、警戒区设置、专人看管火工品', monitor: '爆破振动监测', owner: '孙强', status: '受控', updateDate: '2026-07-20' },
+    { id: 'rl3', name: '围堰及导流明渠度汛', project: '流域综合治理工程', category: '施工', source: '汛期洪水超标准、围堰漫顶溃决', level: '重大', method: 'LS风险矩阵法', measures: '编制度汛方案、储备防汛物资、汛期值守', monitor: '水位/流量实时监测', owner: '陈国强', status: '预警', updateDate: '2026-08-10' },
+    { id: 'rl4', name: '起重吊装作业', project: '滨江大桥工程', category: '设施设备', source: '塔吊吊物坠落、超载倾覆', level: '较大', method: 'LEC作业条件危险性评价法', measures: '持证上岗、吊装令制度、班前检查、限位保护', monitor: '吊装荷载视频监控', owner: '张机械', status: '受控', updateDate: '2026-08-03' },
+    { id: 'rl5', name: '高处临边作业', project: '滨江大桥工程', category: '作业环境', source: '临边防护缺失、人员未系安全带坠落', level: '较大', method: 'LEC作业条件危险性评价法', measures: '设置临边护栏、安全网、安全带双钩', monitor: '现场巡查+视频', owner: '王安全', status: '受控', updateDate: '2026-08-06' },
+    { id: 'rl6', name: '临时用电', project: '高铁站交通枢纽', category: '设施设备', source: '三级配电两级保护不到位引发触电', level: '较大', method: '安全检查表法', measures: '三级配电两级保护、漏电保护器、电工持证', monitor: '定期巡检+绝缘检测', owner: '孙强', status: '预警', updateDate: '2026-08-13' },
+    { id: 'rl7', name: '有限空间作业', project: '地铁3号线二期土建', category: '作业环境', source: '缺氧、有毒气体积聚', level: '较大', method: 'LEC作业条件危险性评价法', measures: '先通风再检测后作业、专人监护、应急救援', monitor: '气体检测仪实时监测', owner: '孙强', status: '受控', updateDate: '2026-08-12' },
+    { id: 'rl8', name: '脚手架搭设与拆除', project: '城南商业综合体', category: '施工', source: '架体失稳、人员高处坠落', level: '一般', method: '安全检查表法', measures: '专项方案、验收挂牌、荷载控制', monitor: '架体变形监测', owner: '王安全', status: '受控', updateDate: '2026-08-09' },
+    { id: 'rl9', name: '混凝土模板支撑体系', project: '城北新区道路改造', category: '施工', source: '支撑体系失稳坍塌', level: '一般', method: 'LS风险矩阵法', measures: '专项方案、分层浇筑、拆模审批', monitor: '沉降观测', owner: '周海涛', status: '受控', updateDate: '2026-08-11' },
+    { id: 'rl10', name: '汛期河道内施工', project: '流域综合治理工程', category: '作业环境', source: '洪水突涨、人员设备被困', level: '较大', method: '直接评定法', measures: '避开主汛期、撤离路线演练、水位预警联动', monitor: '水雨情信息平台', owner: '陈国强', status: '预警', updateDate: '2026-08-10' },
+    { id: 'rl11', name: '施工机械车辆运输', project: '城北新区道路改造', category: '设施设备', source: '场内车辆伤害、机械伤人', level: '一般', method: '安全检查表法', measures: '人车分流、限速标识、专人指挥', monitor: '场内交通巡查', owner: '孙强', status: '受控', updateDate: '2026-08-11' },
+    { id: 'rl12', name: '危化品及火工品库房存放', project: '南水北调支线渠系工程', category: '管理体系', source: '存放不当引发爆炸火灾', level: '重大', method: '直接评定法', measures: '专库存放、双人双锁、台账管理、消防设施', monitor: '温湿度+视频监控', owner: '孙强', status: '受控', updateDate: '2026-07-20' },
+    { id: 'rl13', name: '安全教育培训不到位', project: '全集团在建项目', category: '人员行为', source: '工人安全意识薄弱、违章作业', level: '低风险', method: '安全检查表法', measures: '三级安全教育、班前讲话、警示教育', monitor: '培训台账核查', owner: '王安全', status: '受控', updateDate: '2026-08-12' },
+    { id: 'rl14', name: '办公区及生活区消防安全', project: '全集团在建项目', category: '管理体系', source: '电气火灾、疏散通道堵塞', level: '低风险', method: '安全检查表法', measures: '灭火器配备、疏散演练、用电管理', monitor: '消防巡检', owner: '王安全', status: '受控', updateDate: '2026-08-09' },
+    { id: 'rl15', name: '施工扬尘与噪声', project: '城北新区道路改造', category: '作业环境', source: '扬尘污染、噪声扰民', level: '低风险', method: '安全检查表法', measures: '洒水降尘、围挡封闭、合理安排作业时间', monitor: '环境监测', owner: '孙强', status: '受控', updateDate: '2026-08-11' },
+  ];
+
+  collections['emergencyPlans'] = [
+    { id: 'ep1', name: '集团生产安全事故综合应急预案', type: '综合应急预案', scene: '全集团生产安全事故总体处置', responsible: '陈国强', drillDate: '2026-06-20', drillStatus: '已演练', content: '应急组织体系、响应分级、信息报告、资源保障' },
+    { id: 'ep2', name: '基坑坍塌专项应急预案', type: '专项应急预案', scene: '深基坑开挖坍塌', responsible: '王安全', drillDate: '2026-05-18', drillStatus: '已演练', content: '先撤人后支护、坍塌救援、变形监测联动' },
+    { id: 'ep3', name: '防汛度汛专项应急预案', type: '专项应急预案', scene: '汛期洪水超标准、围堰漫顶', responsible: '陈国强', drillDate: '2026-07-30', drillStatus: '已演练', content: '汛情预警、人员撤离、堤防抢护、物资调度' },
+    { id: 'ep4', name: '隧洞爆破现场处置方案', type: '现场处置方案', scene: '隧洞爆破作业', responsible: '孙强', drillDate: '', drillStatus: '待演练', content: '盲炮处理、飞石伤人处置、警戒解除程序' },
+    { id: 'ep5', name: '有限空间作业现场处置方案', type: '现场处置方案', scene: '有限空间中毒窒息', responsible: '孙强', drillDate: '2026-08-15', drillStatus: '已演练', content: '先通风检测、严禁盲目施救、佩戴呼吸器救援' },
+    { id: 'ep6', name: '起重伤害现场处置方案', type: '现场处置方案', scene: '起重吊装吊物坠落', responsible: '张机械', drillDate: '', drillStatus: '待演练', content: '停机断电、伤员救治、事故报告' },
+  ];
+
   collections['safetyInspections'] = [
     { id: 'si1', title: '城南地铁站8月安全大检查', project: '城南地铁站项目', inspector: '王安全', date: '2026-08-10', issues: '临边防护缺失、基坑边堆料', status: '整改中' },
     { id: 'si2', title: '滨江大桥高处作业检查', project: '滨江大桥工程', inspector: '王安全', date: '2026-08-06', issues: '个别工人未系安全带', status: '已完成' },
@@ -1418,22 +1477,40 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
   collections['qualityInspections'] = [
     { id: 'qi1', title: '城南地铁站主体结构钢筋验收', project: '城南地铁站项目', inspector: '周海涛', date: '2026-08-11', issues: '个别箍筋间距超标', status: '整改中' },
     { id: 'qi2', title: '滨江大桥墩柱混凝土质量检查', project: '滨江大桥工程', inspector: '周海涛', date: '2026-08-04', issues: '外观质量良好，蜂窝麻面少量', status: '已完成' },
+    { id: 'qi3', title: '清河水库大坝面板混凝土平整度检查', project: '清河水库除险加固工程', inspector: '吴刚', date: '2026-08-16', issues: '局部板面平整度偏差3mm，要求打磨修整', status: '待整改' },
+    { id: 'qi4', title: '南水北调渠道衬砌板厚度抽检', project: '南水北调支线渠系工程', inspector: '周海涛', date: '2026-08-15', issues: '衬砌板厚度满足设计，观感良好', status: '已完成' },
+    { id: 'qi5', title: '湿地公园水系工程防渗膜焊缝质量检查', project: '湿地公园水系工程', inspector: '吴刚', date: '2026-08-12', issues: '个别焊缝搭接宽度不足，安排补焊', status: '整改中' },
+    { id: 'qi6', title: '跨河大桥支座安装质量专项检查', project: '跨河大桥水文监测站', inspector: '周海涛', date: '2026-08-18', issues: '支座标高偏差在允许范围内，质量合格', status: '已完成' },
   ];
 
   collections['qualityTrainings'] = [
     { id: 'qtn1', title: '混凝土施工质量控制要点', trainer: '周海涛', date: '2026-08-09', participants: 28, content: '混凝土浇筑、养护及验收标准' },
+    { id: 'qtn2', title: '防水工程渗漏防控与验收标准', trainer: '吴刚', date: '2026-08-14', participants: 22, content: '防水卷材铺贴工艺、渗漏试验、质量验收' },
+    { id: 'qtn3', title: '测量放线精度控制培训', trainer: '外部讲师', date: '2026-09-05', participants: 18, content: '全站仪使用、高程控制网复测、轴线偏差控制' },
   ];
 
   collections['qualityPunishments'] = [
     { id: 'qps1', code: 'ZLCF-2026-001', project: '城南地铁站项目', person: '孙建', reason: '钢筋搭接长度不足', amount: 400, date: '2026-08-13' },
+    { id: 'qps2', code: 'ZLCF-2026-002', project: '湿地公园水系工程', person: '张班组', reason: '防渗膜焊缝搭接宽度不足', amount: 600, date: '2026-08-13' },
+    { id: 'qps3', code: 'ZLCF-2026-003', project: '清河水库除险加固工程', person: '李技术', reason: '混凝土养护记录填写不及时', amount: 300, date: '2026-08-17' },
   ];
 
   collections['qualityRewards'] = [
     { id: 'qrw1', code: 'ZLJL-2026-001', project: '滨江大桥工程', person: '张班组', reason: '墩柱外观质量优良', amount: 1000, date: '2026-08-06' },
+    { id: 'qrw2', code: 'ZLJL-2026-002', project: '清河水库除险加固工程', person: '刘工', reason: '面板平整度控制优良', amount: 1500, date: '2026-08-15' },
+    { id: 'qrw3', code: 'ZLJL-2026-003', project: '跨河大桥水文监测站', person: '马师傅', reason: '支座安装一次验收合格', amount: 2000, date: '2026-08-19' },
   ];
 
   collections['qualityAccidents'] = [
     { id: 'qac1', title: '滨江大桥墩柱混凝土裂缝', project: '滨江大桥工程', level: '一般', date: '2026-07-18', description: '养护不到位产生收缩裂缝，已制定修补方案' },
+    { id: 'qac2', title: '南水北调渠道衬砌板局部空鼓', project: '南水北调支线渠系工程', level: '一般', date: '2026-08-02', description: '局部衬砌板与基层结合不密实，已返工处理' },
+  ];
+
+  collections['qualityDefects'] = [
+    { id: 'qd1', name: '混凝土蜂窝麻面', position: '墩柱/墙板浇筑面', cause: '振捣不密实、模板拼缝漏浆', measure: '加强振捣、严控坍落度、模板缝隙封堵', status: '已防治', date: '2026-08-05', project: '滨江大桥工程' },
+    { id: 'qd2', name: '防水层渗漏', position: '地下室底板/屋面', cause: '卷材搭接不牢、基层潮湿', measure: '热熔满粘、搭接宽度≥100mm、基层干燥处理', status: '防治中', date: '2026-08-10', project: '湿地公园水系工程' },
+    { id: 'qd3', name: '钢筋间距/保护层偏差', position: '梁柱节点', cause: '箍筋绑扎不到位、垫块缺失', measure: '钢筋定位卡具、加密垫块、隐蔽验收', status: '防治中', date: '2026-08-12', project: '城南地铁站项目' },
+    { id: 'qd4', name: '抹灰空鼓开裂', position: '室内墙面', cause: '基层处理不当、养护不足', measure: '甩浆拉毛、分层抹压、喷水养护', status: '已防治', date: '2026-08-08', project: '城北学校扩建工程' },
   ];
 
   // 平台中心
@@ -1455,6 +1532,12 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'lg1', operator: 'admin', action: '登录系统', module: 'auth', date: '2026-08-17' },
     { id: 'lg2', operator: 'admin', action: '新增采购订单', module: '采购管理', date: '2026-08-16' },
     { id: 'lg3', operator: 'manager', action: '修改施工进度', module: '项目管理', date: '2026-08-15' },
+    { id: 'lg4', operator: '赵丽', action: '审核差旅报销单', module: '财务管理', date: '2026-08-15' },
+    { id: 'lg5', operator: '王磊', action: '更新商机推进阶段', module: '市场经营', date: '2026-08-14' },
+    { id: 'lg6', operator: '周海涛', action: '发起质量检查整改', module: '质量管理', date: '2026-08-13' },
+    { id: 'lg7', operator: '王安全', action: '登记危险源风险', module: '安全管理', date: '2026-08-12' },
+    { id: 'lg8', operator: 'admin', action: '发布系统公告', module: '平台中心', date: '2026-08-18' },
+    { id: 'lg9', operator: '郑敏', action: '更新员工档案', module: '人力资源', date: '2026-08-16' },
   ];
 
   // 协同办公

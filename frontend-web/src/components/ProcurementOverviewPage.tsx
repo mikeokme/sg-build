@@ -15,8 +15,10 @@ import {
 } from 'recharts';
 import type { FeatureDef } from '@/config/features';
 import { useProject } from '@/context/ProjectContext';
+import { StatCard } from '@/components/ui/StatCard';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899'];
 
 const ORDER_STATUS_STYLE: Record<string, string> = {
@@ -42,36 +44,14 @@ function fmtMoney(v: number | string): string {
   return `¥${n.toLocaleString()}`;
 }
 
-function StatCard({ icon: Icon, label, value, sub, tone }: any) {
-  const tones: Record<string, string> = {
-    blue: 'text-blue-600 bg-blue-50', emerald: 'text-emerald-600 bg-emerald-50',
-    sky: 'text-sky-600 bg-sky-50', purple: 'text-purple-600 bg-purple-50',
-    amber: 'text-amber-600 bg-amber-50', red: 'text-red-600 bg-red-50',
-    cyan: 'text-cyan-600 bg-cyan-50',
-  };
-  const t = tones[tone] || tones.blue;
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${t}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
-          <p className="text-xs text-gray-500">{label}</p>
-          {sub && <p className="text-[10px] text-gray-400 truncate">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: FeatureDef; categoryTitle: string }) {
+export function ProcurementOverviewPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('全部');
   const { matchesProject } = useProject();
+  const { lang, t, tCat, tFeat } = useT();
+  const isZh = lang === 'zh';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -125,12 +105,12 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
   const evalBad = evals.filter((e: any) => e.result === 'D级-淘汰').length;
 
   const stats = [
-    { icon: Wallet, label: '合同总金额', value: fmtMoney(contractTotal), sub: `${contractsAll.length} 份合同`, tone: 'purple' },
-    { icon: ShoppingCart, label: '采购订单', value: orders.length, sub: `${orderActive} 单执行中`, tone: 'blue' },
-    { icon: FileText, label: '待审批', value: planPending + requestPending, sub: `采购计划${planPending} · 请示${requestPending}`, tone: 'amber' },
-    { icon: Truck, label: '到货验收', value: receipts.length, sub: `${receiptPending} 单待验收 · ${receiptOK} 单合格`, tone: 'cyan' },
-    { icon: Building2, label: '供应商', value: suppliers.length, sub: `${evalExcellent} 家A级`, tone: 'emerald' },
-    { icon: Clock, label: '待结算验收', value: receiptPending, sub: '需关注', tone: 'red' },
+    { icon: Wallet, label: isZh ? '合同总金额' : 'Contract Total', value: fmtMoney(contractTotal), sub: isZh ? `${contractsAll.length} 份合同` : `${contractsAll.length} contracts`, tone: 'purple' },
+    { icon: ShoppingCart, label: isZh ? '采购订单' : 'Purchase Orders', value: orders.length, sub: isZh ? `${orderActive} 单执行中` : `${orderActive} in progress`, tone: 'blue' },
+    { icon: FileText, label: isZh ? '待审批' : 'Pending Approval', value: planPending + requestPending, sub: isZh ? `采购计划${planPending} · 请示${requestPending}` : `Plans ${planPending} · Requests ${requestPending}`, tone: 'amber' },
+    { icon: Truck, label: isZh ? '到货验收' : 'Goods Receiving', value: receipts.length, sub: isZh ? `${receiptPending} 单待验收 · ${receiptOK} 单合格` : `${receiptPending} pending · ${receiptOK} passed`, tone: 'cyan' },
+    { icon: Building2, label: isZh ? '供应商' : 'Suppliers', value: suppliers.length, sub: isZh ? `${evalExcellent} 家A级` : `${evalExcellent} Grade-A`, tone: 'emerald' },
+    { icon: Clock, label: isZh ? '待结算验收' : 'Receipts to Settle', value: receiptPending, sub: isZh ? '需关注' : 'Attention needed', tone: 'red' },
   ];
 
   // 供应商评价排行
@@ -141,15 +121,15 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
   });
   const evalChartData = evalSorted.map((e: any) => ({
     name: e.supplier,
-    综合分: Math.round((Number(e.qualityScore) + Number(e.deliveryScore) + Number(e.priceScore) + Number(e.serviceScore)) / 4),
+    [isZh ? '综合分' : 'Score']: Math.round((Number(e.qualityScore) + Number(e.deliveryScore) + Number(e.priceScore) + Number(e.serviceScore)) / 4),
   }));
 
   // 合同类型分布
   const contractPie = [
-    { name: '集采合同', value: groupContracts.length },
-    { name: '采购合同', value: purchaseContracts.length },
-    { name: '租赁合同', value: rentalContracts.length },
-    { name: '分包合同', value: subcontracts.length },
+    { name: isZh ? '集采合同' : 'Group Contracts', value: groupContracts.length },
+    { name: isZh ? '采购合同' : 'Purchase Contracts', value: purchaseContracts.length },
+    { name: isZh ? '租赁合同' : 'Rental Contracts', value: rentalContracts.length },
+    { name: isZh ? '分包合同' : 'Subcontracts', value: subcontracts.length },
   ].filter((x) => x.value > 0);
 
   // 订单状态分布
@@ -182,27 +162,27 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
   const statusOptions = ['待确认', '已下单', '部分到货', '已收货', '已完结'];
 
   const quickLinks = [
-    { label: '编制采购计划', href: '/procurement/procurement-plans', icon: FileText },
-    { label: '大宗采购请示', href: '/procurement/major-requests', icon: Clipboard },
-    { label: '新建采购订单', href: '/procurement/orders', icon: ShoppingCart },
-    { label: '到货验收', href: '/procurement/receipts', icon: Truck },
-    { label: '供应商评价', href: '/procurement/supplier-eval', icon: Star },
+    { label: isZh ? '编制采购计划' : 'Procurement Plans', href: '/procurement/procurement-plans', icon: FileText },
+    { label: isZh ? '大宗采购请示' : 'Major Requests', href: '/procurement/major-requests', icon: Clipboard },
+    { label: isZh ? '新建采购订单' : 'New Purchase Order', href: '/procurement/orders', icon: ShoppingCart },
+    { label: isZh ? '到货验收' : 'Goods Receiving', href: '/procurement/receipts', icon: Truck },
+    { label: isZh ? '供应商评价' : 'Supplier Evaluation', href: '/procurement/supplier-eval', icon: Star },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">采购管理驾驶舱</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500">
-          <TrendingUp className="w-3.5 h-3.5" />集采降本 · 供应保障
+          <TrendingUp className="w-3.5 h-3.5" />{isZh ? '集采降本 · 供应保障' : 'Group purchasing savings · Supply assurance'}
         </Badge>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-24 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+        <div className="flex items-center justify-center py-24 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -211,10 +191,10 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">合同类型分布</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '合同类型分布' : 'Contract Type Distribution'}</CardTitle></CardHeader>
               <CardContent>
                 {contractPie.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无合同数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无合同数据' : 'No contract data'}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
@@ -230,10 +210,10 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">订单状态分布</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '订单状态分布' : 'Order Status Distribution'}</CardTitle></CardHeader>
               <CardContent>
                 {orderDist.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无订单数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无订单数据' : 'No order data'}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={orderDist} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -249,10 +229,10 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">供应商综合评分</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '供应商综合评分' : 'Supplier Composite Score'}</CardTitle></CardHeader>
               <CardContent>
                 {evalChartData.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无评价数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无评价数据' : 'No evaluation data'}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={evalChartData} layout="vertical" margin={{ top: 0, right: 20, left: 10, bottom: 0 }}>
@@ -260,7 +240,7 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
                       <XAxis type="number" domain={[0, 100]} fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis type="category" dataKey="name" fontSize={10} width={110} tickLine={false} axisLine={false} />
                       <Tooltip />
-                      <Bar dataKey="综合分" fill="#10b981" radius={[0, 4, 4, 0]} maxBarSize={16} />
+                      <Bar dataKey={isZh ? '综合分' : 'Score'} fill="#10b981" radius={[0, 4, 4, 0]} maxBarSize={16} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -271,10 +251,10 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card className="xl:col-span-2">
               <CardHeader className="flex flex-row items-center gap-3 pb-3 flex-wrap">
-                <CardTitle className="text-base font-semibold">采购订单</CardTitle>
+                <CardTitle className="text-base font-semibold">{isZh ? '采购订单' : 'Purchase Orders'}</CardTitle>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button onClick={() => setStatusFilter('全部')}
-                    className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>全部</button>
+                    className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('all')}</button>
                   {statusOptions.map((s) => (
                     <button key={s} onClick={() => setStatusFilter(s)}
                       className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{s}</button>
@@ -282,14 +262,14 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
                 </div>
                 <div className="relative flex-1 max-w-xs ml-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input placeholder="搜索订单..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+                  <Input placeholder={isZh ? '搜索订单...' : 'Search orders...'} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </CardHeader>
               <CardContent>
                 {filteredOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <ShoppingCart className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                    <p>暂无订单</p>
+                    <p>{isZh ? '暂无订单' : 'No orders'}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -311,7 +291,7 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(amt)}</p>
-                            {o.expectedDate && <p className="text-[10px] text-gray-400">预计 {o.expectedDate}</p>}
+                            {o.expectedDate && <p className="text-[10px] text-gray-400">{isZh ? '预计' : 'ETA'} {o.expectedDate}</p>}
                           </div>
                         </div>
                       );
@@ -323,10 +303,10 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
 
             <div className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base font-semibold">物资采购金额</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '物资采购金额' : 'Material Spend'}</CardTitle></CardHeader>
                 <CardContent>
                   {materialSpend.length === 0 ? (
-                    <p className="text-sm text-gray-400 py-8 text-center">暂无数据</p>
+                    <p className="text-sm text-gray-400 py-8 text-center">{t('noData')}</p>
                   ) : (
                     <div className="space-y-2">
                       {materialSpend.slice(0, 6).map((m) => (
@@ -346,7 +326,7 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base font-semibold">供应商评级</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '供应商评级' : 'Supplier Ratings'}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {evalSorted.slice(0, 4).map((e: any) => {
                     const avg = Math.round((Number(e.qualityScore) + Number(e.deliveryScore) + Number(e.priceScore) + Number(e.serviceScore)) / 4);
@@ -369,7 +349,7 @@ export function ProcurementOverviewPage({ feature, categoryTitle }: { feature: F
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base font-semibold">快捷操作</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '快捷操作' : 'Quick Actions'}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-5 gap-2">
               {quickLinks.map((a) => (
                 <Link key={a.label} href={a.href}

@@ -12,8 +12,9 @@ import { Plus, Search, Pencil, Trash2, Loader2, Eye } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 function createEmptyForm(fields: FeatureDef['fields']) {
   const form: Record<string, any> = {};
@@ -31,6 +32,7 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const { t, tCat, tFeat, tField } = useT();
 
   const role = getCurrentRole();
   const allowCreate = canCreate(categoryKey, role);
@@ -103,7 +105,7 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除「${Object.values(item)[1] || item.id}」吗？`)) return;
+    if (!confirm(`${t('confirmDelete')}「${Object.values(item)[1] || item.id}」吗？`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'DELETE',
@@ -129,39 +131,39 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />新增</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{t('add')}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{t('readonly')}</Badge>
         )}
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3">
-          <CardTitle className="text-base font-semibold">{feature.title}列表</CardTitle>
+          <CardTitle className="text-base font-semibold">{tFeat(categoryKey, feature.key)}{t('list')}</CardTitle>
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={t('search')} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge variant="secondary" className="text-xs">{filtered.length} 条</Badge>
+          <Badge variant="secondary" className="text-xs">{filtered.length} {t('count')}</Badge>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p>暂无数据</p>
-              <p className="text-sm mt-1">点击右上角「新增」添加第一条记录</p>
+              <p>{t('noData')}</p>
+              <p className="text-sm mt-1">{t('noDataHint')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  {visibleFields.map((f) => <TableHead key={f.key}>{f.label}</TableHead>)}
-                  <TableHead className="w-20 text-right">操作</TableHead>
+                  {visibleFields.map((f) => <TableHead key={f.key}>{tField(f.key, f.label)}</TableHead>)}
+                  <TableHead className="w-20 text-right">{t('operation')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,8 +172,8 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
                     {visibleFields.map((f) => <TableCell key={f.key}>{renderValue(item, f.key)}</TableCell>)}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="编辑"><Pencil className="w-4 h-4 text-blue-600" /></Button>}
-                        {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(item)} title="删除"><Trash2 className="w-4 h-4 text-red-600" /></Button>}
+                        {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title={t('edit')}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
+                        {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(item)} title={t('delete')}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
                         {!allowEdit && !allowDelete && <span className="text-xs text-gray-300">-</span>}
                       </div>
                     </TableCell>
@@ -185,11 +187,11 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? '编辑' : '新增'}{feature.title}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {visibleFields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
@@ -197,7 +199,7 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
                     disabled={!isFieldEditable(f)}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -214,16 +216,16 @@ export function FeaturePage({ feature, categoryTitle, categoryKey }: { feature: 
                     value={form[f.key] ?? ''}
                     disabled={!isFieldEditable(f)}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
-                    placeholder={`请输入${f.label}`}
+                    placeholder={`${t('inputPlaceholder')}${tField(f.key, f.label)}`}
                   />
                 )}
-                {!isFieldEditable(f) && <span className="text-[10px] text-gray-400 mt-0.5 block">不可编辑（权限不足）</span>}
+                {!isFieldEditable(f) && <span className="text-[10px] text-gray-400 mt-0.5 block">{t('cannotEdit')}</span>}
               </div>
             ))}
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {editing ? '保存修改' : '确认新增'}
+            {editing ? t('save') : t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

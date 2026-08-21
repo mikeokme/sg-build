@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const BAR_COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-orange-500', 'bg-purple-500', 'bg-cyan-500', 'bg-rose-500', 'bg-indigo-500', 'bg-teal-500'];
 
@@ -17,6 +18,8 @@ function daysBetween(a: string, b: string) {
 export function GanttPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -50,7 +53,7 @@ export function GanttPage({ feature, categoryTitle, categoryKey }: { feature: Fe
     while (cursor <= maxDate) {
       const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
       const days = Math.min(daysBetween(cursor.toISOString(), next.toISOString()), daysBetween(cursor.toISOString(), maxDate.toISOString()) + 1);
-      months.push({ key: cursor.toISOString(), label: `${cursor.getMonth() + 1}月`, days: Math.max(1, days) });
+      months.push({ key: cursor.toISOString(), label: `${cursor.getMonth() + 1}${isZh ? '月' : ''}`, days: Math.max(1, days) });
       cursor = next;
     }
   }
@@ -59,27 +62,27 @@ export function GanttPage({ feature, categoryTitle, categoryKey }: { feature: Fe
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
-        <Badge variant="secondary" className="text-xs">{withDates.length} 个工作项</Badge>
+        <Badge variant="secondary" className="text-xs">{withDates.length} {isZh ? '个工作项' : 'work items'}</Badge>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base font-semibold">进度甘特图</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '进度甘特图' : 'Progress Gantt Chart'}</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : withDates.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p>暂无进度数据</p>
-              <p className="text-sm mt-1">请先在列表中新增带开始/结束日期的工作项</p>
+              <p>{isZh ? '暂无进度数据' : 'No progress data'}</p>
+              <p className="text-sm mt-1">{isZh ? '请先在列表中新增带开始/结束日期的工作项' : 'Add work items with start/end dates in the list first'}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <div style={{ minWidth: 600 }}>
                 <div className="flex border-b border-gray-200 pb-2 mb-2">
-                  <div className="w-48 flex-shrink-0 text-xs text-gray-500 font-medium">{projectField?.label || '项目'}</div>
+                  <div className="w-48 flex-shrink-0 text-xs text-gray-500 font-medium">{tField(projectField?.key || 'project', projectField?.label || (isZh ? '项目' : 'Project'))}</div>
                   <div className="flex-1 relative" style={{ height: 20 }}>
                     <div className="absolute inset-0 flex">
                       {months.map((m) => (
