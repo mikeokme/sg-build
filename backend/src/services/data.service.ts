@@ -1656,6 +1656,49 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'co-3', name: '三公司', code: 'CO-3', parentId: 'group', leader: '周海涛', phone: '13811110002', description: '三公司', sortOrder: 9 },
   ];
 
+  // ── 为每个实际工程项目创建对应的项目部（确保与 projectArchives 一一对应，修复不匹配）──
+  for (const pa of collections['projectArchives'] || []) {
+    const deptId = `project-${pa.id}`;
+    if (!collections['departments'].some((d: any) => d.id === deptId)) {
+      collections['departments'].push({
+        id: deptId,
+        name: pa.name,
+        code: `PROJ-${pa.id.toUpperCase()}`,
+        parentId: 'group_proj',
+        leader: pa.manager || '',
+        phone: '',
+        description: `${pa.name}项目部`,
+        sortOrder: 10,
+      });
+    }
+  }
+  // 同步扩展项目部组 chatGroup 的 departmentIds 覆盖全部实际项目
+  const projGroup = (collections['chatGroups'] as any[])?.find((g: any) => g.id === 'group_proj');
+  if (projGroup) {
+    const projDeptIds = collections['departments']
+      .filter((d: any) => d.parentId === 'group_proj' || d.id.startsWith('project-'))
+      .map((d: any) => d.id);
+    projGroup.departmentIds = Array.from(new Set([...(projGroup.departmentIds || []), ...projDeptIds]));
+  }
+
+  // 为每个实际工程项目创建对应的项目群聊（与 projectArchives 一一对应）
+  for (const pa of collections['projectArchives'] || []) {
+    const deptId = `project-${pa.id}`;
+    const groupId = `dg_${deptId}`;
+    if (!conversations.some((c: any) => c.departmentId === deptId)) {
+      conversations.push({
+        id: groupId,
+        type: 'group',
+        name: `${pa.name}项目群`,
+        category: 'department',
+        departmentId: deptId,
+        members: [pa.manager, 'admin'].filter(Boolean),
+        admins: [pa.manager].filter(Boolean),
+        owner: pa.manager || 'admin',
+      });
+    }
+  }
+
   collections['orgPositions'] = [
     { id: 'op1', name: '董事长', departmentId: 'board', level: 100, description: '集团最高决策人', sortOrder: 0 },
     { id: 'op2', name: '总经理', departmentId: 'gm-office', level: 100, description: '集团日常运营负责人', sortOrder: 0 },

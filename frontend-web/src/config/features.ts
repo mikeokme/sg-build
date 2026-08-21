@@ -2,7 +2,7 @@ export type PageType =
   | 'list' | 'dashboard' | 'approval' | 'gantt' | 'calendar' | 'doc' | 'user-manage'
   | 'project-archives' | 'project-documents'
   | 'engineering-overview' | 'engineering-schedule' | 'engineering-logs'
-  | 'engineering-milestones' | 'engineering-module' | 'engineering-production'
+  | 'engineering-milestones' | 'engineering-module' | 'engineering-production' | 'engineering-progress-payment'
   | 'procurement-overview' | 'procurement-plan' | 'receipts' | 'supplier-eval'
   | 'subcontract-overview'
   | 'oa-overview' | 'oa-tasks' | 'oa-meetings' | 'oa-documents'
@@ -250,6 +250,26 @@ export const categories: CategoryDef[] = [
           { key: 'settleAmount', label: '结算金额（元）', type: 'number' },
           { key: 'settleDate', label: '结算日期', type: 'date' },
           { key: 'status', label: '状态', type: 'select', options: statusOptions(['办理中', '已完成']) },
+        ],
+      },
+      {
+        key: 'progress-payment',
+        title: '进度支付',
+        collection: 'progressPayments',
+        pageType: 'engineering-progress-payment',
+        group: '变更与结算',
+        fields: [
+          { key: 'project', label: '所属项目', required: true },
+          { key: 'period', label: '期次', required: true },
+          { key: 'progressPercent', label: '本期进度(%)', type: 'number' },
+          { key: 'cumulativeProgress', label: '累计进度(%)', type: 'number' },
+          { key: 'reportedAmount', label: '申报金额(元)', type: 'number' },
+          { key: 'verifiedAmount', label: '核定金额(元)', type: 'number' },
+          { key: 'approvedAmount', label: '支付金额(元)', type: 'number' },
+          { key: 'paymentRatio', label: '支付比例(%)', type: 'number' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['待申报', '已申报', '已审核', '已支付']) },
+          { key: 'applyDate', label: '申报日期', type: 'date' },
+          { key: 'applicant', label: '申请人' },
         ],
       },
     ],

@@ -793,4 +793,81 @@ export class ChatService {
       createdAt: m.createdAt,
     };
   }
+
+  // ── Telegram 风格：全局搜索 ──
+  globalSearch(username: string, query: string): { results: any[] } {
+    if (!query || query.length < 2) return { results: [] };
+    const q = query.toLowerCase();
+    const results: any[] = [];
+    const conversations = this.dataService.getConversations().filter(c => c.members.includes(username));
+    for (const conv of conversations) {
+      const msgs = this.dataService.getChatMessages(conv.id);
+      for (const m of msgs) {
+        const content = (m.content || '').toLowerCase();
+        if (content.includes(q)) {
+          const searchStart = content.indexOf(q);
+          results.push({
+            convId: conv.id,
+            convName: conv.type === 'single'
+              ? (conv.members.find((u: string) => u !== username) || '')
+              : conv.name,
+            convType: conv.type,
+            msgId: m.id,
+            sender: m.sender,
+            senderName: this.dataService.getUserByUsername(m.sender)?.name || m.sender,
+            contentType: m.contentType,
+            content: m.content,
+            searchStart,
+            searchText: query,
+            createdAt: m.createdAt,
+          });
+        }
+      }
+    }
+    results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { results };
+  }
+
+  // ── Telegram 风格：已保存消息 ──
+  getSavedMessages(username: string): { messages: any[] } {
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    const userSaved = saved.filter((s: any) => s.username === username);
+    const messages: any[] = [];
+    for (const s of userSaved) {
+      const msg = this.dataService.getChatMessage(s.messageId);
+      if (msg && this.canAccess(username, this.dataService.getConversation(msg.conversationId))) {
+        messages.push(this.decorateForClient(msg, msg.conversationId, username));
+      }
+    }
+    messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { messages };
+  }
+
+  saveMessage(username: string, messageId: string): { ok: boolean; message?: string; error?: string } {
+    if (!messageId) return { ok: false, error: '消息ID不能为空' };
+    const msg = this.dataService.getChatMessage(messageId);
+    if (!msg) return { ok: false, error: '消息不存在' };
+    if (!this.canAccess(username, this.dataService.getConversation(msg.conversationId))) {
+      return { ok: false, error: '无权操作该消息' };
+    }
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    // 检查是否已保存
+    const existing = saved.find((s: any) => s.username === username && s.messageId === messageId);
+    if (existing) return { ok: true, message: '已存在于已保存消息中' };
+    saved.push({ username, messageId, savedAt: new Date().toISOString() });
+    this.dataService.updateSettings({ savedMessages: saved });
+    return { ok: true };
+  }
+
+  deleteSavedMessage(username: string, messageId: string): { ok: boolean; error?: string } {
+    if (!messageId) return { ok: false, error: '消息ID不能为空' };
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    const filtered = saved.filter((s: any) => !(s.username === username && s.messageId === messageId));
+    if (filtered.length === saved.length) return { ok: false, error: '消息未保存' };
+    this.dataService.updateSettings({ savedMessages: filtered });
+    return { ok: true };
+  }
 }
