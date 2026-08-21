@@ -13,9 +13,11 @@ import {
   CartesianGrid, LineChart, Line, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import type { FeatureDef } from '@/config/features';
+import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899', '#14b8a6'];
 
 export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
@@ -30,6 +32,8 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
   const allowCreate = canCreate(categoryKey, role);
   const allowEdit = canEdit(categoryKey, role);
   const allowDelete = canDelete(categoryKey, role);
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -101,7 +105,7 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除「${item.project || ''} ${item.month || ''}」的产值记录吗？`)) return;
+    if (!confirm(`${t('confirmDelete')}${isZh ? `「${item.project || ''} ${item.month || ''}」的产值记录吗？` : ` production value record for "${item.project || ''} ${item.month || ''}"?`}`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'DELETE',
@@ -114,52 +118,41 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />填报产值</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{isZh ? '填报产值' : 'Report Value'}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{t('readonly')}</Badge>
         )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { icon: TrendingUp, label: '本月产值合计', value: `${totalValue.toLocaleString()} 万`, tone: 'text-blue-600 bg-blue-50' },
-          { icon: Wallet, label: '累计产值', value: `${totalCumulative.toLocaleString()} 万`, tone: 'text-emerald-600 bg-emerald-50' },
-          { icon: BarChart3, label: '统计项目数', value: projects.length, tone: 'text-purple-600 bg-purple-50' },
-          { icon: BarChart3, label: '记录条数', value: items.length, tone: 'text-amber-600 bg-amber-50' },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.tone}`}>
-                <s.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-500">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          { icon: TrendingUp, label: isZh ? '本月产值合计' : 'Monthly Output', value: `${totalValue.toLocaleString()} ${isZh ? '万' : 'w'}`, tone: 'blue' },
+          { icon: Wallet, label: isZh ? '累计产值' : 'Cumulative Output', value: `${totalCumulative.toLocaleString()} ${isZh ? '万' : 'w'}`, tone: 'emerald' },
+          { icon: BarChart3, label: isZh ? '统计项目数' : 'Projects', value: projects.length, tone: 'purple' },
+          { icon: BarChart3, label: isZh ? '记录条数' : 'Records', value: items.length, tone: 'amber' },
+
+        ].map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">月度产值趋势（万元）</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '月度产值趋势（万元）' : 'Monthly Output Trend (10k CNY)'}</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
             ) : monthlyTrend.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">暂无产值数据</div>
+              <div className="text-center py-16 text-gray-400">{isZh ? '暂无产值数据' : 'No production value data'}</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={monthlyTrend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                   <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} 万`, '产值']} />
+                  <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} ${isZh ? '万' : 'w'}`, isZh ? '产值' : 'Value']} />
                   <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer>
@@ -168,19 +161,19 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">各项目产值占比</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '各项目产值占比' : 'Output Share by Project'}</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
             ) : projectShare.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">暂无产值数据</div>
+              <div className="text-center py-16 text-gray-400">{isZh ? '暂无产值数据' : 'No production value data'}</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={projectShare} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, value }: any) => `${String(name).slice(0, 6)} ${Number(value).toFixed(0)}万`}>
+                  <Pie data={projectShare} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, value }: any) => `${String(name).slice(0, 6)} ${Number(value).toFixed(0)}${isZh ? '万' : 'w'}`}>
                     {projectShare.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} 万`, '产值']} />
+                  <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} ${isZh ? '万' : 'w'}`, isZh ? '产值' : 'Value']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -190,19 +183,19 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base font-semibold">累计产值排行（万元）</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '累计产值排行（万元）' : 'Cumulative Output Ranking (10k CNY)'}</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : cumulativeByProject.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">暂无产值数据</div>
+            <div className="text-center py-16 text-gray-400">{isZh ? '暂无产值数据' : 'No production value data'}</div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={cumulativeByProject} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${Number(v).toFixed(0)}万`} />
+                <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${Number(v).toFixed(0)}${isZh ? '万' : 'w'}`} />
                 <YAxis type="category" dataKey="name" fontSize={10} width={150} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} 万`, '累计产值']} />
+                <Tooltip formatter={(v: any) => [`${Number(v).toLocaleString()} ${isZh ? '万' : 'w'}`, isZh ? '累计产值' : 'Cumulative']} />
                 <Bar dataKey="value" fill="#10b981" radius={[0, 4, 4, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
@@ -212,25 +205,25 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3">
-          <CardTitle className="text-base font-semibold">产值明细</CardTitle>
-          <Badge variant="secondary" className="text-xs">{items.length} 条</Badge>
+          <CardTitle className="text-base font-semibold">{isZh ? '产值明细' : 'Value Details'}</CardTitle>
+          <Badge variant="secondary" className="text-xs">{items.length} {t('count')}</Badge>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-12 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : items.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">暂无产值记录</div>
+            <div className="text-center py-12 text-gray-400">{isZh ? '暂无产值记录' : 'No production value records'}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-                    <th className="py-2 pr-4 font-medium">项目</th>
-                    <th className="py-2 pr-4 font-medium">月份</th>
-                    <th className="py-2 pr-4 font-medium text-right">本月产值（万）</th>
-                    <th className="py-2 pr-4 font-medium text-right">累计产值（万）</th>
-                    <th className="py-2 pr-4 font-medium">责任人</th>
-                    <th className="py-2 font-medium text-right">操作</th>
+                    <th className="py-2 pr-4 font-medium">{isZh ? '项目' : 'Project'}</th>
+                    <th className="py-2 pr-4 font-medium">{isZh ? '月份' : 'Month'}</th>
+                    <th className="py-2 pr-4 font-medium text-right">{isZh ? '本月产值（万）' : 'Monthly Output (10k)'}</th>
+                    <th className="py-2 pr-4 font-medium text-right">{isZh ? '累计产值（万）' : 'Cumulative (10k)'}</th>
+                    <th className="py-2 pr-4 font-medium">{isZh ? '责任人' : 'Owner'}</th>
+                    <th className="py-2 font-medium text-right">{t('operation')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,8 +236,8 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
                       <td className="py-2 pr-4 text-gray-600">{it.owner || '-'}</td>
                       <td className="py-2 text-right">
                         <div className="flex justify-end gap-1">
-                          {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title="编辑"><Pencil className="w-4 h-4 text-blue-600" /></Button>}
-                          {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title="删除"><Trash2 className="w-4 h-4 text-red-600" /></Button>}
+                          {allowEdit && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title={t('edit')}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
+                          {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title={t('delete')}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
                         </div>
                       </td>
                     </tr>
@@ -258,18 +251,18 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? '编辑' : '填报'}产值</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {feature.fields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -284,7 +277,7 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
                     type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
-                    placeholder={`请输入${f.label}`}
+                    placeholder={`${t('inputPlaceholder')}${tField(f.key, f.label)}`}
                   />
                 )}
               </div>
@@ -292,7 +285,7 @@ export function ProductionValuePage({ feature, categoryTitle, categoryKey }: { f
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {editing ? '保存修改' : '确认提交'}
+            {editing ? t('save') : t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

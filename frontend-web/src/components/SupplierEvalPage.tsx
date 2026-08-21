@@ -10,10 +10,12 @@ import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, Loader2, Eye, Star, TrendingUp } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import type { FeatureDef } from '@/config/features';
+import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const EVAL_RANK: Record<string, string> = {
   'A级-优秀': 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -37,6 +39,8 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
   const allowDelete = canDelete(categoryKey, role);
   const matchesProject = useProjectFilter(categoryKey);
   const currentProject = useCurrentProject(categoryKey);
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -126,7 +130,7 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除对「${item.supplier}」的评价吗？`)) return;
+    if (!confirm(`${t('confirmDelete')}${isZh ? `对「${item.supplier}」的评价吗？` : ` evaluation for "${item.supplier}"?`}`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'DELETE',
@@ -139,48 +143,37 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">质量·交期·价格·服务 四维考评 · 分级管理供应商</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
+          <p className="text-sm text-gray-500 mt-1">{isZh ? '质量·交期·价格·服务 四维考评 · 分级管理供应商' : '4-dimension scoring · tiered supplier management'}</p>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />新增评价</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{t('add')}{isZh ? '评价' : ' Evaluation'}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{t('readonly')}</Badge>
         )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { icon: Star, label: '评价总数', value: scopedItems.length, tone: 'text-purple-600 bg-purple-50' },
-          { icon: TrendingUp, label: 'A级优秀', value: excellent, tone: 'text-emerald-600 bg-emerald-50' },
-          { icon: Star, label: '平均质量分', value: avgQuality, tone: 'text-blue-600 bg-blue-50' },
-          { icon: Star, label: '平均交期分', value: avgDelivery, tone: 'text-cyan-600 bg-cyan-50' },
-          { icon: Star, label: 'D级待淘汰', value: bad, tone: 'text-red-600 bg-red-50' },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${s.tone}`}>
-                <s.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-500">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+          { icon: Star, label: isZh ? '评价总数' : 'Total Evaluations', value: scopedItems.length, tone: 'purple' },
+          { icon: TrendingUp, label: isZh ? 'A级优秀' : 'Grade A', value: excellent, tone: 'emerald' },
+          { icon: Star, label: isZh ? '平均质量分' : 'Avg Quality', value: avgQuality, tone: 'blue' },
+          { icon: Star, label: isZh ? '平均交期分' : 'Avg Delivery', value: avgDelivery, tone: 'cyan' },
+          { icon: Star, label: isZh ? 'D级待淘汰' : 'Grade D', value: bad, tone: 'red' },
+
+        ].map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">四维平均得分</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '四维平均得分' : 'Average Score by Dimension'}</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={240}>
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="72%">
                 <PolarGrid stroke="#e2e8f0" />
                 <PolarAngleAxis dataKey="metric" fontSize={13} tickLine={false} />
-                <Radar name="平均分" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.25} />
+                <Radar name={isZh ? '平均分' : 'Average'} dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.25} />
                 <Tooltip />
               </RadarChart>
             </ResponsiveContainer>
@@ -188,10 +181,10 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">供应商评级分布</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '供应商评级分布' : 'Rating Distribution'}</CardTitle></CardHeader>
           <CardContent>
             {rankDist.length === 0 ? (
-              <div className="text-center py-16 text-gray-400 text-sm">暂无评价数据</div>
+              <div className="text-center py-16 text-gray-400 text-sm">{isZh ? '暂无评价数据' : 'No evaluation data'}</div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={rankDist} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -209,14 +202,14 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card className="xl:col-span-2">
-          <CardHeader><CardTitle className="text-base font-semibold">供应商评价列表</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '供应商评价列表' : 'Evaluation List'}</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+              <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
             ) : ranked.length === 0 ? (
               <div className="text-center py-16 text-gray-400">
-                <p>暂无评价数据</p>
-                {allowCreate && <p className="text-sm mt-1">点击右上角「新增评价」</p>}
+                <p>{isZh ? '暂无评价数据' : 'No evaluation data'}</p>
+                {allowCreate && <p className="text-sm mt-1">{isZh ? '点击右上角「新增评价」' : 'Click "Add Evaluation" at the top right'}</p>}
               </div>
             ) : (
               <div className="space-y-2">
@@ -231,16 +224,16 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
                         <Badge variant="outline" className={`${EVAL_RANK[it.result] || ''} text-[10px] px-1.5 py-0 border-0`}>{it.result}</Badge>
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
-                        {it.project} · 质量{it.qualityScore} 交期{it.deliveryScore} 价格{it.priceScore} 服务{it.serviceScore} · {it.date || '-'}
+                        {it.project} · {isZh ? '质量' : 'Quality'}{it.qualityScore} {isZh ? '交期' : 'Delivery'}{it.deliveryScore} {isZh ? '价格' : 'Price'}{it.priceScore} {isZh ? '服务' : 'Service'}{it.serviceScore} · {it.date || '-'}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold text-gray-900 tabular-nums">{Math.round((Number(it.qualityScore) + Number(it.deliveryScore) + Number(it.priceScore) + Number(it.serviceScore)) / 4)}</p>
-                      <p className="text-[10px] text-gray-400">综合分</p>
+                      <p className="text-[10px] text-gray-400">{isZh ? '综合分' : 'Total'}</p>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      {allowEdit && <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); openEdit(it); }}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
-                      {allowDelete && <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); handleDelete(it); }}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
+                      {allowEdit && <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); openEdit(it); }} title={t('edit')}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
+                      {allowDelete && <Button variant="ghost" size="icon-sm" onClick={(e) => { e.stopPropagation(); handleDelete(it); }} title={t('delete')}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
                     </div>
                   </div>
                 ))}
@@ -250,10 +243,10 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">评价详情</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '评价详情' : 'Evaluation Details'}</CardTitle></CardHeader>
           <CardContent>
             {!active ? (
-              <div className="text-center py-16 text-gray-400 text-sm">选择左侧供应商查看详情</div>
+              <div className="text-center py-16 text-gray-400 text-sm">{isZh ? '选择左侧供应商查看详情' : 'Select a supplier on the left to view details'}</div>
             ) : (
               <div className="space-y-3">
                 <div>
@@ -263,14 +256,14 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
                 <Badge className={`${EVAL_RANK[active.result] || ''} border-0`}>{active.result}</Badge>
                 <div className="flex items-center gap-2">
                   <span className="text-3xl font-bold text-gray-900 tabular-nums">{activeAvg}</span>
-                  <span className="text-xs text-gray-400">综合得分</span>
+                  <span className="text-xs text-gray-400">{isZh ? '综合得分' : 'Total Score'}</span>
                 </div>
                 <div className="space-y-2">
                   {[
-                    { label: '质量', v: Number(active.qualityScore) },
-                    { label: '交期', v: Number(active.deliveryScore) },
-                    { label: '价格', v: Number(active.priceScore) },
-                    { label: '服务', v: Number(active.serviceScore) },
+                    { label: isZh ? '质量' : 'Quality', v: Number(active.qualityScore) },
+                    { label: isZh ? '交期' : 'Delivery', v: Number(active.deliveryScore) },
+                    { label: isZh ? '价格' : 'Price', v: Number(active.priceScore) },
+                    { label: isZh ? '服务' : 'Service', v: Number(active.serviceScore) },
                   ].map((r) => (
                     <div key={r.label} className="text-sm">
                       <div className="flex justify-between mb-1">
@@ -283,7 +276,7 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
                     </div>
                   ))}
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50 text-sm text-gray-600">{active.content || '暂无评价意见'}</div>
+                <div className="p-3 rounded-lg bg-gray-50 text-sm text-gray-600">{active.content || (isZh ? '暂无评价意见' : 'No evaluation comments')}</div>
               </div>
             )}
           </CardContent>
@@ -292,18 +285,18 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? '编辑' : '新增'}供应商评价</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {feature.fields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -318,7 +311,7 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
                     type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
-                    placeholder={`请输入${f.label}`}
+                    placeholder={`${t('inputPlaceholder')}${tField(f.key, f.label)}`}
                   />
                 )}
               </div>
@@ -326,7 +319,7 @@ export function SupplierEvalPage({ feature, categoryTitle, categoryKey }: { feat
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {editing ? '保存修改' : '确认提交'}
+            {editing ? t('save') : t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

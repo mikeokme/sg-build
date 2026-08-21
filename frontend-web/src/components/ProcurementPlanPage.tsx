@@ -11,8 +11,9 @@ import { Plus, Search, Pencil, Trash2, Loader2, Eye, FileText, CheckCircle2, XCi
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canApprove, getCurrentRole } from '@/config/roles';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const STATUS_STYLE: Record<string, string> = {
   草稿: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -45,6 +46,8 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
   const allowApprove = canApprove(role);
   const matchesProject = useProjectFilter(categoryKey);
   const currentProject = useCurrentProject(categoryKey);
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const fetchItems = async () => {
     const token = localStorage.getItem('token');
@@ -85,10 +88,10 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
   const totalQty = scopedItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
 
   const summaryCards = [
-    { icon: FileText, label: '计划总数', value: scopedItems.length, tone: 'blue' },
-    { icon: Clock, label: '待审批', value: pendingCount, tone: 'amber' },
-    { icon: CheckCircle2, label: '已批准', value: approvedCount, tone: 'emerald' },
-    { icon: Check, label: '预算总额', value: fmtMoney(totalBudget), tone: 'purple' },
+    { icon: FileText, label: isZh ? '计划总数' : 'Total Plans', value: scopedItems.length, tone: 'blue' },
+    { icon: Clock, label: isZh ? '待审批' : 'Pending', value: pendingCount, tone: 'amber' },
+    { icon: CheckCircle2, label: isZh ? '已批准' : 'Approved', value: approvedCount, tone: 'emerald' },
+    { icon: Check, label: isZh ? '预算总额' : 'Total Budget', value: fmtMoney(totalBudget), tone: 'purple' },
   ];
 
   const openCreate = () => {
@@ -127,7 +130,7 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除计划「${item.name || item.id}」吗？`)) return;
+    if (!confirm(`${t('confirmDelete')}${isZh ? `计划「${item.name || item.id}」吗？` : ` plan "${item.name || item.id}"?`}`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'DELETE',
@@ -137,7 +140,7 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
   };
 
   const handleApprove = async (item: any, status: string) => {
-    if (!confirm(`确认将「${item.name || item.id}」标记为${status}？`)) return;
+    if (!confirm(isZh ? `确认将「${item.name || item.id}」标记为${status}？` : `Mark "${item.name || item.id}" as ${status}?`)) return;
     const token = localStorage.getItem('token');
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
       method: 'PUT',
@@ -156,14 +159,14 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">依据需用计划编制 · 审批后转采购订单</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
+          <p className="text-sm text-gray-500 mt-1">{isZh ? '依据需用计划编制 · 审批后转采购订单' : 'Compiled from requirement plans · converts to purchase orders after approval'}</p>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />编制计划</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{isZh ? '编制计划' : 'Create Plan'}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{t('readonly')}</Badge>
         )}
       </div>
 
@@ -185,11 +188,11 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
 
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3 flex-wrap">
-          <CardTitle className="text-base font-semibold">采购计划列表</CardTitle>
+          <CardTitle className="text-base font-semibold">{isZh ? '采购计划列表' : 'Procurement Plan List'}</CardTitle>
           <div className="flex items-center gap-1.5 flex-wrap">
             <button onClick={() => setStatusFilter('全部')}
               className={`px-2 py-1 rounded-full text-xs transition-colors ${statusFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-              全部{scopedItems.length ? ` (${scopedItems.length})` : ''}
+              {t('all')}{scopedItems.length ? ` (${scopedItems.length})` : ''}
             </button>
             {statusOptions.map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
@@ -200,16 +203,16 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
           </div>
           <div className="relative flex-1 max-w-xs ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索计划..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={t('search')} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p>暂无采购计划</p>
-              {allowCreate && <p className="text-sm mt-1">点击右上角「编制计划」创建</p>}
+              <p>{isZh ? '暂无采购计划' : 'No procurement plans'}</p>
+              {allowCreate && <p className="text-sm mt-1">{isZh ? '点击右上角「编制计划」创建' : 'Click "Create Plan" at the top right'}</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -232,15 +235,15 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
                     <p className="text-[10px] text-gray-400">{it.owner || '-'}</p>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
-                    {allowEdit && it.status !== '已批准' && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title="编辑"><Pencil className="w-4 h-4 text-blue-600" /></Button>}
-                    {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title="删除"><Trash2 className="w-4 h-4 text-red-600" /></Button>}
+                    {allowEdit && it.status !== '已批准' && <Button variant="ghost" size="icon-sm" onClick={() => openEdit(it)} title={t('edit')}><Pencil className="w-4 h-4 text-blue-600" /></Button>}
+                    {allowDelete && <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(it)} title={t('delete')}><Trash2 className="w-4 h-4 text-red-600" /></Button>}
                     {allowApprove && it.status === '待审批' && (
                       <>
                         <Button variant="ghost" size="sm" onClick={() => handleApprove(it, '已批准')} className="text-emerald-600 text-xs h-8 px-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" />批准
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{isZh ? '批准' : 'Approve'}
                         </Button>
                         <Button variant="ghost" size="sm" onClick={() => handleApprove(it, '已驳回')} className="text-red-500 text-xs h-8 px-2">
-                          <XCircle className="w-3.5 h-3.5 mr-1" />驳回
+                          <XCircle className="w-3.5 h-3.5 mr-1" />{t('reject')}
                         </Button>
                       </>
                     )}
@@ -254,18 +257,18 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? '编辑' : '编制'}采购计划</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? t('edit') : t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {feature.fields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -280,7 +283,7 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
                     type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: f.type === 'number' ? Number(e.target.value) : e.target.value })}
-                    placeholder={`请输入${f.label}`}
+                    placeholder={`${t('inputPlaceholder')}${tField(f.key, f.label)}`}
                   />
                 )}
               </div>
@@ -288,7 +291,7 @@ export function ProcurementPlanPage({ feature, categoryTitle, categoryKey }: { f
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {editing ? '保存修改' : '确认提交'}
+            {editing ? t('save') : t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

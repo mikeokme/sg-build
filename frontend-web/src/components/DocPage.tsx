@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Loader2, Search, Plus, FileText, CalendarDays } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canCreate, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 export function DocPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [items, setItems] = useState<any[]>([]);
@@ -23,6 +24,8 @@ export function DocPage({ feature, categoryTitle, categoryKey }: { feature: Feat
   const [saving, setSaving] = useState(false);
 
   const allowCreate = canCreate(categoryKey, getCurrentRole());
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
 
   const titleField = feature.fields.find((f) => f.key === 'title');
   const contentField = feature.fields.find((f) => f.key === 'content');
@@ -73,21 +76,21 @@ export function DocPage({ feature, categoryTitle, categoryKey }: { feature: Feat
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
-        {allowCreate && <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />发布</Button>}
+        {allowCreate && <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{isZh ? '发布' : 'Publish'}</Button>}
       </div>
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input placeholder="搜索..." className="pl-9 h-9 bg-white border-gray-200" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input placeholder={t('search')} className="pl-9 h-9 bg-white border-gray-200" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+        <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
       ) : filtered.length === 0 ? (
-        <Card><CardContent className="text-center py-16 text-gray-400"><p>暂无内容</p><p className="text-sm mt-1">点击右上角「发布」添加</p></CardContent></Card>
+        <Card><CardContent className="text-center py-16 text-gray-400"><p>{isZh ? '暂无内容' : 'No content'}</p><p className="text-sm mt-1">{isZh ? '点击右上角「发布」添加' : 'Click "Publish" at the top right to add'}</p></CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((it) => (
@@ -119,7 +122,7 @@ export function DocPage({ feature, categoryTitle, categoryKey }: { feature: Feat
                 {categoryField && selected[categoryField.key] && <Badge variant="outline" className="text-xs w-fit">{selected[categoryField.key]}</Badge>}
               </DialogHeader>
               {dateField && selected[dateField.key] && <p className="text-xs text-gray-400 -mt-2">{selected[dateField.key]}</p>}
-              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{contentField ? selected[contentField.key] || '（无正文）' : JSON.stringify(selected, null, 2)}</div>
+              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{contentField ? selected[contentField.key] || (isZh ? '（无正文）' : '(No content)') : JSON.stringify(selected, null, 2)}</div>
             </>
           )}
         </DialogContent>
@@ -127,18 +130,18 @@ export function DocPage({ feature, categoryTitle, categoryKey }: { feature: Feat
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>发布{feature.title}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('add')}{tFeat(categoryKey, feature.key)}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {feature.fields.map((f) => (
               <div key={f.key}>
-                <Label>{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
+                <Label>{tField(f.key, f.label)}{f.required && <span className="text-red-500 ml-0.5">*</span>}</Label>
                 {f.type === 'select' ? (
                   <select
                     className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                     value={form[f.key] ?? ''}
                     onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
                   >
-                    <option value="">请选择</option>
+                    <option value="">{t('pleaseSelect')}</option>
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
@@ -159,7 +162,7 @@ export function DocPage({ feature, categoryTitle, categoryKey }: { feature: Feat
             ))}
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full bg-blue-600">
-            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}确认发布
+            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('confirmAdd')}
           </Button>
         </DialogContent>
       </Dialog>

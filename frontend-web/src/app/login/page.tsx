@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 export default function LoginPage() {
   const router = useRouter();

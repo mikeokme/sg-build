@@ -15,8 +15,10 @@ import {
 } from 'recharts';
 import type { FeatureDef } from '@/config/features';
 import { useProject } from '@/context/ProjectContext';
+import { StatCard } from '@/components/ui/StatCard';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444'];
 
 const EVAL_STYLE: Record<string, string> = {
@@ -42,35 +44,14 @@ function fmtMoney(v: number | string): string {
   return `¥${n.toLocaleString()}`;
 }
 
-function StatCard({ icon: Icon, label, value, sub, tone }: any) {
-  const tones: Record<string, string> = {
-    blue: 'text-blue-600 bg-blue-50', emerald: 'text-emerald-600 bg-emerald-50',
-    purple: 'text-purple-600 bg-purple-50', amber: 'text-amber-600 bg-amber-50',
-    cyan: 'text-cyan-600 bg-cyan-50', red: 'text-red-600 bg-red-50',
-  };
-  const t = tones[tone] || tones.blue;
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${t}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
-          <p className="text-xs text-gray-500">{label}</p>
-          {sub && <p className="text-[10px] text-gray-400 truncate">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function SubcontractOverviewPage({ feature, categoryTitle }: { feature: FeatureDef; categoryTitle: string }) {
+export function SubcontractOverviewPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('全部');
   const { matchesProject } = useProject();
+  const { lang, t, tCat, tFeat } = useT();
+  const isZh = lang === 'zh';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -116,18 +97,18 @@ const contractAll = [...laborContracts, ...proContracts];
   const evalBad = evals.filter((e: any) => e.result === '不合格').length;
 
   const stats = [
-    { icon: Handshake, label: '分包商总数', value: labor.length + pro.length, sub: `劳务${labor.length} · 专业${pro.length}`, tone: 'blue' },
-    { icon: Users, label: '在册劳务人数', value: workerTotal, sub: `${activeLabor} 家劳务合作中`, tone: 'cyan' },
-    { icon: FileText, label: '分包合同', value: contractAll.length, sub: `劳务${laborContracts.length} · 专业${proContracts.length}`, tone: 'purple' },
-    { icon: Wallet, label: '合同总额', value: fmtMoney(contractAmount), sub: `${contractAll.filter((c: any) => c.status === '履行中').length} 份履行中`, tone: 'emerald' },
-    { icon: AlertTriangle, label: '待办事项', value: changePending + paymentPending, sub: `变更${changePending} · 付款${paymentPending}`, tone: 'amber' },
-    { icon: Truck, label: '分包结算', value: settlements.length, sub: `已付 ${fmtMoney(paidTotal)} / ${fmtMoney(settlementTotal)}`, tone: 'red' },
+    { icon: Handshake, label: isZh ? '分包商总数' : 'Subcontractors', value: labor.length + pro.length, sub: isZh ? `劳务${labor.length} · 专业${pro.length}` : `Labor ${labor.length} · Pro ${pro.length}`, tone: 'blue' },
+    { icon: Users, label: isZh ? '在册劳务人数' : 'Registered Workers', value: workerTotal, sub: isZh ? `${activeLabor} 家劳务合作中` : `${activeLabor} labor partners active`, tone: 'cyan' },
+    { icon: FileText, label: isZh ? '分包合同' : 'Subcontracts', value: contractAll.length, sub: isZh ? `劳务${laborContracts.length} · 专业${proContracts.length}` : `Labor ${laborContracts.length} · Pro ${proContracts.length}`, tone: 'purple' },
+    { icon: Wallet, label: isZh ? '合同总额' : 'Contract Total', value: fmtMoney(contractAmount), sub: isZh ? `${contractAll.filter((c: any) => c.status === '履行中').length} 份履行中` : `${contractAll.filter((c: any) => c.status === '履行中').length} active`, tone: 'emerald' },
+    { icon: AlertTriangle, label: isZh ? '待办事项' : 'To-Do Items', value: changePending + paymentPending, sub: isZh ? `变更${changePending} · 付款${paymentPending}` : `Changes ${changePending} · Payments ${paymentPending}`, tone: 'amber' },
+    { icon: Truck, label: isZh ? '分包结算' : 'Settlements', value: settlements.length, sub: isZh ? `已付 ${fmtMoney(paidTotal)} / ${fmtMoney(settlementTotal)}` : `Paid ${fmtMoney(paidTotal)} / ${fmtMoney(settlementTotal)}`, tone: 'red' },
   ];
 
   // 合同类型分布
   const contractPie = [
-    { name: '劳务分包合同', value: laborContracts.length },
-    { name: '专业分包合同', value: proContracts.length },
+    { name: isZh ? '劳务分包合同' : 'Labor Contracts', value: laborContracts.length },
+    { name: isZh ? '专业分包合同' : 'Professional Contracts', value: proContracts.length },
   ].filter((x) => x.value > 0);
 
   // 劳务工种分布
@@ -158,28 +139,28 @@ const contractAll = [...laborContracts, ...proContracts];
   }, [contractAll, typeFilter, search]);
 
   const quickLinks = [
-    { label: '新增劳务分包商', href: '/subcontract/labor-subcontractors', icon: Users },
-    { label: '新增专业分包商', href: '/subcontract/pro-subcontractors', icon: Building2 },
-    { label: '劳务分包合同', href: '/subcontract/labor-contracts', icon: FileText },
-    { label: '专业分包合同', href: '/subcontract/pro-contracts', icon: ClipboardCheck },
-    { label: '分包结算', href: '/subcontract/subcontract-settlements', icon: Wallet },
-    { label: '分包考核', href: '/subcontract/subcontract-eval', icon: Star },
+    { label: isZh ? '新增劳务分包商' : 'Add Labor Subcontractor', href: '/subcontract/labor-subcontractors', icon: Users },
+    { label: isZh ? '新增专业分包商' : 'Add Pro Subcontractor', href: '/subcontract/pro-subcontractors', icon: Building2 },
+    { label: isZh ? '劳务分包合同' : 'Labor Contracts', href: '/subcontract/labor-contracts', icon: FileText },
+    { label: isZh ? '专业分包合同' : 'Pro Contracts', href: '/subcontract/pro-contracts', icon: ClipboardCheck },
+    { label: isZh ? '分包结算' : 'Settlements', href: '/subcontract/subcontract-settlements', icon: Wallet },
+    { label: isZh ? '分包考核' : 'Evaluations', href: '/subcontract/subcontract-eval', icon: Star },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">分包管理驾驶舱</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500">
-          <TrendingUp className="w-3.5 h-3.5" />劳务 + 专业 · 全周期管控
+          <TrendingUp className="w-3.5 h-3.5" />{isZh ? '劳务 + 专业 · 全周期管控' : 'Labor + Professional · Full lifecycle control'}
         </Badge>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-24 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+        <div className="flex items-center justify-center py-24 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -188,10 +169,10 @@ const contractAll = [...laborContracts, ...proContracts];
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">合同类型分布</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '合同类型分布' : 'Contract Type Distribution'}</CardTitle></CardHeader>
               <CardContent>
                 {contractPie.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无合同数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无合同数据' : 'No contract data'}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
@@ -207,10 +188,10 @@ const contractAll = [...laborContracts, ...proContracts];
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">劳务工种人数分布</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '劳务工种人数分布' : 'Workers by Trade'}</CardTitle></CardHeader>
               <CardContent>
                 {workTypeDist.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无劳务数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无劳务数据' : 'No labor data'}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={workTypeDist} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -226,10 +207,10 @@ const contractAll = [...laborContracts, ...proContracts];
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base font-semibold">分包商考核排行</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '分包商考核排行' : 'Evaluation Ranking'}</CardTitle></CardHeader>
               <CardContent>
                 {evalSorted.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 text-sm">暂无考核数据</div>
+                  <div className="text-center py-12 text-gray-400 text-sm">{isZh ? '暂无考核数据' : 'No evaluation data'}</div>
                 ) : (
                   <div className="space-y-2">
                     {evalSorted.slice(0, 5).map((e: any) => {
@@ -256,25 +237,25 @@ const contractAll = [...laborContracts, ...proContracts];
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <Card className="xl:col-span-2">
               <CardHeader className="flex flex-row items-center gap-3 pb-3 flex-wrap">
-                <CardTitle className="text-base font-semibold">分包合同</CardTitle>
+                <CardTitle className="text-base font-semibold">{isZh ? '分包合同' : 'Subcontracts'}</CardTitle>
                 <div className="flex items-center gap-1.5">
                   <button onClick={() => setTypeFilter('全部')}
-                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>全部</button>
+                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '全部' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{t('all')}</button>
                   <button onClick={() => setTypeFilter('劳务')}
-                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '劳务' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>劳务</button>
+                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '劳务' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isZh ? '劳务' : 'Labor'}</button>
                   <button onClick={() => setTypeFilter('专业')}
-                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '专业' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>专业</button>
+                    className={`px-2 py-1 rounded-full text-xs transition-colors ${typeFilter === '专业' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{isZh ? '专业' : 'Professional'}</button>
                 </div>
                 <div className="relative flex-1 max-w-xs ml-auto">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input placeholder="搜索合同..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+                  <Input placeholder={isZh ? '搜索合同...' : 'Search contracts...'} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
               </CardHeader>
               <CardContent>
                 {filteredContracts.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                    <p>暂无分包合同</p>
+                    <p>{isZh ? '暂无分包合同' : 'No subcontracts'}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -294,7 +275,7 @@ const contractAll = [...laborContracts, ...proContracts];
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-sm font-semibold text-gray-900 tabular-nums">{fmtMoney(c.amount)}</p>
-                          <p className="text-[10px] text-gray-400">签订 {c.signDate}</p>
+                          <p className="text-[10px] text-gray-400">{isZh ? '签订' : 'Signed'} {c.signDate}</p>
                         </div>
                       </div>
                     ))}
@@ -305,10 +286,10 @@ const contractAll = [...laborContracts, ...proContracts];
 
             <div className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base font-semibold">合同金额排行</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '合同金额排行' : 'Contract Amount Ranking'}</CardTitle></CardHeader>
                 <CardContent>
                   {contractRank.length === 0 ? (
-                    <p className="text-sm text-gray-400 py-8 text-center">暂无数据</p>
+                    <p className="text-sm text-gray-400 py-8 text-center">{t('noData')}</p>
                   ) : (
                     <div className="space-y-2">
                       {contractRank.map((c: any) => (
@@ -328,13 +309,13 @@ const contractAll = [...laborContracts, ...proContracts];
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base font-semibold">待办提醒</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '待办提醒' : 'Reminders'}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: '分包合同变更待审批', count: changePending, href: '/subcontract/subcontract-changes', tone: 'text-amber-600' },
-                    { label: '分包付款待支付', count: paymentPending, href: '/subcontract/subcontract-payments', tone: 'text-red-600' },
-                    { label: '分包结算待审批', count: settlements.filter((s: any) => s.status === '待审批').length, href: '/subcontract/subcontract-settlements', tone: 'text-blue-600' },
-                    { label: '考核不合格分包商', count: evalBad, href: '/subcontract/subcontract-eval', tone: 'text-red-600' },
+                    { label: isZh ? '分包合同变更待审批' : 'Contract changes pending approval', count: changePending, href: '/subcontract/subcontract-changes', tone: 'text-amber-600' },
+                    { label: isZh ? '分包付款待支付' : 'Payments due', count: paymentPending, href: '/subcontract/subcontract-payments', tone: 'text-red-600' },
+                    { label: isZh ? '分包结算待审批' : 'Settlements pending approval', count: settlements.filter((s: any) => s.status === '待审批').length, href: '/subcontract/subcontract-settlements', tone: 'text-blue-600' },
+                    { label: isZh ? '考核不合格分包商' : 'Failing subcontractors', count: evalBad, href: '/subcontract/subcontract-eval', tone: 'text-red-600' },
                   ].map((t) => (
                     <Link key={t.label} href={t.href} className="flex items-center justify-between p-2.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors text-sm">
                       <span className="text-gray-600">{t.label}</span>
@@ -347,7 +328,7 @@ const contractAll = [...laborContracts, ...proContracts];
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base font-semibold">快捷操作</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base font-semibold">{isZh ? '快捷操作' : 'Quick Actions'}</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
               {quickLinks.map((a) => (
                 <Link key={a.label} href={a.href}

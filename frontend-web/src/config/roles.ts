@@ -31,6 +31,7 @@ export const CATEGORY_MIN_LEVEL: Record<string, number> = {
   material: 40,
   equipment: 40,
   finance: 60,
+  safety: 40,
   quality: 40,
   hr: 60,
   platform: 100, // 平台中心仅超级管理员
@@ -46,6 +47,7 @@ export const CATEGORY_CREATE_LEVEL: Record<string, number> = {
   material: 40, // 员工可填出入库单
   equipment: 40,
   finance: 60,
+  safety: 40, // 员工可上报隐患/检查记录
   quality: 40, // 员工可上报隐患/检查记录
   hr: 60,
   platform: 100,
@@ -61,6 +63,7 @@ export const CATEGORY_EDIT_LEVEL: Record<string, number> = {
   material: 40,
   equipment: 40,
   finance: 60,
+  safety: 40,
   quality: 40,
   hr: 60,
   platform: 100,
@@ -76,6 +79,7 @@ export const CATEGORY_DELETE_LEVEL: Record<string, number> = {
   material: 80,
   equipment: 80,
   finance: 80,
+  safety: 80,
   quality: 80,
   hr: 80,
   platform: 100,

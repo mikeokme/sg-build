@@ -4,7 +4,14 @@ export type PageType =
   | 'engineering-overview' | 'engineering-schedule' | 'engineering-logs'
   | 'engineering-milestones' | 'engineering-module' | 'engineering-production'
   | 'procurement-overview' | 'procurement-plan' | 'receipts' | 'supplier-eval'
-  | 'subcontract-overview';
+  | 'subcontract-overview'
+  | 'oa-overview' | 'oa-tasks' | 'oa-meetings' | 'oa-documents'
+  | 'market-overview' | 'market-pipeline' | 'market-customers'
+  | 'finance-overview' | 'finance-approval' | 'finance-reimburse'
+  | 'safety-overview' | 'safety-six-mechanisms' | 'quality-overview'
+  | 'hr-overview' | 'hr-staff'
+  | 'platform-overview' | 'resource-overview' | 'cloud-drive'
+  | 'video-conference';
 
 export interface FieldDef {
   key: string;
@@ -98,10 +105,12 @@ export const categories: CategoryDef[] = [
         group: '进度管理',
         fields: [
           { key: 'project', label: '项目', required: true },
-          { key: 'task', label: '工作项' },
+          { key: 'task', label: '工作项', required: true },
           { key: 'startDate', label: '开始日期', type: 'date' },
           { key: 'endDate', label: '结束日期', type: 'date' },
-          { key: 'progress', label: '完成度', type: 'number' },
+          { key: 'progress', label: '实际完成度(%)', type: 'number' },
+          { key: 'plannedProgress', label: '计划完成度(%)', type: 'number' },
+          { key: 'predecessors', label: '前置工作项(任务ID,逗号分隔)' },
           { key: 'owner', label: '负责人' },
         ],
       },
@@ -705,6 +714,13 @@ export const categories: CategoryDef[] = [
     icon: 'Bell',
     features: [
       {
+        key: 'oa-overview',
+        title: '办公工作台',
+        collection: 'approvals',
+        pageType: 'oa-overview',
+        fields: [],
+      },
+      {
         key: 'notices',
         title: '公告通知',
         collection: 'notices',
@@ -748,6 +764,7 @@ export const categories: CategoryDef[] = [
         key: 'meetings',
         title: '会议管理',
         collection: 'meetings',
+        pageType: 'oa-meetings',
         fields: [
           { key: 'title', label: '会议主题', required: true },
           { key: 'date', label: '会议日期', type: 'date' },
@@ -761,6 +778,7 @@ export const categories: CategoryDef[] = [
         key: 'tasks',
         title: '任务协作',
         collection: 'tasks',
+        pageType: 'oa-tasks',
         fields: [
           { key: 'title', label: '任务标题', required: true },
           { key: 'assignee', label: '负责人' },
@@ -774,13 +792,29 @@ export const categories: CategoryDef[] = [
         key: 'documents',
         title: '文档中心',
         collection: 'documents',
-        pageType: 'doc',
+        pageType: 'oa-documents',
         fields: [
           { key: 'title', label: '文档标题', required: true },
           { key: 'category', label: '文档分类', type: 'select', options: statusOptions(['制度文件', '合同文件', '图纸资料', '报告总结', '其他']) },
           { key: 'author', label: '作者' },
           { key: 'content', label: '文档内容', type: 'textarea' },
           { key: 'date', label: '上传日期', type: 'date' },
+        ],
+      },
+      {
+        key: 'video-conference',
+        title: '视频会议',
+        collection: 'videoConferences',
+        pageType: 'video-conference',
+        fields: [
+          { key: 'title', label: '会议主题', required: true },
+          { key: 'host', label: '主持人' },
+          { key: 'participants', label: '参会人' },
+          { key: 'scheduledAt', label: '开始时间', type: 'date' },
+          { key: 'duration', label: '预计时长（分钟）', type: 'number' },
+          { key: 'location', label: '会议室' },
+          { key: 'description', label: '会议描述', type: 'textarea' },
+          { key: 'status', label: '状态', type: 'select', options: statusOptions(['未开始', '进行中', '已结束']) },
         ],
       },
     ],
@@ -791,9 +825,17 @@ export const categories: CategoryDef[] = [
     icon: 'Target',
     features: [
       {
+        key: 'market-overview',
+        title: '市场经营总览',
+        collection: 'opportunities',
+        pageType: 'market-overview',
+        fields: [],
+      },
+      {
         key: 'customers',
         title: '客户档案',
         collection: 'customers',
+        pageType: 'market-customers',
         fields: [
           { key: 'name', label: '客户名称', required: true },
           { key: 'level', label: '客户级别', type: 'select', options: statusOptions(['战略', '重要', '一般']) },
@@ -806,6 +848,7 @@ export const categories: CategoryDef[] = [
         key: 'opportunities',
         title: '商机跟单',
         collection: 'opportunities',
+        pageType: 'market-pipeline',
         fields: [
           { key: 'name', label: '商机名称', required: true },
           { key: 'customer', label: '客户' },
@@ -871,6 +914,14 @@ export const categories: CategoryDef[] = [
     title: '财务管理',
     icon: 'Wallet',
     features: [
+      { key: 'finance-overview', title: '财务总览', collection: 'funds', pageType: 'finance-overview', fields: [] },
+      { key: 'finance-approval', title: '报账审批中心', collection: 'reimbursements', pageType: 'finance-approval', fields: [] },
+      { key: 'finance-reimburse', title: '员工报销中心', collection: 'reimbursements', pageType: 'finance-reimburse', fields: [
+        { key: 'title', label: '报销事由', required: true }, { key: 'applicant', label: '申请人' },
+        { key: 'type', label: '报销类型', type: 'select', options: statusOptions(['差旅费', '办公费', '交通费', '招待费', '通讯费', '其他']) },
+        { key: 'amount', label: '金额', type: 'number' },
+        { key: 'date', label: '报销日期', type: 'date' }, { key: 'status', label: '状态', type: 'select', options: statusOptions(['待审批', '已批准', '已驳回']) },
+      ] },
       { key: 'invoices', title: '发票管理', collection: 'invoices', fields: [
         { key: 'code', label: '发票号码', required: true }, { key: 'type', label: '类型', type: 'select', options: statusOptions(['进项', '销项']) },
         { key: 'amount', label: '金额', type: 'number' }, { key: 'tax', label: '税额', type: 'number' },
@@ -896,10 +947,34 @@ export const categories: CategoryDef[] = [
     ],
   },
   {
-    key: 'quality',
-    title: '安全与质量',
-    icon: 'ShieldCheck',
+    key: 'safety',
+    title: '安全管理',
+    icon: 'Shield',
     features: [
+      { key: 'safety-overview', title: '安全管理总览', collection: 'riskLedgers', pageType: 'safety-overview', fields: [] },
+      { key: 'six-mechanisms', title: '六项机制中心', collection: 'riskLedgers', pageType: 'safety-six-mechanisms', fields: [] },
+      { key: 'risk-ledger', title: '危险源风险台账', collection: 'riskLedgers', fields: [
+        { key: 'name', label: '危险源/风险点', required: true },
+        { key: 'project', label: '所属工程' },
+        { key: 'category', label: '类别', type: 'select', options: statusOptions(['施工', '工程运行', '设施设备', '人员行为', '管理体系', '作业环境']) },
+        { key: 'source', label: '风险描述', type: 'textarea' },
+        { key: 'level', label: '风险等级', type: 'select', options: statusOptions(['重大', '较大', '一般', '低风险']) },
+        { key: 'method', label: '判定方法', type: 'select', options: statusOptions(['直接评定法', 'LEC作业条件危险性评价法', 'LS风险矩阵法', '安全检查表法']) },
+        { key: 'measures', label: '管控措施', type: 'textarea' },
+        { key: 'monitor', label: '监测监控方式' },
+        { key: 'owner', label: '管控责任人' },
+        { key: 'status', label: '管控状态', type: 'select', options: statusOptions(['受控', '预警', '失控']) },
+        { key: 'updateDate', label: '辨识更新日期', type: 'date' },
+      ] },
+      { key: 'emergency-plan', title: '应急预案管理', collection: 'emergencyPlans', fields: [
+        { key: 'name', label: '预案名称', required: true },
+        { key: 'type', label: '预案类型', type: 'select', options: statusOptions(['综合应急预案', '专项应急预案', '现场处置方案']) },
+        { key: 'scene', label: '适用风险/部位' },
+        { key: 'responsible', label: '责任人' },
+        { key: 'drillDate', label: '最近演练日期', type: 'date' },
+        { key: 'drillStatus', label: '演练状态', type: 'select', options: statusOptions(['已演练', '待演练']) },
+        { key: 'content', label: '要点内容', type: 'textarea' },
+      ] },
       { key: 'safety-inspection', title: '安全检查与整改', collection: 'safetyInspections', fields: [
         { key: 'title', label: '检查主题', required: true }, { key: 'project', label: '项目' }, { key: 'inspector', label: '检查人' },
         { key: 'date', label: '检查日期', type: 'date' }, { key: 'issues', label: '发现问题', type: 'textarea' },
@@ -926,6 +1001,14 @@ export const categories: CategoryDef[] = [
         { key: 'project', label: '项目', required: true }, { key: 'item', label: '投入项目' },
         { key: 'amount', label: '投入金额', type: 'number' }, { key: 'date', label: '日期', type: 'date' },
       ] },
+    ],
+  },
+  {
+    key: 'quality',
+    title: '质量管理',
+    icon: 'ShieldCheck',
+    features: [
+      { key: 'quality-overview', title: '质量管理总览', collection: 'qualityInspections', pageType: 'quality-overview', fields: [] },
       { key: 'quality-inspection', title: '质量检查与整改', collection: 'qualityInspections', fields: [
         { key: 'title', label: '检查主题', required: true }, { key: 'project', label: '项目' }, { key: 'inspector', label: '检查人' },
         { key: 'date', label: '检查日期', type: 'date' }, { key: 'issues', label: '发现问题', type: 'textarea' },
@@ -948,6 +1031,12 @@ export const categories: CategoryDef[] = [
         { key: 'level', label: '事故等级', type: 'select', options: statusOptions(['一般', '较大', '重大', '特别重大']) },
         { key: 'date', label: '发生日期', type: 'date' }, { key: 'description', label: '事故描述', type: 'textarea' },
       ] },
+      { key: 'quality-defect', title: '质量通病防治', collection: 'qualityDefects', fields: [
+        { key: 'name', label: '通病名称', required: true }, { key: 'position', label: '易发部位' },
+        { key: 'cause', label: '成因分析', type: 'textarea' }, { key: 'measure', label: '防治措施', type: 'textarea' },
+        { key: 'status', label: '状态', type: 'select', options: statusOptions(['已防治', '防治中']) },
+        { key: 'project', label: '所属项目' }, { key: 'date', label: '登记日期', type: 'date' },
+      ] },
     ],
   },
   {
@@ -955,8 +1044,13 @@ export const categories: CategoryDef[] = [
     title: '人力资源',
     icon: 'Users',
     features: [
+      { key: 'hr-overview', title: '人力资源总览', collection: 'staff', pageType: 'hr-overview', fields: [] },
+      { key: 'hr-staff', title: '员工档案', collection: 'staff', pageType: 'hr-staff', fields: [] },
       { key: 'staff', title: '人事档案', collection: 'staff', fields: [
         { key: 'name', label: '姓名', required: true }, { key: 'department', label: '部门' }, { key: 'position', label: '职位' },
+        { key: 'gender', label: '性别', type: 'select', options: statusOptions(['男', '女']) },
+        { key: 'birthDate', label: '出生日期', type: 'date' },
+        { key: 'education', label: '学历', type: 'select', options: statusOptions(['初中及以下', '高中/中专', '大专', '本科', '硕士及以上']) },
         { key: 'phone', label: '联系电话' }, { key: 'hireDate', label: '入职日期', type: 'date' },
         { key: 'status', label: '状态', type: 'select', options: statusOptions(['在职', '离职', '休假']) },
       ] },
@@ -987,6 +1081,7 @@ export const categories: CategoryDef[] = [
     title: '平台中心',
     icon: 'Settings',
     features: [
+      { key: 'platform-overview', title: '平台总览', collection: 'platformInfo', pageType: 'platform-overview', fields: [] },
       { key: 'info', title: '信息管理', collection: 'platformInfo', pageType: 'doc', fields: [
         { key: 'title', label: '信息标题', required: true }, { key: 'type', label: '类型', type: 'select', options: statusOptions(['公告', '通知', '制度', '新闻']) },
         { key: 'content', label: '内容', type: 'textarea' }, { key: 'date', label: '发布时间', type: 'date' },
@@ -1012,6 +1107,8 @@ export const categories: CategoryDef[] = [
     title: '资源中心',
     icon: 'Database',
     features: [
+      { key: 'resource-overview', title: '资源总览', collection: 'customers', pageType: 'resource-overview', fields: [] },
+      { key: 'cloud-drive', title: '企业云盘', collection: 'cloudFiles', pageType: 'cloud-drive', fields: [] },
       { key: 'customers', title: '客户档案', collection: 'customers', fields: [
         { key: 'name', label: '客户名称', required: true }, { key: 'contact', label: '联系人' },
         { key: 'phone', label: '联系电话' }, { key: 'address', label: '地址', type: 'textarea' },

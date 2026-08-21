@@ -168,6 +168,42 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`conv:${body.conversationId}`).emit('chat:peer-online', { conversationId: body.conversationId, username, online: true });
   }
 
+  // ── 语音/视频通话信令转发（仅在参与者之间） ──
+  @SubscribeMessage('chat:call:offer')
+  handleCallOffer(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; target: string; offer: any }) {
+    const from = client.data.username;
+    if (!body?.target || !body?.offer) return;
+    this.server.to(`user:${body.target}`).emit('chat:call:offer', { from, conversationId: body.conversationId, offer: body.offer });
+  }
+
+  @SubscribeMessage('chat:call:answer')
+  handleCallAnswer(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; target: string; answer: any }) {
+    const from = client.data.username;
+    if (!body?.target || !body?.answer) return;
+    this.server.to(`user:${body.target}`).emit('chat:call:answer', { from, conversationId: body.conversationId, answer: body.answer });
+  }
+
+  @SubscribeMessage('chat:call:ice')
+  handleCallIce(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; target: string; candidate: any }) {
+    const from = client.data.username;
+    if (!body?.target || !body?.candidate) return;
+    this.server.to(`user:${body.target}`).emit('chat:call:ice', { from, conversationId: body.conversationId, candidate: body.candidate });
+  }
+
+  @SubscribeMessage('chat:call:end')
+  handleCallEnd(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; target: string }) {
+    const from = client.data.username;
+    if (!body?.target) return;
+    this.server.to(`user:${body.target}`).emit('chat:call:end', { from, conversationId: body.conversationId });
+  }
+
+  @SubscribeMessage('chat:call:decline')
+  handleCallDecline(@ConnectedSocket() client: Socket, @MessageBody() body: { conversationId: string; target: string }) {
+    const from = client.data.username;
+    if (!body?.target) return;
+    this.server.to(`user:${body.target}`).emit('chat:call:decline', { from, conversationId: body.conversationId });
+  }
+
   // 在线状态查询
   @SubscribeMessage('chat:presence-query')
   handlePresenceQuery(@ConnectedSocket() client: Socket) {

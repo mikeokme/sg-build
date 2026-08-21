@@ -15,9 +15,11 @@ import {
   MapPin, CalendarDays, User, Shield, ChevronRight,
 } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
+import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const STATUS_COLOR: Record<string, string> = {
   立项: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -67,6 +69,8 @@ function daysRemaining(endDate: string): { text: string; cls: string } {
 }
 
 function ProjectStats({ items }: { items: any[] }) {
+  const { lang } = useT();
+  const isZh = lang === 'zh';
   const total = items.length;
   const inConstruction = items.filter((i) => i.status === '在建').length;
   const completed = items.filter((i) => i.status === '竣工' || i.status === '完工').length;
@@ -75,34 +79,24 @@ function ProjectStats({ items }: { items: any[] }) {
   const suspended = items.filter((i) => i.status === '停工' || i.status === '暂缓').length;
 
   const stats = [
-    { icon: Building2, label: '项目总数', value: total, sub: '累计建档', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { icon: TrendingUp, label: '在建项目', value: inConstruction, sub: '施工中', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { icon: CheckCircle2, label: '已完工', value: completed, sub: '竣工/完工', color: 'text-sky-600', bg: 'bg-sky-50' },
-    { icon: Wallet, label: '合同总额', value: fmtMoney(totalAmount), sub: '累计签约', color: 'text-purple-600', bg: 'bg-purple-50' },
-    { icon: Clock, label: '待开工', value: pending, sub: '立项阶段', color: 'text-amber-600', bg: 'bg-amber-50' },
-    { icon: AlertTriangle, label: '暂停中', value: suspended, sub: '停工/暂缓', color: 'text-red-600', bg: 'bg-red-50' },
+    { icon: Building2, label: isZh ? '项目总数' : 'Total Projects', value: total, sub: isZh ? '累计建档' : 'Archived', color: 'text-blue-600', bg: 'bg-blue-50' },
+    { icon: TrendingUp, label: isZh ? '在建项目' : 'In Construction', value: inConstruction, sub: isZh ? '施工中' : 'Ongoing', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { icon: CheckCircle2, label: isZh ? '已完工' : 'Completed', value: completed, sub: isZh ? '竣工/完工' : 'Completed', color: 'text-sky-600', bg: 'bg-sky-50' },
+    { icon: Wallet, label: isZh ? '合同总额' : 'Contract Total', value: fmtMoney(totalAmount), sub: isZh ? '累计签约' : 'Signed', color: 'text-purple-600', bg: 'bg-purple-50' },
+    { icon: Clock, label: isZh ? '待开工' : 'Pending Start', value: pending, sub: isZh ? '立项阶段' : 'Initiation', color: 'text-amber-600', bg: 'bg-amber-50' },
+    { icon: AlertTriangle, label: isZh ? '暂停中' : 'Suspended', value: suspended, sub: isZh ? '停工/暂缓' : 'Halted/Deferred', color: 'text-red-600', bg: 'bg-red-50' },
   ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-      {stats.map((s) => (
-        <Card key={s.label} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.bg}`}>
-              <s.icon className={`w-5 h-5 ${s.color}`} />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-gray-900">{s.value}</p>
-              <p className="text-xs text-gray-500">{s.label}</p>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {stats.map((s) => <StatCard key={s.label} {...s} />)}
     </div>
   );
 }
 
 function ViewDialog({ item, open, onClose }: { item: any; open: boolean; onClose: () => void }) {
+  const { lang } = useT();
+  const isZh = lang === 'zh';
   if (!item) return null;
   const remaining = daysRemaining(item.endDate);
   return (
@@ -114,8 +108,8 @@ function ViewDialog({ item, open, onClose }: { item: any; open: boolean; onClose
               <Building2 className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <DialogTitle className="text-base text-gray-900">{item.name || '未命名项目'}</DialogTitle>
-              <p className="text-xs text-gray-400 mt-0.5">项目编号: {item.code || '-'}</p>
+              <DialogTitle className="text-base text-gray-900">{item.name || (isZh ? '未命名项目' : 'Unnamed Project')}</DialogTitle>
+              <p className="text-xs text-gray-400 mt-0.5">{isZh ? '项目编号' : 'Project Code'}: {item.code || '-'}</p>
             </div>
             {item.status && (
               <Badge className={`${STATUS_COLOR[item.status] || 'bg-gray-100'} border ml-auto`}>{item.status}</Badge>
@@ -124,34 +118,34 @@ function ViewDialog({ item, open, onClose }: { item: any; open: boolean; onClose
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
-            <InfoField icon={MapPin} label="项目地点" value={item.location} />
-            <InfoField icon={Building2} label="工程类型" value={item.type} badgeClass={TYPE_BADGE[item.type]} />
-            <InfoField icon={User} label="项目经理" value={item.manager} />
-            <InfoField icon={Shield} label="监理负责人" value={item.supervisor} />
-            <InfoField icon={Building2} label="建设单位" value={item.customer} />
-            <InfoField icon={Wallet} label="合同类型" value={item.contractType} />
+            <InfoField icon={MapPin} label={isZh ? '项目地点' : 'Location'} value={item.location} />
+            <InfoField icon={Building2} label={isZh ? '工程类型' : 'Project Type'} value={item.type} badgeClass={TYPE_BADGE[item.type]} />
+            <InfoField icon={User} label={isZh ? '项目经理' : 'Project Manager'} value={item.manager} />
+            <InfoField icon={Shield} label={isZh ? '监理负责人' : 'Supervisor'} value={item.supervisor} />
+            <InfoField icon={Building2} label={isZh ? '建设单位' : 'Customer'} value={item.customer} />
+            <InfoField icon={Wallet} label={isZh ? '合同类型' : 'Contract Type'} value={item.contractType} />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <InfoField icon={Wallet} label="合同金额" value={fmtMoney(item.amount)} accent />
-            <InfoField icon={CheckCircle2} label="质量目标" value={item.qualityTarget} />
-            <InfoField icon={Shield} label="安全目标" value={item.safetyTarget} />
+            <InfoField icon={Wallet} label={isZh ? '合同金额' : 'Contract Amount'} value={fmtMoney(item.amount)} accent />
+            <InfoField icon={CheckCircle2} label={isZh ? '质量目标' : 'Quality Target'} value={item.qualityTarget} />
+            <InfoField icon={Shield} label={isZh ? '安全目标' : 'Safety Target'} value={item.safetyTarget} />
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <InfoField icon={CalendarDays} label="开工日期" value={item.startDate} />
-            <InfoField icon={CalendarDays} label="计划竣工" value={item.endDate} />
-            <InfoField icon={Clock} label="计划工期" value={item.planDuration ? `${item.planDuration} 天` : '-'} />
+            <InfoField icon={CalendarDays} label={isZh ? '开工日期' : 'Start Date'} value={item.startDate} />
+            <InfoField icon={CalendarDays} label={isZh ? '计划竣工' : 'Planned Completion'} value={item.endDate} />
+            <InfoField icon={Clock} label={isZh ? '计划工期' : 'Duration (days)'} value={item.planDuration ? `${item.planDuration} ${isZh ? '天' : 'd'}` : '-'} />
           </div>
           <div>
-            <Label className="text-xs text-gray-500 mb-1 block">工程范围</Label>
+            <Label className="text-xs text-gray-500 mb-1 block">{isZh ? '工程范围' : 'Scope of Work'}</Label>
             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{item.scope || '-'}</p>
           </div>
           <div>
-            <Label className="text-xs text-gray-500 mb-1 block">项目简介</Label>
+            <Label className="text-xs text-gray-500 mb-1 block">{isZh ? '项目简介' : 'Description'}</Label>
             <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">{item.description || '-'}</p>
           </div>
           <div className="flex items-center gap-2 pt-2 border-t">
             <span className={`w-2 h-2 rounded-full ${STATUS_DOT[item.status] || 'bg-gray-400'}`} />
-            <span className="text-xs text-gray-500">状态: <span className={`font-medium ${remaining.cls}`}>{item.status} · 剩余 {remaining.text}</span></span>
+            <span className="text-xs text-gray-500">{isZh ? '状态' : 'Status'}: <span className={`font-medium ${remaining.cls}`}>{item.status} · {isZh ? `剩余 ${remaining.text}` : remaining.text}</span></span>
           </div>
         </div>
       </DialogContent>
@@ -186,6 +180,8 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
 }) {
   const [form, setForm] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const { lang, t, tField } = useT();
+  const isZh = lang === 'zh';
 
   useEffect(() => {
     if (open) {
@@ -207,7 +203,7 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
   };
 
   if (!open) return null;
-  const title = item ? '编辑项目' : '新建项目';
+  const title = item ? (isZh ? '编辑项目' : 'Edit Project') : (isZh ? '新建项目' : 'New Project');
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -221,14 +217,14 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
               if (!f) return null;
               return (
                 <div key={key}>
-                  <Label>{f.label}{f.required ? <span className="text-red-500 ml-0.5">*</span> : ''}</Label>
+                  <Label>{tField(key, f.label)}{f.required ? <span className="text-red-500 ml-0.5">*</span> : ''}</Label>
                   {f.type === 'select' ? (
                     <select
                       className="mt-1 w-full h-10 px-3 rounded-md border border-gray-300 bg-white text-sm"
                       value={form[key] ?? ''}
                       onChange={(e) => set(key, e.target.value)}
                     >
-                      <option value="">请选择</option>
+                      <option value="">{t('pleaseSelect')}</option>
                       {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   ) : f.type === 'textarea' ? (
@@ -236,7 +232,7 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
                       className="mt-1 w-full min-h-20 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
                       value={form[key] ?? ''}
                       onChange={(e) => set(key, e.target.value)}
-                      placeholder={`请输入${f.label}`}
+                      placeholder={`${t('inputPlaceholder')}${tField(key, f.label)}`}
                     />
                   ) : (
                     <Input
@@ -244,7 +240,7 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
                       type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'}
                       value={form[key] ?? ''}
                       onChange={(e) => set(key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                      placeholder={`请输入${f.label}`}
+                      placeholder={`${t('inputPlaceholder')}${tField(key, f.label)}`}
                     />
                   )}
                 </div>
@@ -252,7 +248,7 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
             })}
           </div>
           <div>
-            <Label>项目简介</Label>
+            <Label>{isZh ? '项目简介' : 'Description'}</Label>
             {(() => {
               const f = feature.fields.find((ff) => ff.key === 'description');
               if (!f) return null;
@@ -261,17 +257,17 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
                   className="mt-1 w-full min-h-20 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
                   value={form.description ?? ''}
                   onChange={(e) => set('description', e.target.value)}
-                  placeholder="请输入项目简介"
+                  placeholder={`${t('inputPlaceholder')}${isZh ? '项目简介' : 'Description'}`}
                 />
               );
             })()}
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={onClose}>取消</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>{isZh ? '取消' : 'Cancel'}</Button>
           <Button size="sm" onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
             {saving && <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />}
-            {item ? '保存修改' : '确认新建'}
+            {item ? t('save') : t('confirmAdd')}
           </Button>
         </div>
       </DialogContent>
@@ -279,7 +275,7 @@ function EditDialog({ feature, item, open, onClose, onSave }: {
   );
 }
 
-export function ProjectArchivesPage({ feature, categoryTitle }: { feature: FeatureDef; categoryTitle: string }) {
+export function ProjectArchivesPage({ feature, categoryTitle, categoryKey }: { feature: FeatureDef; categoryTitle: string; categoryKey: string }) {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -290,6 +286,8 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { lang, t, tCat, tFeat } = useT();
+  const isZh = lang === 'zh';
 
   const role = getCurrentRole();
   const allowCreate = canCreate('engineering', role);
@@ -352,7 +350,7 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
   };
 
   const handleDelete = async (item: any) => {
-    if (!confirm(`确认删除项目「${item.name}」？此操作不可恢复。`)) return;
+    if (!confirm(isZh ? `确认删除项目「${item.name}」？此操作不可恢复。` : `Confirm delete project "${item.name}"? This cannot be undone.`)) return;
     const token = localStorage.getItem('token');
     setDeleting(item.id);
     await fetch(`${API_BASE}/collections/${feature.collection}/${item.id}`, {
@@ -370,13 +368,13 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
         {allowCreate ? (
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />新建项目</Button>
+          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700"><Plus className="w-4 h-4 mr-2" />{isZh ? '新建项目' : 'New Project'}</Button>
         ) : (
-          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />只读模式</Badge>
+          <Badge variant="outline" className="px-3 py-1.5 gap-1 border-gray-200 text-gray-500"><Eye className="w-3.5 h-3.5" />{isZh ? '只读模式' : 'Read-only'}</Badge>
         )}
       </div>
 
@@ -386,7 +384,7 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
       {/* Filter bar + table */}
       <Card>
         <CardHeader className="flex flex-row items-center gap-3 pb-3">
-          <CardTitle className="text-base font-semibold">项目列表</CardTitle>
+          <CardTitle className="text-base font-semibold">{isZh ? '项目列表' : 'Project List'}</CardTitle>
           <div className="flex items-center gap-2">
             {statusOptions.map((s) => (
               <button
@@ -398,38 +396,38 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {s}
+                {s === '全部' ? t('all') : s}
               </button>
             ))}
           </div>
           <div className="relative flex-1 max-w-xs ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索项目..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={isZh ? '搜索项目...' : 'Search projects...'} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge variant="secondary" className="text-xs">{filtered.length} 条</Badge>
+          <Badge variant="secondary" className="text-xs">{filtered.length} {t('count')}</Badge>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <Building2 className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-              <p>暂无项目数据</p>
-              {allowCreate && <p className="text-sm mt-1">点击右上角「新建项目」添加</p>}
+              <p>{isZh ? '暂无项目数据' : 'No project data'}</p>
+              {allowCreate && <p className="text-sm mt-1">{isZh ? '点击右上角「新建项目」添加' : 'Click "New Project" at the top right to add one'}</p>}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">项目编号</TableHead>
-                  <TableHead>项目名称</TableHead>
-                  <TableHead>工程类型</TableHead>
-                  <TableHead>建设单位</TableHead>
-                  <TableHead className="text-right">合同金额</TableHead>
-                  <TableHead>开工日期</TableHead>
-                  <TableHead>计划竣工</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead className="w-28 text-right">操作</TableHead>
+                  <TableHead className="w-28">{isZh ? '项目编号' : 'Project Code'}</TableHead>
+                  <TableHead>{isZh ? '项目名称' : 'Project Name'}</TableHead>
+                  <TableHead>{isZh ? '工程类型' : 'Project Type'}</TableHead>
+                  <TableHead>{isZh ? '建设单位' : 'Customer'}</TableHead>
+                  <TableHead className="text-right">{isZh ? '合同金额' : 'Contract Amount'}</TableHead>
+                  <TableHead>{isZh ? '开工日期' : 'Start Date'}</TableHead>
+                  <TableHead>{isZh ? '计划竣工' : 'Planned Completion'}</TableHead>
+                  <TableHead>{isZh ? '状态' : 'Status'}</TableHead>
+                  <TableHead className="w-28 text-right">{t('operation')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -474,16 +472,16 @@ export function ProjectArchivesPage({ feature, categoryTitle }: { feature: Featu
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon-sm" onClick={() => { setViewItem(item); setViewOpen(true); }} title="查看详情" className="text-blue-600">
+                          <Button variant="ghost" size="icon-sm" onClick={() => { setViewItem(item); setViewOpen(true); }} title={isZh ? '查看详情' : 'View Details'} className="text-blue-600">
                             <Eye className="w-3.5 h-3.5" />
                           </Button>
                           {allowEdit && (
-                            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="编辑" className="text-gray-500 hover:text-blue-600">
+                            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title={t('edit')} className="text-gray-500 hover:text-blue-600">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
                           )}
                           {allowDelete && (
-                            <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(item)} title="删除" className="text-gray-500 hover:text-red-600" disabled={deleting === item.id}>
+                            <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(item)} title={t('delete')} className="text-gray-500 hover:text-red-600" disabled={deleting === item.id}>
                               {deleting === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                             </Button>
                           )}

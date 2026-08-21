@@ -389,12 +389,14 @@ export class ChatService {
     return { messages };
   }
 
-  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; secretTarget?: string; replyTo?: string; mention?: string[] }) {
+  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; secretTarget?: string; replyTo?: string; mention?: string[]; contentType?: string; duration?: number }) {
     const c = this.dataService.getConversation(payload.conversationId);
     if (!c) return { error: '会话不存在' };
     if (!this.canAccess(username, c)) return { error: '无权发送消息' };
-    const content = String(payload.content || '').trim();
+    const isVoice = payload.contentType === 'voice';
+    const content = isVoice ? String(payload.content || '') : String(payload.content || '').trim();
     if (!content) return { error: '消息内容不能为空' };
+    if (isVoice && !payload.duration) return { error: '语音时长缺失' };
 
     const encrypted = !!payload.encrypted;
     const burn = !!payload.burn;
@@ -427,19 +429,20 @@ export class ChatService {
     const message = this.dataService.addChatMessage({
       conversationId: c.id,
       sender: username,
-      contentType: encrypted ? 'encrypted' : 'text',
+      contentType: isVoice ? 'voice' : encrypted ? 'encrypted' : 'text',
       content: stored,
-      encrypted,
-      secretTarget: encrypted ? secretTarget : '',
-      secretKey: encrypted && secretTarget ? secretPassword : '',
-      burn,
-      burnSeconds: burn ? (Number(payload.burnSeconds) || 10) : 0,
-      burnTarget: c.type === 'group' ? burnTarget : '',
+      encrypted: isVoice ? false : encrypted,
+      secretTarget: isVoice ? '' : encrypted ? secretTarget : '',
+      secretKey: isVoice ? '' : encrypted && secretTarget ? secretPassword : '',
+      burn: isVoice ? false : burn,
+      burnSeconds: isVoice ? 0 : burn ? (Number(payload.burnSeconds) || 10) : 0,
+      burnTarget: isVoice ? '' : c.type === 'group' ? burnTarget : '',
       replyTo,
       mentionedUsers: [],
       revealedBy: [],
       readBy: [username],
       createdAt: new Date().toISOString(),
+      ...(isVoice ? { duration: Number(payload.duration) || 0 } : {}),
     });
 
     // 处理@提及

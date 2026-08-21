@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Target, Building2, ShoppingCart, Boxes, Wallet, ShieldCheck,
-  Users, Settings, Database, Menu, Bell, Search, Truck,
+  Building2, Settings, Menu, Bell, Search,
   ChevronDown, LogOut, UserCircle, ChevronRight, LayoutGrid, ClipboardCheck, MessageCircle,
-  Network, Sun, Moon, Monitor, Languages, Handshake,
+  Network, Sun, Moon, Monitor,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,53 +21,42 @@ import { categories } from '@/config/features';
 import { CATEGORY_MIN_LEVEL, getRoleLevel, getRoleLabel } from '@/config/roles';
 import { KeyRound } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
+import { categoryIcon, categoryTone } from '@/config/branding';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const notificationTypeStyle: Record<string, any> = {
-  approval: { dot: 'bg-orange-500', label: '审批' },
-  task: { dot: 'bg-blue-500', label: '任务' },
-  system: { dot: 'bg-purple-500', label: '系统' },
-  alert: { dot: 'bg-red-500', label: '预警' },
+  approval: { dot: 'bg-orange-500', labelZh: '审批', labelEn: 'Approval' },
+  task: { dot: 'bg-blue-500', labelZh: '任务', labelEn: 'Task' },
+  system: { dot: 'bg-purple-500', labelZh: '系统', labelEn: 'System' },
+  alert: { dot: 'bg-red-500', labelZh: '预警', labelEn: 'Alert' },
 };
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, lang: string): string {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '刚刚';
-  if (mins < 60) return `${mins}分钟前`;
+  if (mins < 1) return lang === 'zh' ? '刚刚' : 'just now';
+  if (mins < 60) return lang === 'zh' ? `${mins}分钟前` : `${mins} min ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}小时前`;
+  if (hours < 24) return lang === 'zh' ? `${hours}小时前` : `${hours} hr ago`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}天前`;
-  return new Date(iso).toLocaleDateString();
+  if (days < 30) return lang === 'zh' ? `${days}天前` : `${days} days ago`;
+  return new Date(iso).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US');
 }
-
-const categoryIcons: Record<string, any> = {
-  oa: Bell,
-  market: Target,
-  engineering: Building2,
-  procurement: ShoppingCart,
-  subcontract: Handshake,
-  material: Boxes,
-  equipment: Truck,
-  finance: Wallet,
-  quality: ShieldCheck,
-  hr: Users,
-  platform: Settings,
-  resource: Database,
-};
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { theme, cycleTheme, language, cycleLanguage } = useSettings();
+  const { t, tCat, tFeat } = useT();
+  const isZh = language === 'zh';
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    engineering: true, procurement: true, material: true, equipment: true,
-    oa: true, market: true, finance: true, quality: true,
-    hr: true, platform: true, resource: true, subcontract: true,
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    for (const cat of categories) map[cat.key] = true;
+    return map;
   });
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
     const map: Record<string, boolean> = {};
@@ -162,7 +150,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     }
   }, [pathname]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="text-white text-lg">加载中...</div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="text-white text-lg">{t('loading')}</div></div>;
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -192,39 +180,40 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </div>
         <nav className="flex-1 py-3 px-2 overflow-y-auto">
           <Link href="/"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-            <LayoutGrid className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm truncate">工作台</span>}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'}`}>
+            <LayoutGrid className={`w-5 h-5 flex-shrink-0 ${pathname === '/' ? 'text-blue-400' : 'text-blue-400'}`} />
+            {sidebarOpen && <span className="text-sm truncate">{t('workbench')}</span>}
           </Link>
           <Link href="/todos"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/todos' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-            <ClipboardCheck className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm truncate">待办中心</span>}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/todos' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'}`}>
+            <ClipboardCheck className={`w-5 h-5 flex-shrink-0 ${pathname === '/todos' ? 'text-blue-400' : 'text-amber-400'}`} />
+            {sidebarOpen && <span className="text-sm truncate">{t('todos')}</span>}
           </Link>
           <Link href="/chat"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/chat' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-            <MessageCircle className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm truncate">消息</span>}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/chat' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'}`}>
+            <MessageCircle className={`w-5 h-5 flex-shrink-0 ${pathname === '/chat' ? 'text-blue-400' : 'text-cyan-400'}`} />
+            {sidebarOpen && <span className="text-sm truncate">{t('messages')}</span>}
           </Link>
           {userLevel >= 80 && (
             <Link href="/org"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/org' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-              <Network className="w-5 h-5 flex-shrink-0" />
-              {sidebarOpen && <span className="text-sm truncate">组织架构</span>}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all mb-1 ${pathname === '/org' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'}`}>
+              <Network className={`w-5 h-5 flex-shrink-0 ${pathname === '/org' ? 'text-blue-400' : 'text-violet-400'}`} />
+              {sidebarOpen && <span className="text-sm truncate">{t('org')}</span>}
             </Link>
           )}
 
           {visibleCategories.map((cat) => {
-            const Icon = categoryIcons[cat.key] || Building2;
+            const Icon = categoryIcon(cat.key);
+            const tone = categoryTone(cat.key);
             const isOpen = !collapsed[cat.key];
             const isActive = pathname?.startsWith(`/${cat.key}`);
             return (
               <div key={cat.key} className="mb-1">
                 <button
                   onClick={() => sidebarOpen && toggleCollapse(cat.key)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {sidebarOpen && <span className="text-sm truncate flex-1 text-left">{cat.title}</span>}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive ? 'bg-blue-600/20 text-blue-400' : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'}`}>
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-400' : tone.side}`} />
+                  {sidebarOpen && <span className="text-sm truncate flex-1 text-left">{tCat(cat.key)}</span>}
                   {sidebarOpen && <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />}
                 </button>
                 {sidebarOpen && isOpen && (
@@ -258,7 +247,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                                     <Link key={f.key} href={`/${cat.key}/${f.key}`}
                                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${active ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
                                       <ChevronRight className="w-3 h-3 flex-shrink-0 opacity-50" />
-                                      <span className="truncate">{f.title}</span>
+                                      <span className="truncate">{tFeat(cat.key, f.key)}</span>
                                     </Link>
                                   );
                                 })}
@@ -289,15 +278,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-56 mb-2">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>我的账户</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />个人中心</DropdownMenuItem></Link>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
                   {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
-                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem></Link>
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
                   )}
-                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />修改密码</DropdownMenuItem></Link>
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />退出登录</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -313,56 +302,42 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           <div className="flex-1 max-w-sm">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input placeholder="搜索项目、人员、文档..." className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm" />
+              <Input placeholder={t('search')} className="pl-9 h-9 bg-gray-50 border-gray-200 text-sm" />
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {/* 配置按钮 */}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
-                <Settings className="w-5 h-5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>配置</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {/* 主题切换 */}
-                  <DropdownMenuItem onClick={cycleTheme} className="cursor-pointer justify-between">
-                    <span className="flex items-center gap-2">
-                      {theme === 'light' ? <Sun className="w-4 h-4" /> : theme === 'dark' ? <Moon className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                      {theme === 'light' ? '明' : theme === 'dark' ? '暗' : '随系统'}
-                    </span>
-                    <span className="text-xs text-gray-400">主题</span>
-                  </DropdownMenuItem>
-                  {/* 语言切换 */}
-                  <DropdownMenuItem onClick={cycleLanguage} className="cursor-pointer justify-between">
-                    <span className="flex items-center gap-2">
-                      <Languages className="w-4 h-4" />
-                      {language === 'zh' ? '中' : '英文 (us-E)'}
-                    </span>
-                    <span className="text-xs text-gray-400">语音</span>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center gap-1 ml-auto">
+            {/* 主题切换按钮 */}
+            <button
+              onClick={cycleTheme}
+              title={isZh ? (theme === 'light' ? '明色模式' : theme === 'dark' ? '暗色模式' : '跟随系统') : (theme === 'light' ? 'Light mode' : theme === 'dark' ? 'Dark mode' : 'System mode')}
+              className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+              {theme === 'light' ? <Sun className="w-5 h-5 text-violet-500" /> : theme === 'dark' ? <Moon className="w-5 h-5 text-violet-500" /> : <Monitor className="w-5 h-5 text-violet-500" />}
+            </button>
+            {/* 语言切换按钮 */}
+            <button
+              onClick={cycleLanguage}
+              title={t('switchLang')}
+              className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-cyan-500 hover:bg-gray-100 dark:hover:bg-gray-800 text-xs font-bold">
+              {isZh ? '汉' : 'EN'}
+            </button>
             <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) fetchNotifications(); }}>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100 relative">
-                <Bell className="w-5 h-5" />
+              <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1.5 px-2 h-8 rounded-lg text-gray-500 hover:bg-gray-100 relative">
+                <Bell className="w-5 h-5 text-amber-500" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                  <span className="text-xs text-amber-600 font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
                 )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 max-h-[420px] overflow-y-auto">
                 <DropdownMenuGroup>
                   <div className="flex items-center justify-between pr-1">
-                    <DropdownMenuLabel>通知消息</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('notifications')}</DropdownMenuLabel>
                     {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50">全部已读</button>
+                      <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50">{t('markAllRead')}</button>
                     )}
                   </div>
                   <DropdownMenuSeparator />
                   {notifications.length === 0 ? (
-                    <div className="py-10 text-center text-gray-400 text-sm">暂无通知</div>
+                    <div className="py-10 text-center text-gray-400 text-sm">{t('noNotifications')}</div>
                   ) : (
                     notifications.slice(0, 8).map((n) => {
                       const style = notificationTypeStyle[n.type] || notificationTypeStyle.system;
@@ -373,7 +348,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-700 truncate">{n.title}</p>
                               <p className="text-xs text-gray-400 truncate mt-0.5">{n.content}</p>
-                              <p className="text-[10px] text-gray-300 mt-0.5">{style.label} · {timeAgo(n.createdAt)}</p>
+                              <p className="text-[10px] text-gray-300 mt-0.5">{isZh ? style.labelZh : style.labelEn} · {timeAgo(n.createdAt, language)}</p>
                             </div>
                           </DropdownMenuItem>
                         </Link>
@@ -381,29 +356,30 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                     })
                   )}
                   <DropdownMenuSeparator />
-                  <Link href="/notifications"><DropdownMenuItem className="cursor-pointer justify-center text-sm text-blue-600 hover:bg-blue-50 py-2">查看全部通知</DropdownMenuItem></Link>
+                  <Link href="/notifications"><DropdownMenuItem className="cursor-pointer justify-center text-sm text-blue-600 hover:bg-blue-50 py-2">{t('viewAll')}</DropdownMenuItem></Link>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex shrink-0 items-center justify-center size-8 rounded-lg text-gray-500 hover:bg-gray-100">
+              <DropdownMenuTrigger className="inline-flex shrink-0 items-center gap-1.5 px-2 h-8 rounded-lg text-gray-500 hover:bg-gray-100">
                 {user?.avatar ? (
                   <img src={user.avatar} alt="头像" className="w-7 h-7 rounded-full object-cover" />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">{(user?.name || user?.username || 'U')[0]?.toUpperCase()}</div>
                 )}
+                <span className="text-xs font-medium text-gray-700 max-w-[80px] truncate">{user?.name || user?.username || '用户'}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>我的账户</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />个人中心</DropdownMenuItem></Link>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
                   {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
-                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />系统设置</DropdownMenuItem></Link>
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
                   )}
-                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />修改密码</DropdownMenuItem></Link>
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />退出登录</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>

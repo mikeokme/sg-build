@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Check, X, Search, UserPlus, ShieldCheck } from 'lucide-react';
 import { ROLE_LABELS } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const statusBadge: Record<string, any> = {
   pending: { label: '待审批', className: 'border-orange-300 text-orange-600 bg-orange-50' },
@@ -17,6 +18,8 @@ const statusBadge: Record<string, any> = {
 };
 
 export function UserManagementPage() {
+  const { t, lang } = useT();
+  const isZh = lang === 'zh';
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'pending' | 'all'>('pending');
@@ -52,9 +55,9 @@ export function UserManagementPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">平台中心</p>
-          <h1 className="text-2xl font-bold text-gray-900">用户与权限管理</h1>
-          <p className="text-gray-500 text-sm mt-0.5">超级管理员专属 · 注册权限二次确认</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{isZh ? '平台中心' : 'Platform'}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isZh ? '用户与权限管理' : 'Users & Permissions'}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{isZh ? '超级管理员专属 · 注册权限二次确认' : 'Super admin · registration approval'}</p>
         </div>
       </div>
 
@@ -63,24 +66,24 @@ export function UserManagementPage() {
           <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
             <button onClick={() => setTab('pending')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${tab === 'pending' ? 'bg-white shadow-sm text-orange-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
-              <UserPlus className="w-3.5 h-3.5" />待确认申请
+              <UserPlus className="w-3.5 h-3.5" />{isZh ? '待确认申请' : 'Pending'}
             </button>
             <button onClick={() => setTab('all')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${tab === 'all' ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
-              <ShieldCheck className="w-3.5 h-3.5" />全部用户
+              <ShieldCheck className="w-3.5 h-3.5" />{isZh ? '全部用户' : 'All Users'}
             </button>
           </div>
           <div className="relative flex-1 max-w-xs ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索用户名/邮箱..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={isZh ? '搜索用户名/邮箱...' : 'Search username/email...'} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
-              <p>{tab === 'pending' ? '暂无待确认的权限申请' : '暂无用户'}</p>
+              <p>{tab === 'pending' ? (isZh ? '暂无待确认的权限申请' : 'No pending requests') : (isZh ? '暂无用户' : 'No users')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -101,8 +104,8 @@ export function UserManagementPage() {
                   </div>
                   {u.roleStatus === 'pending' ? (
                     <div className="flex gap-2 flex-shrink-0">
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => handleAction(u.id, 'approve')}><Check className="w-3.5 h-3.5 mr-1" />通过并授权</Button>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleAction(u.id, 'reject')}><X className="w-3.5 h-3.5 mr-1" />驳回</Button>
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => handleAction(u.id, 'approve')}><Check className="w-3.5 h-3.5 mr-1" />{isZh ? '通过并授权' : 'Approve'}</Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleAction(u.id, 'reject')}><X className="w-3.5 h-3.5 mr-1" />{isZh ? '驳回' : 'Reject'}</Button>
                     </div>
                   ) : (
                     <span className="text-xs text-gray-400 flex-shrink-0">{u.createdAt?.slice(0, 10) || ''}</span>

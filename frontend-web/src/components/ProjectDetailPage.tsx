@@ -9,18 +9,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { StatCard } from '@/components/ui/StatCard';
 import {
   ArrowLeft, Building2, MapPin, CalendarDays, User, Wallet,
   FileText, Plus, Trash2, Eye, Loader2, Shield, CheckCircle2,
   Clock, TrendingUp, Download, Paperclip, GitBranch, ClipboardList,
   Sun, Cloud, CloudRain, AlertCircle, Wrench, Users,
+  ShoppingCart, Boxes, Truck, Handshake, AlertTriangle, BadgeCheck, Coins, Users2,
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   CartesianGrid, PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const STATUS_COLOR: Record<string, string> = {
   立项: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -86,6 +89,8 @@ function daysBetween(a: string, b: string) {
 type TabKey = 'overview' | 'schedule' | 'logs' | 'milestones' | 'costs' | 'documents';
 
 export default function ProjectDetailPage() {
+  const { t, lang } = useT();
+  const isZh = lang === 'zh';
   const params = useParams<{ id: string }>();
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -142,7 +147,7 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24 text-gray-400 gap-2">
-        <Loader2 className="w-5 h-5 animate-spin" />加载中...
+        <Loader2 className="w-5 h-5 animate-spin" />{t('loading')}
       </div>
     );
   }
@@ -151,8 +156,8 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-4">
         <Building2 className="w-12 h-12 text-gray-300" />
-        <p>项目不存在</p>
-        <Link href="/engineering/project-archives"><Button variant="outline" size="sm">返回列表</Button></Link>
+        <p>{isZh ? '项目不存在' : 'Project not found'}</p>
+        <Link href="/engineering/project-archives"><Button variant="outline" size="sm">{isZh ? '返回列表' : 'Back to list'}</Button></Link>
       </div>
     );
   }
@@ -197,21 +202,64 @@ export default function ProjectDetailPage() {
   })();
 
   const tabList: { key: TabKey; label: string; icon: any; count?: number }[] = [
-    { key: 'overview', label: '项目概况', icon: Building2 },
-    { key: 'schedule', label: '进度甘特', icon: TrendingUp, count: scheduleItems.length },
-    { key: 'logs', label: '施工日志', icon: ClipboardList, count: logs.length },
-    { key: 'milestones', label: '里程碑', icon: GitBranch, count: milestones.length },
-    { key: 'costs', label: '成本产值', icon: Wallet },
-    { key: 'documents', label: '项目文档', icon: FileText, count: documents.length },
+    { key: 'overview', label: isZh ? '项目概况' : 'Overview', icon: Building2 },
+    { key: 'schedule', label: isZh ? '进度甘特' : 'Schedule', icon: TrendingUp, count: scheduleItems.length },
+    { key: 'logs', label: isZh ? '施工日志' : 'Logs', icon: ClipboardList, count: logs.length },
+    { key: 'milestones', label: isZh ? '里程碑' : 'Milestones', icon: GitBranch, count: milestones.length },
+    { key: 'costs', label: isZh ? '成本产值' : 'Costs', icon: Wallet },
+    { key: 'documents', label: isZh ? '项目文档' : 'Documents', icon: FileText, count: documents.length },
   ];
 
   const topStats = [
     { icon: Wallet, label: '合同金额', value: fmtMoney(project.amount), sub: project.contractType, tone: 'purple' },
     { icon: TrendingUp, label: '累计产值', value: fmtMoney(s.productionCumulative || s.productionValue), sub: `${(s.productionValue || 0).toLocaleString()} 万本月`, tone: 'emerald' },
-    { icon: CalendarDays, label: '计划工期', value: project.planDuration ? `${project.planDuration}天` : '-', sub: remaining.text, cls: remaining.cls, tone: 'blue' },
+    { icon: CalendarDays, label: '计划工期', value: project.planDuration ? `${project.planDuration}天` : '-', sub: remaining.text, subCls: remaining.cls, tone: 'blue' },
     { icon: CheckCircle2, label: '里程碑完成', value: `${s.milestoneDone ?? 0}/${s.milestoneTotal ?? 0}`, sub: `${s.milestoneActive ?? 0} 个进行中`, tone: 'cyan' },
     { icon: TrendingUp, label: '平均进度', value: `${s.avgProgress ?? 0}%`, sub: `${s.progressItemCount ?? 0} 个工作项`, tone: 'amber' },
     { icon: FileText, label: '项目文档', value: s.documentCount ?? 0, sub: '份资料', tone: 'sky' },
+  ];
+
+  const relatedBlocks = [
+    { title: '采购供应', tone: 'sky', icon: ShoppingCart, items: [
+      { label: '采购订单', value: s.purchaseOrderCount ?? 0, sub: `${s.purchaseOrderAmount ? fmtMoney(s.purchaseOrderAmount) : '-'} 金额` },
+      { label: '到货单', value: s.receiptCount ?? 0, sub: '笔' },
+      { label: '采购计划', value: s.procurementPlans?.length ?? 0, sub: '项' },
+    ] },
+    { title: '物资材料', tone: 'emerald', icon: Boxes, items: [
+      { label: '收料单', value: s.materialReceivingCount ?? 0, sub: `${s.materialReceivingAmount ? fmtMoney(s.materialReceivingAmount) : '-'} 金额` },
+      { label: '领料单', value: s.materialIssueCount ?? 0, sub: '笔' },
+      { label: '退料', value: s.materialReturn?.length ?? 0, sub: '笔' },
+    ] },
+    { title: '机械设备', tone: 'amber', icon: Truck, items: [
+      { label: '设备', value: s.equipmentCount ?? 0, sub: '台' },
+      { label: '租赁合同', value: s.equipmentLeaseCount ?? 0, sub: '份' },
+      { label: '维保', value: (s.equipmentMaintenanceCount ?? 0) + (s.equipmentRepairCount ?? 0), sub: '次' },
+    ] },
+    { title: '分包协作', tone: 'teal', icon: Handshake, items: [
+      { label: '劳务/专业合同', value: (s.laborContractCount ?? 0) + (s.proContractCount ?? 0), sub: '份' },
+      { label: '结算单', value: s.subcontractSettlementCount ?? 0, sub: '份' },
+      { label: '付款', value: s.subcontractPaymentCount ?? 0, sub: `${s.subcontractPaymentAmount ? fmtMoney(s.subcontractPaymentAmount) : '-'} 已付` },
+    ] },
+    { title: '安全管控', tone: 'red', icon: Shield, items: [
+      { label: '安全隐患', value: s.riskCount ?? 0, sub: `${s.riskWarning ?? 0} 项未受控` },
+      { label: '安全巡检', value: s.safetyInspectionCount ?? 0, sub: `${s.safetyPending ?? 0} 项整改中` },
+      { label: '安全事故', value: s.safetyAccidentCount ?? 0, sub: '起' },
+    ] },
+    { title: '质量管理', tone: 'green', icon: BadgeCheck, items: [
+      { label: '质量巡检', value: s.qualityInspectionCount ?? 0, sub: `${s.qualityPending ?? 0} 项整改中` },
+      { label: '质量缺陷', value: s.qualityDefectCount ?? 0, sub: '项' },
+      { label: '质量事故', value: s.qualityAccidentCount ?? 0, sub: '起' },
+    ] },
+    { title: '成本分析', tone: 'purple', icon: Coins, items: [
+      { label: '计划成本', value: fmtMoney(s.costPlanned), sub: '-' },
+      { label: '实际成本', value: fmtMoney(s.costActual), sub: '-' },
+      { label: '预计利润', value: fmtMoney(s.costProfit), sub: '-' },
+    ] },
+    { title: '项目组织', tone: 'cyan', icon: Users2, items: [
+      { label: '项目团队', value: s.teamCount ?? 0, sub: `${s.teamMembers ?? 0} 名成员` },
+      { label: '协作供应商', value: s.supplierCount ?? 0, sub: '家' },
+      { label: '项目文档', value: s.documentCount ?? 0, sub: '份' },
+    ] },
   ];
 
   return (
@@ -328,6 +376,38 @@ export default function ProjectDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* 关联业务数据 */}
+      {tab === 'overview' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {relatedBlocks.map((blk) => {
+            const t = blk.tone;
+            return (
+              <Card key={blk.title}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${t === 'sky' ? 'bg-sky-100 text-sky-600' : t === 'emerald' ? 'bg-emerald-100 text-emerald-600' : t === 'amber' ? 'bg-amber-100 text-amber-600' : t === 'teal' ? 'bg-teal-100 text-teal-600' : t === 'red' ? 'bg-red-100 text-red-600' : t === 'green' ? 'bg-green-100 text-green-600' : t === 'purple' ? 'bg-purple-100 text-purple-600' : 'bg-cyan-100 text-cyan-600'}`}>
+                      <blk.icon className="w-4 h-4" />
+                    </span>
+                    {blk.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-1 space-y-2.5">
+                  {blk.items.map((it) => (
+                    <div key={it.label} className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">{it.label}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-gray-900 tabular-nums">{it.value}</span>
+                        {it.sub !== '-' && <span className="text-[10px] text-gray-400 ml-1.5">{it.sub}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -661,28 +741,5 @@ function InfoRow({ label, value, icon: Icon, accent, badgeClass, badge }: any) {
         <p className="text-sm text-gray-700">{value || '-'}</p>
       )}
     </div>
-  );
-}
-
-function StatCard({ icon: Icon, label, value, sub, tone, cls }: any) {
-  const colors: Record<string, any> = {
-    blue: 'text-blue-600 bg-blue-50', purple: 'text-purple-600 bg-purple-50',
-    emerald: 'text-emerald-600 bg-emerald-50', red: 'text-red-600 bg-red-50',
-    cyan: 'text-cyan-600 bg-cyan-50', amber: 'text-amber-600 bg-amber-50', sky: 'text-sky-600 bg-sky-50',
-  };
-  const c = colors[tone] || colors.blue;
-  return (
-    <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${c}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
-          <p className="text-xs text-gray-500">{label}</p>
-          {sub && <p className={`text-[10px] truncate ${cls || 'text-gray-400'}`}>{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
   );
 }

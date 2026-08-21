@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Check, X, Clock, Search, Inbox, Send, History } from 'lucide-react';
 import type { FeatureDef } from '@/config/features';
 import { canApprove, getCurrentRole } from '@/config/roles';
+import { useT } from '@/i18n';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 const statusBadge: Record<string, any> = {
   待审批: { variant: 'outline', className: 'border-orange-300 text-orange-600 bg-orange-50' },
@@ -31,6 +32,8 @@ export function ApprovalPage({ feature, categoryTitle, categoryKey }: { feature:
   const [search, setSearch] = useState('');
   const [user, setUser] = useState<any>(null);
 
+  const { t, tCat, tFeat, tField, lang } = useT();
+  const isZh = lang === 'zh';
   const role = getCurrentRole();
   const allowApprove = canApprove(role);
 
@@ -73,17 +76,23 @@ export function ApprovalPage({ feature, categoryTitle, categoryKey }: { feature:
     fetchItems();
   };
 
-  const typeLabel = feature.fields.find((f) => f.key === 'type')?.label || '类型';
+  const typeLabel = feature.fields.find((f) => f.key === 'type')?.label || tField('type', '类型');
   const amountField = feature.fields.find((f) => f.key === 'amount');
+
+  const TAB_LABEL: Record<string, string> = {
+    pending: isZh ? '待我审批' : 'My Approvals',
+    mine: isZh ? '我发起的' : 'Submitted by Me',
+    done: isZh ? '已办结' : 'Completed',
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{categoryTitle}</p>
-          <h1 className="text-2xl font-bold text-gray-900">{feature.title}</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{tCat(categoryKey)}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{tFeat(categoryKey, feature.key)}</h1>
         </div>
-        <Badge variant="secondary" className="text-xs">{filtered.length} 条</Badge>
+        <Badge variant="secondary" className="text-xs">{filtered.length} {t('count')}</Badge>
       </div>
 
       <Card>
@@ -98,7 +107,7 @@ export function ApprovalPage({ feature, categoryTitle, categoryKey }: { feature:
                 <button key={t.key} onClick={() => setTab(t.key)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-all ${tab === t.key ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
                   <Icon className="w-3.5 h-3.5" />
-                  {t.label}
+                  {TAB_LABEL[t.key]}
                   <span className={`text-xs ${tab === t.key ? 'text-blue-500' : 'text-gray-400'}`}>{count}</span>
                 </button>
               );
@@ -106,16 +115,16 @@ export function ApprovalPage({ feature, categoryTitle, categoryKey }: { feature:
           </div>
           <div className="relative flex-1 max-w-xs ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="搜索审批事项..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={t('search')} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />加载中...</div>
+            <div className="flex items-center justify-center py-16 text-gray-400 gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t('loading')}</div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <Inbox className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p>{tab === 'pending' ? '暂无待审批事项' : tab === 'mine' ? '暂无发起的审批' : '暂无已办结审批'}</p>
+              <p>{tab === 'pending' ? (isZh ? '暂无待审批事项' : 'No pending approvals') : tab === 'mine' ? (isZh ? '暂无发起的审批' : 'No submitted approvals') : (isZh ? '暂无已办结审批' : 'No completed approvals')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -128,14 +137,14 @@ export function ApprovalPage({ feature, categoryTitle, categoryKey }: { feature:
                       <Badge variant="outline" className={`text-xs px-1.5 py-0 ${statusBadge[it.status]?.className || ''}`}>{it.status}</Badge>
                     </div>
                     <p className="text-xs text-gray-500">
-                      申请人: {it.applicant || '-'} · 申请日期: {it.date || '-'}
+                      {isZh ? '申请人' : 'Applicant'}: {it.applicant || '-'} · {isZh ? '申请日期' : 'Date'}: {it.date || '-'}
                       {amountField && Number(it.amount) > 0 && <span className="ml-2 text-emerald-600 font-medium">¥ {Number(it.amount).toLocaleString()}</span>}
                     </p>
                   </div>
                   {it.status === '待审批' && allowApprove ? (
                     <div className="flex gap-2 flex-shrink-0">
-                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => handleDecision(it.id, '已批准')}><Check className="w-3.5 h-3.5 mr-1" />批准</Button>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleDecision(it.id, '已驳回')}><X className="w-3.5 h-3.5 mr-1" />驳回</Button>
+                      <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-xs" onClick={() => handleDecision(it.id, '已批准')}><Check className="w-3.5 h-3.5 mr-1" />{isZh ? '批准' : 'Approve'}</Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50 text-xs" onClick={() => handleDecision(it.id, '已驳回')}><X className="w-3.5 h-3.5 mr-1" />{t('reject')}</Button>
                     </div>
                   ) : (
                     <Badge variant="outline" className="text-xs flex-shrink-0">{it.date || ''}</Badge>

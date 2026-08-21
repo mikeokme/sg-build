@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Loader2, UserCircle, KeyRound, Save, ShieldCheck, Mail, Phone, Building2, Briefcase, Camera, X } from 'lucide-react';
 import { getRoleLabel } from '@/config/roles';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {

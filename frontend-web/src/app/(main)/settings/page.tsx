@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save, Settings as SettingsIcon, AlertTriangle, Upload, X, Building2 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:14725';
 
 function compressImage(file: File, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {
