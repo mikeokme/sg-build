@@ -389,12 +389,13 @@ export class ChatService {
     return { messages };
   }
 
-  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; secretTarget?: string; replyTo?: string; mention?: string[]; contentType?: string; duration?: number }) {
+  sendMessage(username: string, payload: { conversationId: string; content: string; encrypted?: boolean; burn?: boolean; burnSeconds?: number; burnTarget?: string; secretTarget?: string; replyTo?: string; mention?: string[]; contentType?: string; duration?: number; fileName?: string; fileSize?: number }) {
     const c = this.dataService.getConversation(payload.conversationId);
     if (!c) return { error: '会话不存在' };
     if (!this.canAccess(username, c)) return { error: '无权发送消息' };
     const isVoice = payload.contentType === 'voice';
-    const content = isVoice ? String(payload.content || '') : String(payload.content || '').trim();
+    const isFile = payload.contentType === 'file' || payload.contentType === 'image';
+    const content = isVoice ? String(payload.content || '') : isFile ? String(payload.content || '') : String(payload.content || '').trim();
     if (!content) return { error: '消息内容不能为空' };
     if (isVoice && !payload.duration) return { error: '语音时长缺失' };
 
@@ -443,6 +444,10 @@ export class ChatService {
       readBy: [username],
       createdAt: new Date().toISOString(),
       ...(isVoice ? { duration: Number(payload.duration) || 0 } : {}),
+      ...(isFile ? {
+        fileName: payload.fileName || '文件',
+        fileSize: Number(payload.fileSize) || 0,
+      } : {}),
     });
 
     // 处理@提及

@@ -6,7 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact, KeyRound,
-  Mic, MicOff, Phone, PhoneOff, Video, VideoOff, Play, Pause,
+  Mic, MicOff, Phone, PhoneOff, Video, VideoOff, Play, Pause, Paperclip,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -221,6 +221,13 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioPlayRef = useRef<HTMLAudioElement | null>(null);
+
+  // ── 文件/图片上传 ──
+  const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [filePreview, setFilePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+  const isImageFile = (name: string) => IMAGE_EXTS.includes(name.split('.').pop()?.toLowerCase() || '');
 
   // ── 单聊视频通话（WebRTC） ──
   const [callState, setCallState] = useState<'idle' | 'calling' | 'incoming' | 'connected'>('idle');
@@ -840,6 +847,38 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
   useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
 
+  // ── 文件发送 ──
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedId) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setSelectedFile({ name: file.name, size: file.size, type: file.type, data: base64 });
+      if (isImageFile(file.name)) {
+        setFilePreview(base64);
+      } else {
+        setFilePreview('');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+  const sendFile = async () => {
+    if (!selectedFile || !socket || !selectedId) return;
+    const isImg = isImageFile(selectedFile.name);
+    socket.emit('chat:send', {
+      conversationId: selectedId,
+      content: selectedFile.data,
+      contentType: isImg ? 'image' : 'file',
+      fileName: selectedFile.name,
+      fileSize: selectedFile.size,
+    });
+    setSelectedFile(null);
+    setFilePreview('');
+  };
+  const clearFile = () => { setSelectedFile(null); setFilePreview(''); };
+
   // 草稿防抖保存
   useEffect(() => {
     if (!selectedId || !me) return;
@@ -1198,177 +1237,131 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
               </div>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {deptContacts.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400"><Contact className="w-10 h-10 mb-2" /><p className="text-sm">暂无联系人</p></div>
-              )}
               {(() => {
-                // 二级分组：单位机构组 + 全体成员组
-                const orgGroups = deptContacts.filter((g: any) => !g.isVirtual);
-                const allGroup = deptContacts.find((g: any) => g.isVirtual);
-                const orgExpanded = deptSections['org'] !== false;
-                const allExpanded = deptSections['_all'] !== false;
-                const orgMemberCount = orgGroups.reduce((s: number, g: any) => s + (g.memberCount || 0), 0);
+                // 按 chatGroups 配置分组通讯录
+                const users = deptContacts.find((g: any) => g.isVirtual)?.members || [];
+                const filteredUsers = contactSearch
+                  ? users.filter((u: any) =>
+                      u.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                      u.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
+                      (u.department || '').toLowerCase().includes(contactSearch.toLowerCase()))
+                  : users;
+                const userMapForContacts = new Map(filteredUsers.map((u: any) => [u.username, u]));
+
+                // 构建分组树（按 chatGroups 配置）
+                const buildContactGroupTree = (parentId: string | null): any[] =>
+                  chatGroups
+                    .filter((g: any) => (g.parentId ?? null) === parentId)
+                    .map((g: any) => {
+                      // 获取该分组下的部门ID列表
+                      const deptIds = g.departmentIds || [];
+                      // 获取该分组下的用户
+                      const groupUsers = deptIds.length > 0
+                        ? filteredUsers.filter((u: any) => {
+                            const dept = deptContacts.find((d: any) => !d.isVirtual && d.id === u.department)?.id;
+                            return deptIds.includes(dept);
+                          })
+                        : [];
+                      // 递归获取子分组
+                      const children = buildContactGroupTree(g.id);
+                      // 合并子分组的用户
+                      const childUsers = children.flatMap((c: any) => c.members || []);
+                      const allUsers = [...new Map([...groupUsers, ...childUsers].map((u: any) => [u.username, u])).values()];
+                      return { ...g, members: allUsers, children };
+                    });
+
+                const groupTree = buildContactGroupTree(null);
+
+                // 渲染单个分组节点
+                const renderContactGroupNode = (node: any, depth: number): React.ReactNode => {
+                  const count = node.members?.length || 0;
+                  if (count === 0 && (!node.children || node.children.length === 0)) return null;
+                  const isExpanded = convSections[node.id] !== false;
+                  const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
+                  const indent = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : depth === 3 ? 'pl-14' : 'pl-16';
+                  return (
+                    <div key={node.id}>
+                      {/* 分组标题 */}
+                      <div onClick={() => setConvSections((p) => ({ ...p, [node.id]: isExpanded ? false : true }))}
+                        className={`flex items-center gap-2 ${indent} py-2 cursor-pointer hover:bg-gray-50 select-none border-b ${depth === 1 ? 'border-gray-200 bg-gray-50/50' : 'border-gray-100'}`}>
+                        <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                        <span className={colorMap[node.color] || 'text-gray-600'}>{node.icon}</span>
+                        <span className={`${depth === 1 ? 'text-sm font-bold text-gray-700' : depth === 2 ? 'text-xs font-medium text-gray-600' : 'text-[11px] text-gray-500'}`}>{node.name}</span>
+                        <span className="text-[10px] text-gray-400 ml-auto">{count}人</span>
+                      </div>
+                      {isExpanded && count > 0 && (
+                        <div>
+                          {node.members.map((u: any) => {
+                            const isOnline = onlineUsers.has(u.username);
+                            const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
+                            return (
+                              <div key={u.username}
+                                className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 transition-colors select-none group"
+                                style={{ paddingLeft: `${indent === 'pl-6' ? 24 : indent === 'pl-10' ? 38 : 52}px` }}>
+                                <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                  </Avatar>
+                                  {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
+                                </div>
+                                <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                                    {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
+                                    {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 truncate">{u.position}{u.department ? ` · ${u.department}` : ''}</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                  {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
+                                  {isMe && me?.username !== u.username && (
+                                    <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
+                                      className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {isExpanded && node.children?.map((child: any) => renderContactGroupNode(child, depth + 1))}
+                    </div>
+                  );
+                };
+
                 return (
                   <>
-                  {/* ═══ 一级：单位机构组 ═══ */}
-                  <div>
-                    <div onClick={() => setDeptSections((prev) => ({ ...prev, org: orgExpanded ? false : true }))}
-                      className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50 border-b border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs transition-transform ${orgExpanded ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-sm font-bold text-gray-800">单位机构组</span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{orgMemberCount}人</span>
-                      </div>
-                    </div>
-                    {orgExpanded && orgGroups.map((group: any) => {
-                      // 递归渲染任意深度部门树
-                      const renderDeptNode = (dept: any, depth: number): React.ReactNode => {
-                        const deptFiltered = contactSearch
-                          ? dept.members.filter((m: any) =>
-                              m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                              m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                              dept.name.toLowerCase().includes(contactSearch.toLowerCase()))
-                          : dept.members;
-                        const childNodes = dept.children || [];
-                        const hasVisibleChild = childNodes.some((c: any) => c.members?.length > 0);
-                        if (deptFiltered.length === 0 && !hasVisibleChild) return null;
-                        const isDeptExpanded = deptSections[dept.id] !== false;
-                        return (
-                          <div key={dept.id} id={'dept-' + dept.id} className="border-b border-gray-50">
-                            <div onClick={() => setDeptSections((prev) => ({ ...prev, [dept.id]: !isDeptExpanded }))}
-                              className="flex items-center justify-between pl-8 pr-3 py-2 cursor-pointer hover:bg-gray-50 select-none"
-                              style={{ paddingLeft: `${8 + depth * 14}px` }}>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[10px] text-gray-400 transition-transform ${isDeptExpanded ? 'rotate-90' : ''}`}>▶</span>
-                                <span className="text-sm font-semibold text-gray-700">{dept.name}</span>
-                                <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{deptFiltered.length}人</span>
-                              </div>
-                              {dept.leader && <span className="text-[10px] text-gray-400 truncate max-w-[80px]">{dept.leader}</span>}
-                            </div>
-                            {isDeptExpanded && (
-                              <div>
-                                {deptFiltered.map((u: any) => {
-                                  const isOnline = onlineUsers.has(u.username);
-                                  const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
-                                  return (
-                                    <div key={u.username}
-                                      className="flex items-center gap-3 pl-14 pr-3 py-2 cursor-pointer hover:bg-blue-50 active:bg-blue-100 border-b border-gray-50 transition-colors select-none group"
-                                      style={{ paddingLeft: `${14 + depth * 14}px` }}>
-                                      <div className="relative flex-shrink-0" onClick={() => openSingle(u.username)}>
-                                        <Avatar className="w-8 h-8">
-                                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                                        </Avatar>
-                                        {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
-                                      </div>
-                                      <div className="flex-1 min-w-0" onClick={() => openSingle(u.username)}>
-                                        <div className="flex items-center gap-1.5">
-                                          <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                                          {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
-                                          {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 truncate">
-                                          {u.position}
-                                          {u.phone && <span className="ml-1.5">{u.phone}</span>}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                                        {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
-                                        {isMe && me?.username !== u.username && (
-                                          <button onClick={(e) => { e.stopPropagation(); deleteContact(u.username); }}
-                                            className="w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all" title="删除联系人">
-                                            <X className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
-                                        <div className="w-6 h-6 rounded bg-blue-50 flex items-center justify-center pointer-events-none"><Send className="w-3 h-3 text-blue-500" /></div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                {childNodes.map((child: any) => renderDeptNode(child, depth + 1))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      };
-                      const groupIcon: Record<string, string> = { hq: '🏢', biz: '💼', sub: '🏭', proj: '🏗' };
-                      const isGroupExpanded = deptSections[group.id] !== false;
+                    {groupTree.map((node: any) => renderContactGroupNode(node, 1))}
+                    {/* 全体搜索匹配结果 */}
+                    {contactSearch && (() => {
+                      if (filteredUsers.length === 0) return <div className="text-center text-gray-400 py-8 text-xs">暂无匹配成员</div>;
                       return (
-                        <div key={group.id} className="border-b border-gray-200">
-                          {/* 组标题 */}
-                          <div onClick={() => setDeptSections((prev) => ({ ...prev, [group.id]: !isGroupExpanded }))}
-                            className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50/50">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-xs transition-transform ${isGroupExpanded ? 'rotate-90' : ''}`}>▶</span>
-                              <span className="text-base">{groupIcon[group.id] || '📋'}</span>
-                              <span className="text-sm font-bold text-gray-800">{group.name}</span>
-                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{group.memberCount}人</span>
-                            </div>
-                          </div>
-                          {/* 子部门（递归任意深度） */}
-                          {isGroupExpanded && (group.children || []).map((dept: any) => renderDeptNode(dept, 1))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {/* ═══ 一级：全体成员组 ═══ */}
-                  <div>
-                    <div onClick={() => setDeptSections((prev) => ({ ...prev, _all: allExpanded ? false : true }))}
-                      className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50 border-b border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs transition-transform ${allExpanded ? 'rotate-90' : ''}`}>▶</span>
-                        <span className="text-sm font-bold text-gray-800">全体成员组</span>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{allGroup?.memberCount || 0}人</span>
-                      </div>
-                    </div>
-                    {allExpanded && allGroup && (() => {
-                      const filtered = contactSearch
-                        ? allGroup.members.filter((m: any) =>
-                            m.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            m.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
-                            (m.department || '').toLowerCase().includes(contactSearch.toLowerCase()))
-                        : allGroup.members;
-                      if (filtered.length === 0) return <div className="text-center text-gray-400 py-8 text-xs">暂无匹配成员</div>;
-                      const sorted = sortByPinyin(filtered);
-                      const buckets: Record<string, any[]> = {};
-                      sorted.forEach((u: any) => {
-                        const letter = pinyinInitial(u.name);
-                        (buckets[letter] = buckets[letter] || []).push(u);
-                      });
-                      return (
-                        <div>
-                          {Object.keys(buckets).sort().map((letter) => (
-                            <div key={letter}>
-                              <div className="sticky top-[41px] z-10 px-4 py-1 bg-gray-50/90 border-b border-gray-100 text-[10px] font-bold text-gray-400">{letter}</div>
-                              {buckets[letter].map((u: any) => {
-                                const isOnline = onlineUsers.has(u.username);
-                                return (
-                                  <div key={u.username}
-                                    className="flex items-center gap-3 pl-8 pr-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 transition-colors select-none"
-                                    onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
-                                    <div className="relative flex-shrink-0">
-                                      <Avatar className="w-8 h-8">
-                                        <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                                      </Avatar>
-                                      {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
-                                        {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
-                                        {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 truncate">{u.position} · {u.department}</p>
-                                    </div>
-                                    {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ))}
+                        <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
+                          <p className="text-xs text-gray-500 mb-2">搜索匹配 ({filteredUsers.length}人)</p>
+                          {sortByPinyin(filteredUsers).map((u: any) => {
+                            const isOnline = onlineUsers.has(u.username);
+                            return (
+                              <div key={u.username} className="flex items-center gap-3 py-2 cursor-pointer hover:bg-blue-50 rounded transition-colors" onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
+                                <div className="relative flex-shrink-0">
+                                  <Avatar className="w-8 h-8">
+                                    <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                  </Avatar>
+                                  {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                                  <p className="text-[10px] text-gray-400">{u.position} · {u.department}</p>
+                                </div>
+                                {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })()}
-                  </div>
                   </>
                 );
               })()}
@@ -1791,6 +1784,22 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 {['😊', '😂', '👍', '🙏', '❤️', '🔥', '👏', '😮', '😢', '😡', '🎉', '✅'].map((emoji) => (
                   <button key={emoji} onClick={() => { setInput(prev => prev + emoji); setShowEmojiPicker(false); }} className="text-xl p-1 hover:bg-gray-100 rounded">{emoji}</button>
                 ))}
+              </div>
+            )}
+            {/* 文件预览条 */}
+            {selectedFile && (
+              <div className="mt-2 p-2 bg-gray-50 border rounded-lg flex items-center gap-3">
+                {filePreview ? (
+                  <img src={filePreview} alt="预览" className="w-12 h-12 object-cover rounded border" />
+                ) : (
+                  <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center"><Paperclip className="w-5 h-5 text-blue-500" /></div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-700 truncate">{selectedFile.name}</p>
+                  <p className="text-[10px] text-gray-400">{selectedFile.size < 1024 * 1024 ? `${(selectedFile.size / 1024).toFixed(1)} KB` : `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`}</p>
+                </div>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-400" onClick={clearFile}><X className="w-3.5 h-3.5" /></Button>
+                <Button size="sm" onClick={sendFile} className="h-7 px-3 bg-blue-600 hover:bg-blue-700 text-xs"><Send className="w-3.5 h-3.5 mr-1" />发送</Button>
               </div>
             )}
           </div>
