@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -242,5 +242,27 @@ export class ChatController {
   @Put('conversations/:id/pinned-message')
   pinMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { messageId?: string | null }) {
     return this.chatService.pinMessage(this.username(req), id, body?.messageId ?? null);
+  }
+
+  // ── Telegram 风格：全局搜索 ──
+  @Get('global-search')
+  globalSearch(@Req() req: AuthedRequest, @Query('q') q: string) {
+    return this.chatService.globalSearch(this.username(req), q || '');
+  }
+
+  // ── Telegram 风格：已保存消息 ──
+  @Get('saved-messages')
+  getSavedMessages(@Req() req: AuthedRequest) {
+    return this.chatService.getSavedMessages(this.username(req));
+  }
+
+  @Post('saved-messages')
+  saveMessage(@Req() req: AuthedRequest, @Body() body: { messageId: string }) {
+    return this.chatService.saveMessage(this.username(req), body?.messageId);
+  }
+
+  @Delete('saved-messages/:messageId')
+  deleteSavedMessage(@Param('messageId') messageId: string, @Req() req: AuthedRequest) {
+    return this.chatService.deleteSavedMessage(this.username(req), messageId);
   }
 }

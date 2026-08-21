@@ -65,7 +65,8 @@ export default function FeatureRoutePage() {
   }
 
   const pageType = feature.pageType || 'list';
-  const filteredCategory = PROJECT_FILTERED_CATEGORIES.includes(category.key);
+  const hasProjectField = feature.fields.some((f) => f.key === 'project' || f.key === 'projectId');
+  const filteredCategory = PROJECT_FILTERED_CATEGORIES.includes(category.key) || hasProjectField;
 
   return (
     <ProjectProvider>
