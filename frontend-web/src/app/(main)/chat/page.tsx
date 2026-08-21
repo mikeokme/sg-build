@@ -631,15 +631,15 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
         setDeptContacts(list);
-        // 默认折叠所有部门和子部门；单位机构组与全体成员组保持展开
+        // 默认全部展开
         const sections: Record<string, boolean> = {};
         sections['org'] = true;
         sections['_all'] = true;
         list.forEach((group: any) => {
-          sections[group.id] = false;
+          sections[group.id] = true;
           if (group.children) {
             group.children.forEach((dept: any) => {
-              sections[dept.id] = false;
+              sections[dept.id] = true;
             });
           }
         });
@@ -1443,7 +1443,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 const renderContactGroupNode = (node: any, depth: number): React.ReactNode => {
                   const count = node.members?.length || 0;
                   if (count === 0 && (!node.children || node.children.length === 0)) return null;
-                  const isExpanded = deptSections[node.id] !== false;
+                  const isExpanded = deptSections[node.id] === true;
                   const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
                   const indent = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : depth === 3 ? 'pl-14' : 'pl-16';
                   return (
@@ -1512,7 +1512,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         const letter = pinyinInitial(u.name);
                         (buckets[letter] = buckets[letter] || []).push(u);
                       });
-                      const isAllExpanded = deptSections['_all'] !== false;
+                      const isAllExpanded = deptSections['_all'] === true;
                       const totalCount = users.length;
                       return (
                         <div>
