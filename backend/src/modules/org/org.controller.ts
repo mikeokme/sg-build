@@ -71,7 +71,7 @@ export class OrgController {
   }
 
   @Post('departments')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   createDepartment(@Body() body: any) {
     const dept = {
       name: body.name,
@@ -89,7 +89,7 @@ export class OrgController {
   }
 
   @Put('departments/:id')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   updateDepartment(@Param('id') id: string, @Body() body: any) {
     const prev = this.data.getCollectionItems('departments').find((d: any) => d.id === id);
     const updated = this.data.updateCollectionItem('departments', id, body);
@@ -99,7 +99,7 @@ export class OrgController {
   }
 
   @Delete('departments/:id')
-  @Roles('super_admin')
+  @Roles('super_admin', 'high_admin')
   deleteDepartment(@Param('id') id: string) {
     const departments = this.data.getCollectionItems('departments');
     const idsToDelete = this.data.getDescendantIds(id, departments);
@@ -123,13 +123,13 @@ export class OrgController {
   }
 
   @Put('departments/:id/move')
-  @Roles('super_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   moveDepartment(@Param('id') id: string, @Body() body: { parentId: string | null }) {
     return this.data.updateCollectionItem('departments', id, { parentId: body.parentId });
   }
 
   @Post('positions')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   createPosition(@Body() body: any) {
     const pos = {
       name: body.name,
@@ -142,13 +142,13 @@ export class OrgController {
   }
 
   @Put('positions/:id')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   updatePosition(@Param('id') id: string, @Body() body: any) {
     return this.data.updateCollectionItem('orgPositions', id, body);
   }
 
   @Delete('positions/:id')
-  @Roles('super_admin')
+  @Roles('super_admin', 'high_admin')
   deletePosition(@Param('id') id: string) {
     return this.data.deleteCollectionItem('orgPositions', id);
   }
@@ -157,7 +157,7 @@ export class OrgController {
 
   // 全部成员（含未分配部门的），供组织架构页成员管理使用
   @Get('members')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   getMembers() {
     return this.data.getUsers().map((u: any) => {
       const { password, ...rest } = u;
@@ -167,7 +167,7 @@ export class OrgController {
 
   // 调整单个成员组织属性（部门/岗位/负责人/副职/启用停用）
   @Put('members/:username')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   updateMember(@Param('username') username: string, @Body() body: any) {
     const prev = this.data.getUserByUsername(username);
     if (!prev) throw new Error('用户不存在');
@@ -191,7 +191,7 @@ export class OrgController {
 
   // 批量设置部门直属成员（钉钉式：在部门下勾选成员）
   @Put('departments/:id/members')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'high_admin', 'general_admin')
   setDepartmentMembers(@Param('id') id: string, @Body() body: { usernames: string[] }) {
     const dept = this.data.getCollectionItems('departments').find((d: any) => d.id === id);
     if (!dept) throw new Error('部门不存在');

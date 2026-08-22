@@ -23,6 +23,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import OrgTreeView from '@/components/OrgTreeView';
+import '@/components/OrgTreeView.css';
 
 const API_BASE = 'http://localhost:14725';
 
@@ -58,6 +60,7 @@ function DepartmentNode({ data }: { data: any }) {
   const onEdit = data.onEdit;
   const onDelete = data.onDelete;
   const onAddPosition = data.onAddPosition;
+  const canManage = data.canManage;
   const [membersExpanded, setMembersExpanded] = useState(false);
 
   const hasChildren = (dept.children?.length || 0) > 0;
@@ -138,21 +141,21 @@ function DepartmentNode({ data }: { data: any }) {
         </div>
       )}
 
-      {/* Action buttons */}
+      {/* Action buttons（权限：一般管理员及以上可操作） */}
       <div className="flex border-t border-gray-100">
-        <button onClick={() => onAdd(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center gap-1">
+        <button disabled={!canManage} onClick={() => onAdd(dept.id)} className={`flex-1 px-2 py-1.5 text-[10px] transition flex items-center justify-center gap-1 ${canManage ? 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}>
           <Plus className="w-3 h-3" /> 子部门
         </button>
         <div className="w-px bg-gray-100" />
-        <button onClick={() => onAddPosition(dept.id)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center gap-1">
+        <button disabled={!canManage} onClick={() => onAddPosition(dept.id)} className={`flex-1 px-2 py-1.5 text-[10px] transition flex items-center justify-center gap-1 ${canManage ? 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}>
           <UserPlus className="w-3 h-3" /> 岗位
         </button>
         <div className="w-px bg-gray-100" />
-        <button onClick={() => onEdit(dept)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition flex items-center justify-center">
+        <button disabled={!canManage} onClick={() => onEdit(dept)} className={`flex-1 px-2 py-1.5 text-[10px] transition flex items-center justify-center ${canManage ? 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}>
           <Pencil className="w-3 h-3" />
         </button>
         <div className="w-px bg-gray-100" />
-        <button onClick={() => onDelete(dept)} className="flex-1 px-2 py-1.5 text-[10px] text-gray-500 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center">
+        <button disabled={!canManage} onClick={() => onDelete(dept)} className={`flex-1 px-2 py-1.5 text-[10px] transition flex items-center justify-center ${canManage ? 'text-gray-500 hover:bg-red-50 hover:text-red-600' : 'text-gray-300 cursor-not-allowed'}`}>
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
@@ -163,7 +166,7 @@ function DepartmentNode({ data }: { data: any }) {
 const nodeTypes: NodeTypes = { department: DepartmentNode };
 
 // ── Layout helper: tree to nodes/edges with management labels ──
-function layoutTree(departments: Department[], onAdd: any, onEdit: any, onDelete: any, onAddPosition: any): { nodes: Node[]; edges: Edge[] } {
+function layoutTree(departments: Department[], onAdd: any, onEdit: any, onDelete: any, onAddPosition: any, canManage?: boolean): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   const NODE_W = 220;
@@ -189,7 +192,7 @@ function layoutTree(departments: Department[], onAdd: any, onEdit: any, onDelete
       id: dept.id,
       type: 'department',
       position: { x, y },
-      data: { department: dept, onAdd, onEdit, onDelete, onAddPosition },
+      data: { department: dept, onAdd, onEdit, onDelete, onAddPosition, canManage },
     });
 
     if (dept.children && dept.children.length > 0) {
@@ -249,6 +252,8 @@ export default function OrgChartPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'chart' | 'members'>('chart');
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const [chartView, setChartView] = useState<'flow' | 'tree'>('tree');
+  const [horizontal, setHorizontal] = useState(false);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
@@ -265,6 +270,9 @@ export default function OrgChartPage() {
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [addMemberSearch, setAddMemberSearch] = useState('');
   const [addMemberSelected, setAddMemberSelected] = useState<Set<string>>(new Set());
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
+  const [moveDept, setMoveDept] = useState<Department | null>(null);
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -278,6 +286,8 @@ export default function OrgChartPage() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  const currentUser = typeof window !== 'undefined' ? (() => { try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; } })() : {};
+  const canManageOrg = ['super_admin', 'high_admin', 'general_admin'].includes(currentUser?.role) || currentUser?.isHead;
 
   const fetchTree = useCallback(async () => {
     try {
@@ -306,14 +316,29 @@ export default function OrgChartPage() {
   }, []);
 
   useEffect(() => { fetchTree(); }, [fetchTree]);
+  const filteredForTree = useMemo(() => {
+    if (!search) return departments;
+    const term = search.trim();
+    function filter(list: Department[]): Department[] {
+      const out: Department[] = [];
+      for (const d of list) {
+        const childFiltered = d.children ? filter(d.children) : [];
+        if (d.name.includes(term) || childFiltered.length > 0) {
+          out.push({ ...d, children: childFiltered });
+        }
+      }
+      return out;
+    }
+    return filter(departments);
+  }, [departments, search]);
   useEffect(() => {
     const filtered = search
       ? departments.filter((d) => d.name.includes(search))
       : departments;
-    const { nodes: n, edges: e } = layoutTree(filtered, handleAdd, handleEdit, handleDelete, handleAddPosition);
+    const { nodes: n, edges: e } = layoutTree(filtered, handleAdd, handleEdit, handleDelete, handleAddPosition, canManageOrg);
     setNodes(n);
     setEdges(e);
-  }, [departments, search]);
+  }, [departments, search, canManageOrg]);
 
   function handleAdd(parentId: string) {
     setEditingDept(null);
@@ -372,6 +397,36 @@ export default function OrgChartPage() {
     try {
       const res = await fetch(`${API_BASE}/org/positions/${pos.id}`, { method: 'DELETE', headers });
       if (res.ok) fetchTree();
+    } catch {}
+  }
+
+  // 扁平化部门列表（用于父部门下拉 & 移动）
+  const flatDeptList = useMemo(() => {
+    const out: Array<{ id: string; name: string; depth: number }> = [];
+    function walk(list: Department[], depth: number) {
+      const sorted = [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      for (const d of sorted) {
+        out.push({ id: d.id, name: d.name, depth });
+        if (d.children?.length) walk(d.children, depth + 1);
+      }
+    }
+    walk(departments, 0);
+    return out;
+  }, [departments]);
+
+  function getDescendantIdsForMove(dept: Department): Set<string> {
+    const s = new Set<string>();
+    function walk(d: Department) { s.add(d.id); (d.children || []).forEach(walk); }
+    walk(dept);
+    return s;
+  }
+
+  async function handleMoveConfirm() {
+    if (!moveDept) return;
+    try {
+      const res = await fetch(`${API_BASE}/org/departments/${moveDept.id}/move`, { method: 'PUT', headers, body: JSON.stringify({ parentId: moveTargetId }) });
+      if (res.ok) { setMoveDialogOpen(false); setMoveDept(null); setMoveTargetId(null); fetchTree(); }
+      else { const t = await res.text(); alert('移动失败: ' + t); }
     } catch {}
   }
 
@@ -493,14 +548,15 @@ export default function OrgChartPage() {
     return null;
   }
 
-  // Sidebar department list
+  // Sidebar department list（按 sortOrder 排序，hover 显示移动/编辑快捷入口）
   function DeptList({ depts, depth = 0 }: { depts: Department[]; depth?: number }) {
+    const sorted = [...depts].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     return (
       <div>
-        {depts.map((dept) => (
+        {sorted.map((dept) => (
           <div key={dept.id}>
             <div
-              className={`flex items-center gap-1.5 py-1.5 px-2 rounded cursor-pointer text-sm transition-colors ${
+              className={`group flex items-center gap-1.5 py-1.5 px-2 rounded cursor-pointer text-sm transition-colors ${
                 selectedDeptId === dept.id
                   ? 'bg-blue-50 text-blue-700'
                   : 'hover:bg-gray-100 text-gray-700'
@@ -522,6 +578,12 @@ export default function OrgChartPage() {
               <Building2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
               <span className="truncate flex-1">{dept.name}</span>
               <Badge variant="secondary" className="text-[10px] h-4 px-1">{dept.memberCount || 0}</Badge>
+              {canManageOrg && dept.id !== 'group' && (
+                <div className="hidden group-hover:flex items-center gap-0.5 ml-1">
+                  <button onClick={(e) => { e.stopPropagation(); setMoveDept(dept); setMoveTargetId(dept.parentId); setMoveDialogOpen(true); }} className="w-5 h-5 rounded hover:bg-white flex items-center justify-center text-gray-400 hover:text-blue-600" title="移动部门"><LayoutGrid className="w-3 h-3" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); handleEdit(dept); }} className="w-5 h-5 rounded hover:bg-white flex items-center justify-center text-gray-400 hover:text-amber-600" title="编辑"><Pencil className="w-3 h-3" /></button>
+                </div>
+              )}
             </div>
             {expandedDepts.has(dept.id) && dept.children?.length > 0 && (
               <DeptList depts={dept.children} depth={depth + 1} />
@@ -559,18 +621,22 @@ export default function OrgChartPage() {
           <div className="flex items-center gap-2 mb-2">
             <Building2 className="w-4 h-4 text-blue-600" />
             <h3 className="font-semibold text-sm text-gray-900">组织架构</h3>
+            {canManageOrg && <Badge className="bg-emerald-50 text-emerald-700 text-[10px]">可管理</Badge>}
+            {!canManageOrg && <Badge variant="secondary" className="text-[10px]">只读</Badge>}
           </div>
           <div className="text-xs text-gray-500">
             共 {totalDepts} 个部门 · {totalMembers} 人
           </div>
+          <div className="text-[10px] text-gray-400 mt-1">总经办 · 分公司/子公司/号码公司已分组 · 项目部直属集团</div>
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           <DeptList depts={departments} />
         </div>
         <div className="p-3 border-t border-gray-100">
-          <Button size="sm" variant="outline" onClick={() => handleAdd('group')} className="w-full text-xs h-8">
-            <Plus className="w-3.5 h-3.5 mr-1" /> 新建部门
+          <Button size="sm" variant="outline" onClick={() => handleAdd('group')} disabled={!canManageOrg} className="w-full text-xs h-8">
+            <Plus className="w-3.5 h-3.5 mr-1" /> 新建部门 {canManageOrg ? '' : '(需管理员权限)'}
           </Button>
+          {!canManageOrg && <div className="text-[10px] text-gray-400 mt-1 text-center">已开放查看，增删改需管理员/部门负责人权限</div>}
         </div>
       </div>
 
@@ -614,34 +680,37 @@ export default function OrgChartPage() {
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           {activeTab === 'chart' ? (
-            /* ReactFlow diagram */
-            <div className="h-full relative">
-              <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="搜索部门..."
-                    className="pl-8 h-8 w-48 text-xs bg-white"
-                  />
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索部门..." className="pl-8 h-8 w-48 text-xs bg-white" />
+                  </div>
+                  <span className="text-[10px] text-gray-400 hidden sm:inline">参考 react-org-tree：可折叠·横/纵切换·一键展开</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant={chartView === 'tree' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => setChartView('tree')}>组织树</Button>
+                  <Button size="sm" variant={chartView === 'flow' ? 'default' : 'outline'} className="h-7 text-xs" onClick={() => setChartView('flow')}>流程图</Button>
+                  {chartView === 'tree' && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setHorizontal((v) => !v)}>{horizontal ? '纵向' : '横向'}</Button>
+                  )}
                 </div>
               </div>
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                nodeTypes={nodeTypes}
-                fitView
-                fitViewOptions={{ padding: 0.3 }}
-                minZoom={0.2}
-                maxZoom={2}
-                proOptions={{ hideAttribution: true }}
-              >
-                <Controls className="!bottom-3 !left-3 !bg-white !shadow-md !rounded-lg !border !border-gray-200" />
-                <Background gap={20} color="#f1f5f9" />
-              </ReactFlow>
+              <div className="flex-1 overflow-auto bg-gray-50">
+                {chartView === 'flow' ? (
+                  <div className="h-full relative">
+                    <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.3 }} minZoom={0.2} maxZoom={2} proOptions={{ hideAttribution: true }}>
+                      <Controls className="!bottom-3 !left-3 !bg-white !shadow-md !rounded-lg !border !border-gray-200" />
+                      <Background gap={20} color="#f1f5f9" />
+                    </ReactFlow>
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <OrgTreeView data={departments} horizontal={horizontal} collapsable={true} expandAll={true} selectedId={selectedDeptId} canManage={canManageOrg} onSelect={(d) => setSelectedDeptId(d.id)} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onAddPosition={handleAddPosition} onMove={(d) => { setMoveDept(d); setMoveTargetId(d.parentId); setMoveDialogOpen(true); }} />
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* Members list tab */
@@ -768,12 +837,23 @@ export default function OrgChartPage() {
         </div>
       </div>
 
-      {/* Department dialog */}
+      {/* Department dialog（含上级部门选择，可实现架构调整/拖拽平替） */}
       <Dialog open={deptDialogOpen} onClose={() => setDeptDialogOpen(false)} title={editingDept ? '编辑部门' : '新增部门'}>
         <div className="space-y-3">
+          {!canManageOrg && <div className="text-xs text-amber-600 bg-amber-50 rounded px-3 py-2">当前身份为 {currentUser?.role || '未知'}，仅超级/高级/一般管理员及部门负责人可调整架构</div>}
           <div>
             <label className="text-sm font-medium">部门名称 *</label>
             <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="输入部门名称" className="mt-1" />
+          </div>
+          <div>
+            <label className="text-sm font-medium">上级部门</label>
+            <select value={parentDeptId ?? ''} onChange={(e) => setParentDeptId(e.target.value || null)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+              <option value="">— 顶级（直属集团）—</option>
+              {flatDeptList.filter(o => !editingDept || (o.id !== editingDept.id && !getDescendantIdsForMove(editingDept).has(o.id))).map(o => (
+                <option key={o.id} value={o.id}>{'—'.repeat(o.depth)} {o.name}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">可将 副总C/分公司/项目部 等拖至新的上级，实现架构调整</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -814,9 +894,29 @@ export default function OrgChartPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={() => setDeptDialogOpen(false)}>取消</Button>
-            <Button size="sm" onClick={saveDept} disabled={!formName.trim()}>
+            <Button size="sm" onClick={saveDept} disabled={!formName.trim() || !canManageOrg}>
               <Save className="w-4 h-4 mr-1" /> {editingDept ? '保存' : '创建'}
             </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Move dialog（快速调整架构） */}
+      <Dialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} title={`移动「${moveDept?.name || ''}」`}>
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500">选择新的上级部门，保存后立即生效并同步部门群</p>
+          <div>
+            <label className="text-sm font-medium">新的上级</label>
+            <select value={moveTargetId ?? ''} onChange={(e) => setMoveTargetId(e.target.value || null)} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+              <option value="">— 顶级（直属集团）—</option>
+              {flatDeptList.filter(o => !moveDept || (o.id !== moveDept.id && !getDescendantIdsForMove(moveDept).has(o.id))).map(o => (
+                <option key={o.id} value={o.id}>{'—'.repeat(o.depth)} {o.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setMoveDialogOpen(false)}>取消</Button>
+            <Button size="sm" onClick={handleMoveConfirm} disabled={!canManageOrg}><Save className="w-4 h-4 mr-1" /> 确认移动</Button>
           </div>
         </div>
       </Dialog>

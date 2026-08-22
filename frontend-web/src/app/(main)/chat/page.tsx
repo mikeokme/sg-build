@@ -631,15 +631,15 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
         setDeptContacts(list);
-        // 默认全部展开
+        // 默认全部折叠（含全体成员）
         const sections: Record<string, boolean> = {};
-        sections['org'] = true;
-        sections['_all'] = true;
+        sections['group'] = false;
+        sections['_all'] = false;
         list.forEach((group: any) => {
-          sections[group.id] = true;
+          sections[group.id] = false;
           if (group.children) {
             group.children.forEach((dept: any) => {
-              sections[dept.id] = true;
+              sections[dept.id] = false;
             });
           }
         });
@@ -1171,6 +1171,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const buildGroupTree = (parentId: string | null): any[] =>
     chatGroups
       .filter((g: any) => (g.parentId ?? null) === parentId)
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
       .map((g: any) => {
         const children = buildGroupTree(g.id);
         const convs = filteredConvs.filter((c: any) => getGroupForConv(c) === g.id);
@@ -1416,14 +1417,18 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 };
 
                 // 构建分组树（按 chatGroups 配置，和消息分组完全一致）
+                // group_proj 是容器节点（无直属成员），其成员全部在子部门中，避免重复显示
                 const buildContactGroupTree = (parentId: string | null): any[] =>
                   chatGroups
                     .filter((g: any) => (g.parentId ?? null) === parentId)
+                    .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
                     .map((g: any) => {
                       const deptIds = g.departmentIds || [];
-                      // 该分组直接关联的用户（含后代部门）
+                      // 容器节点：有子分组且自身无直属部门成员（如 group_proj 只有项目子部门）
+                      const hasChildren = chatGroups.some((c: any) => c.parentId === g.id);
+                      const isContainer = g.id === 'group_proj' && hasChildren;
                       let groupUsers: any[] = [];
-                      if (deptIds.length > 0) {
+                      if (deptIds.length > 0 && !isContainer) {
                         const expandedIds = getDeptIdsWithDescendants(deptIds);
                         groupUsers = filteredUsers.filter((u: any) => {
                           const uid = deptNameToId.get(u.department);

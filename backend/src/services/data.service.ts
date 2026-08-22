@@ -326,8 +326,8 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     // ═══ 一级：集团部门组（下拉直接各部门群，不设子分组）═══
     { id: 'group_dept', name: '集团部门组', icon: '📋', color: 'purple', sortOrder: 2, description: '集团职能部门', parentId: null, departmentIds: ['eng-mgmt', 'finance', 'safety', 'contract', 'hr', 'audit', 'market-dev', 'ops', 'office'] },
 
-    // ═══ 一级：项目部组（下拉直接各项目部群，不设子分组）═══
-    { id: 'group_proj', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 3, description: '项目执行单元', parentId: null, departmentIds: ['proj-a', 'proj-b', 'proj-c'] },
+    // ═══ 一级：项目部组（按真实工程项目细分，每项目一子组）═══
+    { id: 'group_proj', name: '项目部组', icon: '🏗', color: 'emerald', sortOrder: 3, description: '项目执行单元（按真实工程细分）', parentId: null },
 
     // ═══ 一级：其他群组（下拉直接各群，不设子分组）═══
     { id: 'group_other', name: '其他群组', icon: '💬', color: 'gray', sortOrder: 4, description: '其他自建群', parentId: null },
@@ -1604,56 +1604,57 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
     { id: 'c2', name: '中建三局', level: '重要', contact: '李明', phone: '13800000002', address: '上海市浦东新区' },
   ];
 
-  // 组织架构（五大组：集团总部、业务部门、分子公司、项目部、全体人员）
+  // 组织架构（重构后：集团公司下设总经办/分公司组/子公司组/号码公司组/项目部组）
   collections['departments'] = [
     // ── 集团 ──
     { id: 'group', name: '集团公司', code: 'GRP', parentId: null, leader: '', phone: '', description: '集团公司', sortOrder: 0 },
 
     // ── 核心决策层 ──
     { id: 'board', name: '董事会/长', code: 'BOARD', parentId: 'group', leader: 'admin', phone: '13800000000', description: '最高决策机构', sortOrder: 0 },
-    { id: 'gm-office', name: '总经理办公室', code: 'GM-OFF', parentId: 'group', leader: 'manager', phone: '13800000099', description: '总经理日常管理', sortOrder: 1 },
+    { id: 'gm-office', name: '总经办', code: 'GM-OFF', parentId: 'group', leader: 'manager', phone: '13800000099', description: '总经理日常管理', sortOrder: 1 },
 
-    // ── 总经理直辖 ──
-    { id: 'office', name: '办公室', code: 'OFFICE', parentId: 'gm-office', leader: '周芳', phone: '13900001006', description: '总经理直辖办公室', sortOrder: 0 },
+    // ── 总经办直辖（副总C前移至三总师前）──
+    { id: 'office', name: '办公室', code: 'OFFICE', parentId: 'gm-office', leader: '周芳', phone: '13900001006', description: '总经办直辖办公室', sortOrder: 0 },
 
     // ── 副总经理A分管 ──
-    { id: 'dgm-a', name: '副总经理A', code: 'DGM-A', parentId: 'gm-office', leader: '张伟', phone: '13900001001', description: '分管工程、财务、安全、合同', sortOrder: 2 },
+    { id: 'dgm-a', name: '副总经理A', code: 'DGM-A', parentId: 'gm-office', leader: '张伟', phone: '13900001001', description: '分管工程、财务、安全、合同', sortOrder: 1 },
     { id: 'eng-mgmt', name: '工程管理部', code: 'ENG', parentId: 'dgm-a', leader: '王磊', phone: '13900001003', description: '负责工程管理', sortOrder: 0 },
     { id: 'finance', name: '财务部', code: 'FIN', parentId: 'dgm-a', leader: '赵丽', phone: '13900001004', description: '负责财务管理', sortOrder: 1 },
     { id: 'safety', name: '安全生产部', code: 'SAF', parentId: 'dgm-a', leader: '孙强', phone: '13900001005', description: '负责安全生产管理', sortOrder: 2 },
     { id: 'contract', name: '合同管理部', code: 'CON', parentId: 'dgm-a', leader: '朱商务', phone: '13900012003', description: '负责合同管理', sortOrder: 3 },
 
     // ── 副总经理B分管 ──
-    { id: 'dgm-b', name: '副总经理B', code: 'DGM-B', parentId: 'gm-office', leader: '李明', phone: '13900001002', description: '分管人力、审计', sortOrder: 3 },
+    { id: 'dgm-b', name: '副总经理B', code: 'DGM-B', parentId: 'gm-office', leader: '李明', phone: '13900001002', description: '分管人力、审计', sortOrder: 2 },
     { id: 'hr', name: '人力资源部', code: 'HR', parentId: 'dgm-b', leader: '李明', phone: '13900001002', description: '负责人力资源管理', sortOrder: 0 },
     { id: 'audit', name: '审计部', code: 'AUD', parentId: 'dgm-b', leader: '郑敏', phone: '13900001008', description: '负责审计监督', sortOrder: 1 },
+
+    // ── 副总经理C分管（前移至三总师前）──
+    { id: 'dgm-c', name: '副总经理C', code: 'DGM-C', parentId: 'gm-office', leader: '刘市场', phone: '13900001009', description: '分管市场、运维', sortOrder: 3 },
+    { id: 'market-dev', name: '市场开发部', code: 'MKT', parentId: 'dgm-c', leader: '刘市场', phone: '13900001009', description: '负责市场开拓与开发', sortOrder: 0 },
+    { id: 'ops', name: '运维部', code: 'OPS', parentId: 'dgm-c', leader: '吕客服', phone: '13900012007', description: '负责运维服务', sortOrder: 1 },
 
     // ── 三总师 ──
     { id: 'chief-eng', name: '三总师', code: 'CHIEF', parentId: 'gm-office', leader: '', phone: '', description: '技术/专业线指导', sortOrder: 4 },
 
-    // ── 副总经理C分管 ──
-    { id: 'dgm-c', name: '副总经理C', code: 'DGM-C', parentId: 'gm-office', leader: '刘市场', phone: '13900001009', description: '分管市场、运维', sortOrder: 5 },
-    { id: 'market-dev', name: '市场开发部', code: 'MKT', parentId: 'dgm-c', leader: '刘市场', phone: '13900001009', description: '负责市场开拓与开发', sortOrder: 0 },
-    { id: 'ops', name: '运维部', code: 'OPS', parentId: 'dgm-c', leader: '吕客服', phone: '13900012007', description: '负责运维服务', sortOrder: 1 },
+    // ── 分公司组（新增分组容器，直属集团）──
+    { id: 'branch-group', name: '分公司', code: 'BR-GROUP', parentId: 'group', leader: '钱建国', phone: '13800000011', description: '分公司组', sortOrder: 2 },
+    { id: 'branch-a', name: '分公司A', code: 'BR-A', parentId: 'branch-group', leader: '钱建国', phone: '13800000011', description: '分公司A', sortOrder: 0 },
+    { id: 'branch-b', name: '分公司B', code: 'BR-B', parentId: 'branch-group', leader: '陈国强', phone: '13811110001', description: '分公司B', sortOrder: 1 },
+    { id: 'branch-c', name: '分公司C', code: 'BR-C', parentId: 'branch-group', leader: '周海涛', phone: '13811110002', description: '分公司C', sortOrder: 2 },
 
-    // ── 项目部（副总经理A统筹） ──
-    { id: 'proj-a', name: '项目部A', code: 'PROJ-A', parentId: 'dgm-a', leader: '刘工', phone: '13900014001', description: '项目部A', sortOrder: 0 },
-    { id: 'proj-b', name: '项目部B', code: 'PROJ-B', parentId: 'dgm-a', leader: '马师傅', phone: '13900014009', description: '项目部B', sortOrder: 1 },
-    { id: 'proj-c', name: '项目部C', code: 'PROJ-C', parentId: 'dgm-a', leader: '张经理', phone: '13900015001', description: '项目部C', sortOrder: 2 },
+    // ── 子公司组（新增分组容器，直属集团）──
+    { id: 'sub-group', name: '子公司', code: 'SUB-GROUP', parentId: 'group', leader: '孙建国', phone: '13800000012', description: '子公司组', sortOrder: 3 },
+    { id: 'sub-alpha', name: '子公司甲', code: 'SUB-A', parentId: 'sub-group', leader: '孙建国', phone: '13800000012', description: '子公司甲', sortOrder: 0 },
+    { id: 'sub-beta', name: '子公司乙', code: 'SUB-B', parentId: 'sub-group', leader: '', phone: '', description: '子公司乙', sortOrder: 1 },
 
-    // ── 分公司 ──
-    { id: 'branch-a', name: '分公司A', code: 'BR-A', parentId: 'group', leader: '钱建国', phone: '13800000011', description: '分公司A', sortOrder: 2 },
-    { id: 'branch-b', name: '分公司B', code: 'BR-B', parentId: 'group', leader: '陈国强', phone: '13811110001', description: '分公司B', sortOrder: 3 },
-    { id: 'branch-c', name: '分公司C', code: 'BR-C', parentId: 'group', leader: '周海涛', phone: '13811110002', description: '分公司C', sortOrder: 4 },
+    // ── 号码公司组（新增分组容器，直属集团）──
+    { id: 'co-group', name: '号码公司', code: 'CO-GROUP', parentId: 'group', leader: '钱建国', phone: '13800000011', description: '号码公司组（一/二/三公司）', sortOrder: 4 },
+    { id: 'co-1', name: '一公司', code: 'CO-1', parentId: 'co-group', leader: '钱建国', phone: '13800000011', description: '一公司', sortOrder: 0 },
+    { id: 'co-2', name: '二公司', code: 'CO-2', parentId: 'co-group', leader: '陈国强', phone: '13811110001', description: '二公司', sortOrder: 1 },
+    { id: 'co-3', name: '三公司', code: 'CO-3', parentId: 'co-group', leader: '周海涛', phone: '13811110002', description: '三公司', sortOrder: 2 },
 
-    // ── 子公司 ──
-    { id: 'sub-alpha', name: '子公司甲', code: 'SUB-A', parentId: 'group', leader: '孙建国', phone: '13800000012', description: '子公司甲', sortOrder: 5 },
-    { id: 'sub-beta', name: '子公司乙', code: 'SUB-B', parentId: 'group', leader: '', phone: '', description: '子公司乙', sortOrder: 6 },
-
-    // ── 一公司、二公司、三公司 ──
-    { id: 'co-1', name: '一公司', code: 'CO-1', parentId: 'group', leader: '钱建国', phone: '13800000011', description: '一公司', sortOrder: 7 },
-    { id: 'co-2', name: '二公司', code: 'CO-2', parentId: 'group', leader: '陈国强', phone: '13811110001', description: '二公司', sortOrder: 8 },
-    { id: 'co-3', name: '三公司', code: 'CO-3', parentId: 'group', leader: '周海涛', phone: '13811110002', description: '三公司', sortOrder: 9 },
+    // ── 项目部组（直属集团，下设各实际工程项目部）──
+    { id: 'group_proj', name: '项目部', code: 'PROJ-GROUP', parentId: 'group', leader: '', phone: '', description: '项目部组（直属集团）', sortOrder: 5 },
   ];
 
   // ── 为每个实际工程项目创建对应的项目部（确保与 projectArchives 一一对应，修复不匹配）──
@@ -1672,13 +1673,32 @@ function seed(): { users: any[]; collections: Record<string, any[]>; settings: R
       });
     }
   }
-  // 同步扩展项目部组 chatGroup 的 departmentIds 覆盖全部实际项目
+  // 项目部组按真实工程项目细分：每项目一子组（简称_项目群），便于通讯录按项目展开
   const projGroup = (collections['chatGroups'] as any[])?.find((g: any) => g.id === 'group_proj');
   if (projGroup) {
-    const projDeptIds = collections['departments']
-      .filter((d: any) => d.parentId === 'group_proj' || d.id.startsWith('project-'))
-      .map((d: any) => d.id);
-    projGroup.departmentIds = Array.from(new Set([...(projGroup.departmentIds || []), ...projDeptIds]));
+    // 父组清空直属部门，成员由子组聚合（避免重复）
+    projGroup.departmentIds = [];
+    for (const pa of collections['projectArchives'] || []) {
+      const deptId = `project-${pa.id}`;
+      // 简称：取项目名前4-6字，去掉“工程/项目”等冗余
+      const short = pa.name.replace(/工程|项目|建设|改造|加固/g, '').slice(0, 6) || pa.name.slice(0, 4);
+      const subId = `sub_proj_${pa.id}`;
+      if (!(collections['chatGroups'] as any[]).some((g: any) => g.id === subId)) {
+        (collections['chatGroups'] as any[]).push({
+          id: subId,
+          name: `${short}_项目群`,
+          icon: '🏗',
+          color: 'emerald',
+          sortOrder: (collections['projectArchives'] as any[]).indexOf(pa),
+          description: pa.name,
+          parentId: 'group_proj',
+          departmentIds: [deptId],
+        });
+      } else {
+        const ex = (collections['chatGroups'] as any[]).find((g: any) => g.id === subId);
+        if (ex) ex.departmentIds = [deptId];
+      }
+    }
   }
 
   // 为每个实际工程项目创建对应的项目群聊（与 projectArchives 一一对应）
@@ -2315,7 +2335,12 @@ export class DataService implements OnModuleInit {
         roots.push(node);
       }
     }
-
+    // 按 sortOrder 排序，保证导航不混乱
+    const sortTree = (nodes: any[]) => {
+      nodes.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      nodes.forEach((n: any) => n.children && sortTree(n.children));
+    };
+    sortTree(roots);
     return roots;
   }
 
