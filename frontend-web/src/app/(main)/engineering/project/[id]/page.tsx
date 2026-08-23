@@ -1,1 +1,7 @@
-﻿export default function ProjectIdPage() { return null; }
+﻿'use client';
+
+import ProjectDetailPage from '@/components/ProjectDetailPage';
+
+export default function ProjectDetailRoute() {
+  return <ProjectDetailPage />;
+}
