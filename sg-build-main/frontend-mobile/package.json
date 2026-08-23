@@ -1,0 +1,29 @@
+{
+  "name": "frontend-mobile",
+  "version": "1.0.0",
+  "description": "",
+  "main": "App.tsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-navigation/bottom-tabs": "^7.18.16",
+    "@react-navigation/native": "^7.3.16",
+    "@react-navigation/stack": "^7.10.22",
+    "axios": "^1.19.0",
+    "expo": "^57.0.13",
+    "react-native": "^0.87.0",
+    "react-native-paper": "^5.15.3",
+    "react-native-safe-area-context": "^5.9.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-native": "^0.72.8",
+    "typescript": "^7.0.2"
+  }
+}
