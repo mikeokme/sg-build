@@ -1,4 +1,1 @@
-﻿import { ProjectDetailPage } from '@/components/ProjectDetailPage';
-export default function ProjectDetailRoute() {
-  return <ProjectDetailPage />;
-}
+﻿export default function ProjectIdPage() { return null; }

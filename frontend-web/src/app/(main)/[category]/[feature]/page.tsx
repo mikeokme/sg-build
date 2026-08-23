@@ -1,4 +1,1 @@
-﻿import { FeaturePage } from '@/components/FeaturePage';
-export default function FeatureRoute() {
-  return <FeaturePage />;
-}
+﻿export default function CategoryFeaturePage() { return null; }
