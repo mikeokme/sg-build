@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
+import { DataService } from '../../services/data.service';
 
 // WebSocket 命名空间 /chat，用于单聊/群聊实时消息与在线状态
 @WebSocketGateway({
@@ -25,10 +26,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private chatService: ChatService,
     private jwtService: JwtService,
+    private dataService: DataService,
   ) {
     // ChatService 通过 emitter 向对应会话房间广播实时事件
     this.chatService.setEmitter((event, payload) => {
       this.broadcastToConversation(payload?.conversationId, event, payload);
+    });
+    // 订阅 org 变更事件，广播给所有客户端
+    this.dataService.subscribeOrgChange((payload) => {
+      this.server.emit('org:changed', payload);
     });
   }
 

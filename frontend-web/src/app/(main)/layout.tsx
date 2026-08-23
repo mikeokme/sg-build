@@ -268,25 +268,25 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <DropdownMenu>
               <DropdownMenuTrigger className="w-full">
                 <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors cursor-pointer">
-                  <Avatar className="w-8 h-8">
+                  <Avatar className="w-7 h-7">
                     {user?.avatar && <AvatarImage src={user.avatar} alt="头像" className="object-cover" />}
                     <AvatarFallback className="bg-blue-600 text-white text-xs font-bold">{(user?.name || user?.username || 'U')[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0 text-left"><p className="text-sm font-medium text-white truncate">{user?.username || 'admin'}</p><p className="text-[10px] text-slate-400 truncate">{getRoleLabel(user?.role)}</p></div>
+                  <div className="flex-1 min-w-0 text-left"><p className="text-xs font-medium text-white truncate">{user?.name || user?.username || 'admin'}</p><p className="text-xs text-slate-400 truncate">{getRoleLabel(user?.role)}</p></div>
                   <ChevronDown className="w-4 h-4 text-slate-500" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="top" className="w-56 mb-2">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-sm">{t('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer text-sm"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
                   {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
-                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer text-sm"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
                   )}
-                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer text-sm"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 text-sm"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -330,7 +330,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <DropdownMenuContent align="end" className="w-80 max-h-[420px] overflow-y-auto">
                 <DropdownMenuGroup>
                   <div className="flex items-center justify-between pr-1">
-                    <DropdownMenuLabel>{t('notifications')}</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-sm">{t('notifications')}</DropdownMenuLabel>
                     {unreadCount > 0 && (
                       <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 px-2 py-0.5 rounded hover:bg-blue-50">{t('markAllRead')}</button>
                     )}
@@ -348,7 +348,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                             <div className="flex-1 min-w-0">
                               <p className="text-sm text-gray-700 truncate">{n.title}</p>
                               <p className="text-xs text-gray-400 truncate mt-0.5">{n.content}</p>
-                              <p className="text-[10px] text-gray-300 mt-0.5">{isZh ? style.labelZh : style.labelEn} · {timeAgo(n.createdAt, language)}</p>
+                              <p className="text-xs text-gray-300 mt-0.5">{isZh ? style.labelZh : style.labelEn} · {timeAgo(n.createdAt, language)}</p>
                             </div>
                           </DropdownMenuItem>
                         </Link>
@@ -371,15 +371,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-sm">{t('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <Link href="/account"><DropdownMenuItem className="cursor-pointer"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
+                  <Link href="/account"><DropdownMenuItem className="cursor-pointer text-sm"><UserCircle className="w-4 h-4 mr-2" />{t('profile')}</DropdownMenuItem></Link>
                   {userLevel >= (CATEGORY_MIN_LEVEL.platform ?? 100) && (
-                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
+                    <Link href="/settings"><DropdownMenuItem className="cursor-pointer text-sm"><Settings className="w-4 h-4 mr-2" />{t('settings')}</DropdownMenuItem></Link>
                   )}
-                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
+                  <Link href="/account?tab=password"><DropdownMenuItem className="cursor-pointer text-sm"><KeyRound className="w-4 h-4 mr-2" />{t('changePassword')}</DropdownMenuItem></Link>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 text-sm"><LogOut className="w-4 h-4 mr-2" />{t('logout')}</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>

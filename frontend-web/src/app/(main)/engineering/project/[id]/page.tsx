@@ -1,7 +1,4 @@
-'use client';
-
-import ProjectDetailPage from '@/components/ProjectDetailPage';
-
+﻿import { ProjectDetailPage } from '@/components/ProjectDetailPage';
 export default function ProjectDetailRoute() {
   return <ProjectDetailPage />;
 }

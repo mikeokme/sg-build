@@ -7,6 +7,7 @@ import {
   MessageCircle, Send, Lock, Flame, Users, Search, Plus,
   Check, CheckCheck, Clock, X, ArrowDown, Shield, UserPlus, Eye, Contact, KeyRound,
   Mic, MicOff, Phone, PhoneOff, Video, VideoOff, Play, Pause, Paperclip,
+  Bookmark, Image as ImageIcon, Loader2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -207,6 +208,43 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const [forwardTarget, setForwardTarget] = useState('');
   const [msgSearch, setMsgSearch] = useState('');
   const [showMsgSearch, setShowMsgSearch] = useState(false);
+
+  // ── Telegram 风格：图片大图查看器 ──
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerSrc, setImageViewerSrc] = useState('');
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  const [imageViewerMessages, setImageViewerMessages] = useState<any[]>([]);
+
+  // ── Telegram 风格：多选模式 ──
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedMsgIds, setSelectedMsgIds] = useState<Set<string>>(new Set());
+
+  // ── Telegram 风格：全局搜索 ──
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
+  const globalSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Telegram 风格：已保存消息 ──
+  const [savedMessagesOpen, setSavedMessagesOpen] = useState(false);
+  const [savedMessages, setSavedMessages] = useState<any[]>([]);
+
+  // ── Telegram 风格：表情面板增强 ──
+  const [emojiPanelOpen, setEmojiPanelOpen] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState('smileys');
+  const EMOJI_CATEGORIES: Record<string, string[]> = {
+    smileys: ['😊', '😂', '🥰', '😍', '🤩', '😎', '🥳', '😇', '🤗', '😏', '😅', '😄', '🙂', '😉', '😌', '😋', '🤪', '😜', '🙃', '😛', '😝', '🤑', '🤭', '🤫', '🤔', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '💀', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖'],
+    gestures: ['👍', '👎', '👊', '✊', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💅', '🤳', '💪', '🦾', '🖕', '✌️', '🤞', '🤟', '🤘', '🤙', '👌', '🤌', '🤏', '✋', '🤚', '🖐️', '🖖', '👋', '🤙', '🤳'],
+    objects: ['⌚', '📱', '📲', '💻', '🖥️', '⌨️', '🖱️', '📺', '📻', '🎙️', '🎚️', '🎛️', '⏱️', '⏲️', '⏰', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🗑️', '💸', '💵', '💴', '💶', '💷', '💰', '💳', '💎', '⚖️', '🔧', '🔨', '🛠️', '⚒️', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🩹', '💊', '💉', '🧬', '🦠', '🧪', '🧫'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '⚠️', '🚸', '⛔', '🚫', '💯', '🔥', '⭐', '🌟', '✨', '⚡', '💥', '💫', '💦', '💨', '🌈', '☀️', '🌤️', '⛅', '🌥️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '❄️', '☃️', '⛄', '🌬️', '💨', '💧', '💦', '🌊'],
+  };
+
+  // ── Telegram 风格：富文本编辑 ──
+  const [richTextMode, setRichTextMode] = useState(false);
+  const [inputFormat, setInputFormat] = useState<'plain' | 'bold' | 'italic' | 'code' | 'monospace'>('plain');
+
+  // ── Telegram 风格：表情面板增强 ──
   const [showGroupEditDialog, setShowGroupEditDialog] = useState(false);
   const [groupEditName, setGroupEditName] = useState('');
   const [groupEditDesc, setGroupEditDesc] = useState('');
@@ -246,6 +284,110 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
     return map;
   }, [availableUsers]);
 
+  // ── Telegram 风格：图片查看器 ──
+  const openImageViewer = useCallback((msg: any, allImages: any[]) => {
+    setImageViewerMessages(allImages);
+    const idx = allImages.findIndex((m: any) => m.id === msg.id);
+    setImageViewerIndex(idx >= 0 ? idx : 0);
+    setImageViewerSrc(msg.content);
+    setImageViewerOpen(true);
+  }, []);
+  const closeImageViewer = useCallback(() => { setImageViewerOpen(false); setImageViewerSrc(''); }, []);
+  const navigateImage = useCallback((dir: 'prev' | 'next') => {
+    setImageViewerIndex(prev => {
+      const next = dir === 'next' ? Math.min(prev + 1, imageViewerMessages.length - 1) : Math.max(prev - 1, 0);
+      setImageViewerSrc(imageViewerMessages[next]?.content || '');
+      return next;
+    });
+  }, [imageViewerMessages]);
+
+  // ── Telegram 风格：多选操作 ──
+  const toggleSelectMsg = useCallback((id: string) => {
+    setSelectedMsgIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedMsgIds.size === 0 || !selectedId) return;
+    if (!confirm(`确定删除选中的 ${selectedMsgIds.size} 条消息？`)) return;
+    const token = localStorage.getItem('token');
+    for (const id of selectedMsgIds) {
+      await fetch(`${API_BASE}/chat/conversations/${selectedId}/messages/${id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    setSelectedMsgIds(new Set());
+    setSelectMode(false);
+    if (selectedId) {
+      const token = localStorage.getItem('token');
+      fetch(`${API_BASE}/chat/conversations/${selectedId}/messages`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => r.json())
+        .then((d) => { if (d.messages) setMessages(d.messages); })
+        .catch(() => {});
+    }
+  }, [selectedMsgIds, selectedId]);
+  const handleBatchForward = useCallback(() => {
+    if (selectedMsgIds.size === 0) return;
+    const firstId = Array.from(selectedMsgIds)[0];
+    setForwardMsgId(firstId);
+    setShowForwardDialog(true);
+    setSelectMode(false);
+    setSelectedMsgIds(new Set());
+  }, [selectedMsgIds]);
+
+  // ── Telegram 风格：全局搜索 ──
+  const performGlobalSearch = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) { setGlobalSearchResults([]); return; }
+    setGlobalSearchLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/chat/global-search?q=${encodeURIComponent(query)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGlobalSearchResults(data.results || []);
+      }
+    } catch {}
+    setGlobalSearchLoading(false);
+  }, []);
+  const handleGlobalSearchInput = useCallback((value: string) => {
+    setGlobalSearchQuery(value);
+    if (globalSearchTimerRef.current) clearTimeout(globalSearchTimerRef.current);
+    globalSearchTimerRef.current = setTimeout(() => performGlobalSearch(value), 400);
+  }, [performGlobalSearch]);
+
+  // ── Telegram 风格：已保存消息 ──
+  const loadSavedMessages = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/chat/saved-messages`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setSavedMessages(data.messages || []);
+    }
+  }, []);
+  const saveMessage = useCallback(async (msgId: string) => {
+    const token = localStorage.getItem('token');
+    await fetch(`${API_BASE}/chat/saved-messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId: msgId }),
+    }).catch(() => {});
+  }, []);
+  const removeSavedMessage = useCallback(async (msgId: string) => {
+    const token = localStorage.getItem('token');
+    await fetch(`${API_BASE}/chat/saved-messages/${msgId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setSavedMessages(prev => prev.filter(m => m.id !== msgId));
+  }, []);
+
+  // 用户信息快速查找 & 部门标签
   const getDeptLabel = useCallback((deptName: string) => {
     if (!deptName) return '';
     const findPath = (nodes: any[], prefix: string): string => {
@@ -489,10 +631,10 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
       .then((d) => {
         const list = Array.isArray(d) ? d : [];
         setDeptContacts(list);
-        // 默认折叠所有部门和子部门；单位机构组与全体成员组保持展开
+        // 默认全部折叠（含全体成员）
         const sections: Record<string, boolean> = {};
-        sections['org'] = true;
-        sections['_all'] = true;
+        sections['group'] = false;
+        sections['_all'] = false;
         list.forEach((group: any) => {
           sections[group.id] = false;
           if (group.children) {
@@ -1029,6 +1171,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
   const buildGroupTree = (parentId: string | null): any[] =>
     chatGroups
       .filter((g: any) => (g.parentId ?? null) === parentId)
+      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
       .map((g: any) => {
         const children = buildGroupTree(g.id);
         const convs = filteredConvs.filter((c: any) => getGroupForConv(c) === g.id);
@@ -1238,34 +1381,63 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
             </div>
             <div className="flex-1 overflow-y-auto">
               {(() => {
-                // 按 chatGroups 配置分组通讯录
-                const users = deptContacts.find((g: any) => g.isVirtual)?.members || [];
+                // 全体成员（虚拟组原始数据）
+                const allGroupData = deptContacts.find((g: any) => g.isVirtual);
+                const users = allGroupData?.members || [];
                 const filteredUsers = contactSearch
                   ? users.filter((u: any) =>
                       u.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
                       u.position.toLowerCase().includes(contactSearch.toLowerCase()) ||
                       (u.department || '').toLowerCase().includes(contactSearch.toLowerCase()))
                   : users;
-                const userMapForContacts = new Map(filteredUsers.map((u: any) => [u.username, u]));
 
-                // 构建分组树（按 chatGroups 配置）
+                // 扁平化部门树，建立 deptId -> dept 节点映射（含后代）
+                const flattenDepts = (nodes: any[]): any[] => {
+                  const out: any[] = [];
+                  for (const n of nodes || []) {
+                    if (!n.isVirtual) { out.push(n); if (n.children?.length) out.push(...flattenDepts(n.children)); }
+                  }
+                  return out;
+                };
+                const allDeptNodes = flattenDepts(deptContacts.filter((g: any) => !g.isVirtual));
+                const deptIdToDept = new Map(allDeptNodes.map((d: any) => [d.id, d]));
+                const deptNameToId = new Map(allDeptNodes.map((d: any) => [d.name, d.id]));
+                // 递归收集后代部门Ids
+                const collectDescendantIds = (deptId: string, acc: Set<string>) => {
+                  acc.add(deptId);
+                  const dept = deptIdToDept.get(deptId);
+                  if (dept?.children) {
+                    for (const child of dept.children) collectDescendantIds(child.id, acc);
+                  }
+                };
+                const getDeptIdsWithDescendants = (deptIds: string[]): Set<string> => {
+                  const s = new Set<string>();
+                  for (const id of deptIds) collectDescendantIds(id, s);
+                  return s;
+                };
+
+                // 构建分组树（按 chatGroups 配置，和消息分组完全一致）
+                // group_proj 是容器节点（无直属成员），其成员全部在子部门中，避免重复显示
                 const buildContactGroupTree = (parentId: string | null): any[] =>
                   chatGroups
                     .filter((g: any) => (g.parentId ?? null) === parentId)
+                    .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
                     .map((g: any) => {
-                      // 获取该分组下的部门ID列表
                       const deptIds = g.departmentIds || [];
-                      // 获取该分组下的用户
-                      const groupUsers = deptIds.length > 0
-                        ? filteredUsers.filter((u: any) => {
-                            const dept = deptContacts.find((d: any) => !d.isVirtual && d.id === u.department)?.id;
-                            return deptIds.includes(dept);
-                          })
-                        : [];
-                      // 递归获取子分组
+                      // 容器节点：有子分组且自身无直属部门成员（如 group_proj 只有项目子部门）
+                      const hasChildren = chatGroups.some((c: any) => c.parentId === g.id);
+                      const isContainer = g.id === 'group_proj' && hasChildren;
+                      let groupUsers: any[] = [];
+                      if (deptIds.length > 0 && !isContainer) {
+                        const expandedIds = getDeptIdsWithDescendants(deptIds);
+                        groupUsers = filteredUsers.filter((u: any) => {
+                          const uid = deptNameToId.get(u.department);
+                          return uid ? expandedIds.has(uid) : false;
+                        });
+                      }
                       const children = buildContactGroupTree(g.id);
-                      // 合并子分组的用户
                       const childUsers = children.flatMap((c: any) => c.members || []);
+                      // 合并时去重
                       const allUsers = [...new Map([...groupUsers, ...childUsers].map((u: any) => [u.username, u])).values()];
                       return { ...g, members: allUsers, children };
                     });
@@ -1276,13 +1448,12 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 const renderContactGroupNode = (node: any, depth: number): React.ReactNode => {
                   const count = node.members?.length || 0;
                   if (count === 0 && (!node.children || node.children.length === 0)) return null;
-                  const isExpanded = convSections[node.id] !== false;
+                  const isExpanded = deptSections[node.id] === true;
                   const colorMap: Record<string, string> = { blue: 'text-blue-600', purple: 'text-purple-600', emerald: 'text-emerald-600', amber: 'text-amber-600', gray: 'text-gray-500' };
                   const indent = depth === 1 ? 'pl-6' : depth === 2 ? 'pl-10' : depth === 3 ? 'pl-14' : 'pl-16';
                   return (
                     <div key={node.id}>
-                      {/* 分组标题 */}
-                      <div onClick={() => setConvSections((p) => ({ ...p, [node.id]: isExpanded ? false : true }))}
+                      <div onClick={() => setDeptSections((p) => ({ ...p, [node.id]: isExpanded ? false : true }))}
                         className={`flex items-center gap-2 ${indent} py-2 cursor-pointer hover:bg-gray-50 select-none border-b ${depth === 1 ? 'border-gray-200 bg-gray-50/50' : 'border-gray-100'}`}>
                         <span className={`text-[10px] text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                         <span className={colorMap[node.color] || 'text-gray-600'}>{node.icon}</span>
@@ -1291,7 +1462,10 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       </div>
                       {isExpanded && count > 0 && (
                         <div>
-                          {node.members.map((u: any) => {
+                          {/* 若有搜索，按单位内过滤，否则展示全部成员（支持按单位查询） */}
+                          {node.members
+                            .filter((u: any) => !contactSearch || u.name.toLowerCase().includes(contactSearch.toLowerCase()) || u.position.toLowerCase().includes(contactSearch.toLowerCase()))
+                            .map((u: any) => {
                             const isOnline = onlineUsers.has(u.username);
                             const isMe = me?.role === 'super_admin' || me?.role === 'high_admin';
                             return (
@@ -1335,13 +1509,70 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 return (
                   <>
                     {groupTree.map((node: any) => renderContactGroupNode(node, 1))}
-                    {/* 全体搜索匹配结果 */}
+                    {/* 恢复按姓氏首字母全体成员分组 */}
+                    {!contactSearch && allGroupData && (() => {
+                      const sorted = sortByPinyin(users);
+                      const buckets: Record<string, any[]> = {};
+                      sorted.forEach((u: any) => {
+                        const letter = pinyinInitial(u.name);
+                        (buckets[letter] = buckets[letter] || []).push(u);
+                      });
+                      const isAllExpanded = deptSections['_all'] === true;
+                      const totalCount = users.length;
+                      return (
+                        <div>
+                          <div onClick={() => setDeptSections((prev) => ({ ...prev, _all: isAllExpanded ? false : true }))}
+                            className="sticky top-0 z-10 flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-gray-50 select-none bg-gray-50 border-b border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs transition-transform ${isAllExpanded ? 'rotate-90' : ''}`}>▶</span>
+                              <span className="text-sm font-bold text-gray-800">全体成员</span>
+                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{totalCount}人</span>
+                              <span className="text-[10px] text-gray-400">按姓氏首字母</span>
+                            </div>
+                          </div>
+                          {isAllExpanded && (
+                            <div>
+                              {Object.keys(buckets).sort().map((letter) => (
+                                <div key={letter}>
+                                  <div className="sticky top-[41px] z-10 px-4 py-1 bg-gray-50/90 border-b border-gray-100 text-[10px] font-bold text-gray-400">{letter}</div>
+                                  {buckets[letter].map((u: any) => {
+                                    const isOnline = onlineUsers.has(u.username);
+                                    return (
+                                      <div key={u.username}
+                                        className="flex items-center gap-3 pl-8 pr-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-50 transition-colors select-none"
+                                        onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
+                                        <div className="relative flex-shrink-0">
+                                          <Avatar className="w-8 h-8">
+                                            <AvatarFallback className="bg-gray-100 text-gray-600 text-xs">{u.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                                          </Avatar>
+                                          {isOnline && <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5">
+                                            <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+                                            {u.isHead && <span className="text-[9px] bg-amber-100 text-amber-700 px-1 py-0 rounded font-medium">负责人</span>}
+                                            {u.isDeputy && <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0 rounded font-medium">副职</span>}
+                                          </div>
+                                          <p className="text-[10px] text-gray-400 truncate">{u.position} · {u.department}</p>
+                                        </div>
+                                        {isOnline && <span className="text-[10px] text-emerald-500">在线</span>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    {/* 搜索时：跨单位匹配结果汇总 */}
                     {contactSearch && (() => {
                       if (filteredUsers.length === 0) return <div className="text-center text-gray-400 py-8 text-xs">暂无匹配成员</div>;
                       return (
                         <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
-                          <p className="text-xs text-gray-500 mb-2">搜索匹配 ({filteredUsers.length}人)</p>
-                          {sortByPinyin(filteredUsers).map((u: any) => {
+                          <p className="text-xs text-gray-500 mb-2">搜索匹配 ({filteredUsers.length}人) — 可按单位展开查看，上方各分组已按单位过滤</p>
+                          {sortByPinyin(filteredUsers).slice(0, 30).map((u: any) => {
                             const isOnline = onlineUsers.has(u.username);
                             return (
                               <div key={u.username} className="flex items-center gap-3 py-2 cursor-pointer hover:bg-blue-50 rounded transition-colors" onClick={() => { setLeftTab('messages'); openSingle(u.username); }}>
@@ -1419,6 +1650,8 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                 </Button>
               )}
               <Button size="sm" variant="ghost" onClick={() => setShowMsgSearch(!showMsgSearch)} className="h-7 px-1.5" title="搜索消息"><Search className="w-3.5 h-3.5" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => { setGlobalSearchOpen(true); setGlobalSearchQuery(''); setGlobalSearchResults([]); }} className="h-7 px-1.5" title="全局搜索"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></Button>
+              <Button size="sm" variant="ghost" onClick={() => { setSavedMessagesOpen(true); loadSavedMessages(); }} className="h-7 px-1.5" title="已保存消息"><Bookmark className="w-3.5 h-3.5" /></Button>
               <Button size="sm" variant="ghost" onClick={openGroupEdit} className="h-7 px-1.5" title="群信息编辑"><svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></Button>
               {selectedConv.type === 'single' && (
                 <Button size="sm" variant={callState !== 'idle' ? 'default' : 'ghost'} onClick={() => { if (callState === 'idle') startVideoCall(); else hangupCall(); }} className={`h-7 px-2 ${callState !== 'idle' ? 'bg-emerald-600 text-white' : ''}`} title={callState === 'idle' ? '视频通话' : '挂断'}>
@@ -1510,8 +1743,12 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                       <div className={`flex gap-1 mb-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
                         <button onClick={() => setReplyTo(m)} disabled={isNoInteract} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed" title="回复">↩ 回复</button>
                         {!isNoInteract && <button onClick={() => openForward(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="转发">↪ 转发</button>}
+                        {!isNoInteract && <button onClick={async() => { await navigator.clipboard.writeText(m.content||''); }} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="复制">⎘ 复制</button>}
                         {isMine && !isNoInteract && (
                           <button onClick={() => startEdit(m)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200 rounded text-gray-600" title="编辑">✎ 编辑</button>
+                        )}
+                        {!isNoInteract && (
+                          <button onClick={async() => { await saveMessage(m.id); }} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-amber-100 hover:text-amber-600 rounded text-gray-600" title="保存">⭐ 保存</button>
                         )}
                         {isGroupAdmin && !isNoInteract && (
                           <button onClick={() => togglePinMessage(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-amber-100 hover:text-amber-600 rounded text-gray-600" title="设为群公告">
@@ -1520,7 +1757,7 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         )}
                         {isMine && (() => {
                           const msgTime = new Date(m.createdAt).getTime();
-                          const canRecall = Date.now() - msgTime < 2 * 60 * 1000; // 2分钟内可撤回
+                          const canRecall = Date.now() - msgTime < 2 * 60 * 1000;
                           return canRecall ? (
                             <button onClick={() => burnNow(m.id)} className="px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-red-100 hover:text-red-600 rounded text-gray-600" title="撤回">撤回</button>
                           ) : null;
@@ -1640,6 +1877,36 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
                         )}
                       </div>
 
+                    ) : m.contentType === 'image' ? (
+                      <div className={`rounded-2xl overflow-hidden shadow-sm ${isMine ? 'bg-blue-500 rounded-br-md' : 'bg-white border border-gray-200 rounded-bl-md'} ${selectMode ? 'cursor-pointer ring-2 ring-blue-400' : ''}`}
+                        onClick={selectMode ? () => toggleSelectMsg(m.id) : undefined}>
+                        <img src={m.content} alt={m.fileName || '图片'} className="max-w-full max-h-[300px] object-cover cursor-zoom-in"
+                          onClick={(e) => { e.stopPropagation(); openImageViewer(m, messages.filter((mm: any) => mm.contentType === 'image')); }} />
+                        {m.caption && <div className={`px-3 py-1.5 text-xs ${isMine ? 'text-white' : 'text-gray-600'}`}>{m.caption}</div>}
+                        <div className={`flex items-center gap-1 px-3 py-1 ${isMine ? 'bg-blue-600 text-blue-100' : 'bg-gray-50 text-gray-400'}`}>
+                          <span className="text-[10px]">{formatMsgTime(m.createdAt).slice(11, 16)}</span>
+                          {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
+                        </div>
+                      </div>
+                    ) : m.contentType === 'file' ? (
+                      <div className={`rounded-2xl p-3 ${isMine ? 'bg-blue-500 rounded-br-md' : 'bg-white border border-gray-200 rounded-bl-md'} shadow-sm`}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                            <Paperclip className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{m.fileName || '文件'}</p>
+                            <p className="text-xs text-blue-100">{m.fileSize ? (m.fileSize < 1024*1024 ? `${(m.fileSize/1024).toFixed(1)} KB` : `${(m.fileSize/1024/1024).toFixed(1)} MB`) : ''}</p>
+                          </div>
+                          <a href={m.content} download={m.fileName || 'file'} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors" title="下载">
+                            <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                          </a>
+                        </div>
+                        <div className={`flex items-center gap-1 mt-2 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
+                          <span className="text-[10px]">{formatMsgTime(m.createdAt).slice(11, 16)}</span>
+                          {isMine && (readCount > 0 ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
+                        </div>
+                      </div>
                     ) : isVoice ? (
                       <div className={`px-3 py-2 rounded-2xl flex items-center gap-2.5 ${isMine ? 'bg-blue-500 text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'} shadow-sm`}>
                         <button onClick={() => playVoice(m.id, m.content)} className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} transition-colors`}>
@@ -2217,6 +2484,169 @@ const [convSections, setConvSections] = useState<Record<string, boolean>>({});
             <button onClick={() => { if (localStreamRef.current) { const t = localStreamRef.current.getVideoTracks()[0]; if (t) { t.enabled = !t.enabled; setCallCamOff(!t.enabled); } } }} className={`w-12 h-12 rounded-full flex items-center justify-center ${callCamOff ? 'bg-red-600 text-white' : 'bg-white/15 text-white hover:bg-white/25'}`}>
               {callCamOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Telegram 风格：图片大图查看器 ── */}
+      {imageViewerOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/95 flex items-center justify-center" onClick={closeImageViewer}>
+          <button onClick={closeImageViewer} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+            <X className="w-6 h-6" />
+          </button>
+          {imageViewerIndex > 0 && (
+            <button onClick={(e) => { e.stopPropagation(); navigateImage('prev'); }} className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          )}
+          <div className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img src={imageViewerSrc} alt="预览" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
+            {imageViewerMessages[imageViewerIndex]?.caption && (
+              <p className="absolute bottom-4 left-0 right-0 text-center text-white text-sm bg-black/50 px-4 py-2 rounded-lg">{imageViewerMessages[imageViewerIndex].caption}</p>
+            )}
+          </div>
+          {imageViewerIndex < imageViewerMessages.length - 1 && (
+            <button onClick={(e) => { e.stopPropagation(); navigateImage('next'); }} className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          )}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-xs">
+            {imageViewerIndex + 1} / {imageViewerMessages.length}
+          </div>
+        </div>
+      )}
+
+      {/* ── Telegram 风格：多选模式工具栏 ── */}
+      {selectMode && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[50] flex items-center gap-2 px-4 py-3 bg-gray-900 rounded-2xl shadow-2xl">
+          <span className="text-white text-sm font-medium mr-2">{selectedMsgIds.size} 已选</span>
+          <button onClick={handleBatchDelete} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors">删除</button>
+          <button onClick={handleBatchForward} className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">转发</button>
+          <button onClick={() => { setSelectMode(false); setSelectedMsgIds(new Set()); }} className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors">取消</button>
+        </div>
+      )}
+
+      {/* ── Telegram 风格：全局搜索面板 ── */}
+      {globalSearchOpen && (
+        <div className="fixed inset-0 z-[65] bg-black/50 flex items-start justify-center pt-20" onClick={() => setGlobalSearchOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[600px] max-h-[70vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+              <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              <input
+                autoFocus
+                value={globalSearchQuery}
+                onChange={(e) => handleGlobalSearchInput(e.target.value)}
+                placeholder="搜索所有会话..."
+                className="flex-1 text-sm outline-none text-gray-800 placeholder-gray-400"
+              />
+              <button onClick={() => setGlobalSearchOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {globalSearchLoading && (
+                <div className="flex items-center justify-center py-8 text-gray-400 text-sm">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />搜索中...
+                </div>
+              )}
+              {!globalSearchLoading && globalSearchResults.length === 0 && globalSearchQuery.length >= 2 && (
+                <div className="text-center py-8 text-gray-400 text-sm">暂无搜索结果</div>
+              )}
+              {!globalSearchLoading && globalSearchResults.map((result: any) => (
+                <div key={result.msgId} onClick={() => { setSelectedId(result.convId); setGlobalSearchOpen(false); }}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                  <Avatar className="w-10 h-10 flex-shrink-0">
+                    <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{(result.convName || '?')[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900 truncate">{result.convName}</span>
+                      <span className="text-[10px] text-gray-400">{result.senderName || result.sender}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      {result.content && result.searchText && (
+                        <><span>{result.content.substring(0, result.searchStart)}</span>
+                        <span className="bg-yellow-200 text-gray-900 px-0.5">{result.searchText}</span>
+                        <span>{result.content.substring(result.searchStart + result.searchText.length)}</span></>
+                      ) || result.content}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{formatTime(result.createdAt)}</p>
+                  </div>
+                  {result.contentType === 'image' && <ImageIcon className="w-4 h-4 text-gray-400" />}
+                  {result.contentType === 'file' && <Paperclip className="w-4 h-4 text-gray-400" />}
+                  {result.contentType === 'voice' && <Mic className="w-4 h-4 text-gray-400" />}
+                </div>
+              ))}
+              {globalSearchQuery.length < 2 && !globalSearchLoading && (
+                <div className="text-center py-8 text-gray-400 text-xs">输入至少2个字符开始搜索</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Telegram 风格：已保存消息面板 ── */}
+      {savedMessagesOpen && (
+        <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center" onClick={() => setSavedMessagesOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[500px] max-h-[80vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-900">📌 已保存消息</h3>
+              <button onClick={() => setSavedMessagesOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              {savedMessages.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Bookmark className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">暂无已保存消息</p>
+                  <p className="text-xs mt-1 text-gray-300">在消息操作菜单中点击"保存"即可收藏</p>
+                </div>
+              ) : (
+                savedMessages.map((msg: any) => (
+                  <div key={msg.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <Avatar className="w-8 h-8 flex-shrink-0 mt-0.5">
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">{(msg.senderName || 'U')[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700">{msg.senderName || msg.sender}</span>
+                        <span className="text-[10px] text-gray-400">{formatTime(msg.createdAt)}</span>
+                      </div>
+                      {msg.contentType === 'image' ? (
+                        <img src={msg.content} alt="" className="mt-1 max-w-[120px] max-h-[80px] rounded-lg object-cover cursor-zoom-in" onClick={() => { setImageViewerSrc(msg.content); setImageViewerOpen(true); }} />
+                      ) : msg.contentType === 'file' ? (
+                        <div className="flex items-center gap-2 mt-1 px-2 py-1.5 bg-gray-100 rounded-lg">
+                          <Paperclip className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-xs text-gray-600 truncate">{msg.fileName || '文件'}</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-700 mt-1 break-words">{msg.content}</p>
+                      )}
+                    </div>
+                    <button onClick={() => removeSavedMessage(msg.id)} className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0" title="移除">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Telegram 风格：表情面板增强 ── */}
+      {emojiPanelOpen && (
+        <div className="absolute bottom-16 right-0 bg-white border rounded-xl shadow-2xl w-[360px] z-50 overflow-hidden">
+          <div className="flex border-b border-gray-100">
+            {Object.keys(EMOJI_CATEGORIES).map(cat => (
+              <button key={cat} onClick={() => setEmojiCategory(cat)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors ${emojiCategory === cat ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                {cat === 'smileys' ? '😊' : cat === 'gestures' ? '👋' : cat === 'objects' ? '📦' : '💫'}
+              </button>
+            ))}
+          </div>
+          <div className="p-3 grid grid-cols-8 gap-1 max-h-[300px] overflow-y-auto">
+            {EMOJI_CATEGORIES[emojiCategory]?.map((emoji) => (
+              <button key={emoji} onClick={() => { setInput(prev => prev + emoji); setEmojiPanelOpen(false); }}
+                className="text-xl p-1 hover:bg-gray-100 rounded transition-colors">{emoji}</button>
+            ))}
           </div>
         </div>
       )}

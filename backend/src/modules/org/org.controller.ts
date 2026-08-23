@@ -71,9 +71,14 @@ export class OrgController {
   }
 
   @Post('departments')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   createDepartment(@Body() body: any) {
-    const dept = {
+    const extraParentIds = Array.isArray(body.extraParentIds) ? body.extraParentIds.filter((id: string) => id && id !== body.parentId) : [];
+    // 最高级别（集团公司）不允许多上级
+    if (body.parentId === 'group' && extraParentIds.length) {
+      // 允许，但需校验
+    }
+    const dept: any = {
       name: body.name,
       code: body.code || '',
       parentId: body.parentId || null,
@@ -81,25 +86,33 @@ export class OrgController {
       phone: body.phone || '',
       description: body.description || '',
       sortOrder: body.sortOrder || 0,
+      type: body.type || 'regular',
+      quota: body.quota ?? 8,
     };
+    if (extraParentIds.length) dept.extraParentIds = extraParentIds;
+    if (body.parentId === null && extraParentIds.length) dept.extraParentIds = extraParentIds;
     const created = this.data.addCollectionItem('departments', dept);
     // 新建部门自动创建部门群并同步成员（钉钉/飞书式联动）
     this.data.syncDepartmentGroup(created.id);
+    this.data.broadcastOrgChange({ action: 'dept-created', deptId: created.id });
     return created;
   }
 
   @Put('departments/:id')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   updateDepartment(@Param('id') id: string, @Body() body: any) {
     const prev = this.data.getCollectionItems('departments').find((d: any) => d.id === id);
     const updated = this.data.updateCollectionItem('departments', id, body);
     // 部门改名/负责人变更 → 同步部门群
-    if (updated) this.data.syncDepartmentGroup(id);
+    if (updated) {
+      this.data.syncDepartmentGroup(id);
+      this.data.broadcastOrgChange({ action: 'dept-updated', deptId: id });
+    }
     return updated;
   }
 
   @Delete('departments/:id')
-  @Roles('super_admin')
+  @Roles('super_admin', 'hr_admin')
   deleteDepartment(@Param('id') id: string) {
     const departments = this.data.getCollectionItems('departments');
     const idsToDelete = this.data.getDescendantIds(id, departments);
@@ -123,13 +136,28 @@ export class OrgController {
   }
 
   @Put('departments/:id/move')
-  @Roles('super_admin')
-  moveDepartment(@Param('id') id: string, @Body() body: { parentId: string | null }) {
-    return this.data.updateCollectionItem('departments', id, { parentId: body.parentId });
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
+  moveDepartment(@Param('id') id: string, @Body() body: { parentId: string | null, extraParentIds?: string[] }) {
+    if (id === 'board' && (body.extraParentIds?.length || body.parentId)) {
+      throw new Error('最高级别（董事会）不允许多上级或移动');
+    }
+    const patch: any = { parentId: body.parentId };
+    if (Array.isArray(body.extraParentIds)) {
+      patch.extraParentIds = body.extraParentIds.filter((x: string) => x && x !== body.parentId && x !== id);
+    }
+    return this.data.updateCollectionItem('departments', id, patch);
+  }
+
+  @Put('departments/:id/parents')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
+  setExtraParents(@Param('id') id: string, @Body() body: { extraParentIds: string[] }) {
+    if (id === 'board') throw new Error('最高级别（董事会）不允许多上级');
+    const extra = Array.isArray(body.extraParentIds) ? body.extraParentIds.filter((x: string) => x && x !== id) : [];
+    return this.data.updateCollectionItem('departments', id, { extraParentIds: extra });
   }
 
   @Post('positions')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   createPosition(@Body() body: any) {
     const pos = {
       name: body.name,
@@ -142,13 +170,13 @@ export class OrgController {
   }
 
   @Put('positions/:id')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   updatePosition(@Param('id') id: string, @Body() body: any) {
     return this.data.updateCollectionItem('orgPositions', id, body);
   }
 
   @Delete('positions/:id')
-  @Roles('super_admin')
+  @Roles('super_admin', 'hr_admin')
   deletePosition(@Param('id') id: string) {
     return this.data.deleteCollectionItem('orgPositions', id);
   }
@@ -157,7 +185,7 @@ export class OrgController {
 
   // 全部成员（含未分配部门的），供组织架构页成员管理使用
   @Get('members')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   getMembers() {
     return this.data.getUsers().map((u: any) => {
       const { password, ...rest } = u;
@@ -167,7 +195,7 @@ export class OrgController {
 
   // 调整单个成员组织属性（部门/岗位/负责人/副职/启用停用）
   @Put('members/:username')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   updateMember(@Param('username') username: string, @Body() body: any) {
     const prev = this.data.getUserByUsername(username);
     if (!prev) throw new Error('用户不存在');
@@ -185,13 +213,15 @@ export class OrgController {
     this.data.syncUserDepartmentGroups(prev.department, updated.department, username);
     // 若该用户是某部门负责人，其所在部门群需同步群主
     this.data.syncDepartmentGroupByName(prev.department, this.data.getDepartmentIdByName(updated.department) || '');
+    // 广播 org 变更，通知前端刷新通讯录
+    this.data.broadcastOrgChange({ action: 'member-updated', username, deptId: this.data.getDepartmentIdByName(updated.department) || '' });
     const { password, ...rest } = updated;
     return rest;
   }
 
   // 批量设置部门直属成员（钉钉式：在部门下勾选成员）
   @Put('departments/:id/members')
-  @Roles('super_admin', 'high_admin')
+  @Roles('super_admin', 'hr_admin', 'hr_specialist')
   setDepartmentMembers(@Param('id') id: string, @Body() body: { usernames: string[] }) {
     const dept = this.data.getCollectionItems('departments').find((d: any) => d.id === id);
     if (!dept) throw new Error('部门不存在');
@@ -210,6 +240,8 @@ export class OrgController {
     }
     // 同步部门群成员
     this.data.syncDepartmentGroup(id);
+    // 广播 org 变更，通知前端刷新通讯录
+    this.data.broadcastOrgChange({ action: 'members-changed', deptId: id });
     return { message: '成员已更新', changed, memberCount: target.size };
   }
 }

@@ -1,10 +1,26 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
+import multer from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../guards/roles.decorator';
 import { DataService, ROLE_LABELS } from '../../services/data.service';
+
+const uploadDir = path.join(__dirname, '..', '..', '..', 'data', 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  },
+});
 
 interface AuthedRequest extends Request {
   user?: { sub?: string; username?: string; role?: string };
@@ -98,11 +114,11 @@ export class ChatController {
     return this.chatService.getOrCreateSingle(this.username(req), body?.username);
   }
 
-  // 创建群聊
+  // 创建群聊（钉钉原则：群名可选，创建者即群主）
   @Post('conversations/group')
-  createGroup(@Req() req: AuthedRequest, @Body() body: { name: string; members: string[] }) {
+  createGroup(@Req() req: AuthedRequest, @Body() body: { name?: string; members: string[]; category?: string }) {
     const owner = this.username(req);
-    const conv = this.chatService.createGroup(body?.name, body?.members || [], owner);
+    const conv = this.chatService.createGroup(body?.name || '', body?.members || [], owner, body?.category);
     this.dataService.addNotification(owner, {
       title: '群聊创建成功',
       content: `「${conv.name}」已创建，共 ${conv.members.length} 人`,
@@ -242,5 +258,36 @@ export class ChatController {
   @Put('conversations/:id/pinned-message')
   pinMessage(@Param('id') id: string, @Req() req: AuthedRequest, @Body() body: { messageId?: string | null }) {
     return this.chatService.pinMessage(this.username(req), id, body?.messageId ?? null);
+  }
+
+  // ── Telegram 风格：全局搜索 ──
+  @Get('global-search')
+  globalSearch(@Req() req: AuthedRequest, @Query('q') q: string) {
+    return this.chatService.globalSearch(this.username(req), q || '');
+  }
+
+  // ── Telegram 风格：已保存消息 ──
+  @Get('saved-messages')
+  getSavedMessages(@Req() req: AuthedRequest) {
+    return this.chatService.getSavedMessages(this.username(req));
+  }
+
+  @Post('saved-messages')
+  saveMessage(@Req() req: AuthedRequest, @Body() body: { messageId: string }) {
+    return this.chatService.saveMessage(this.username(req), body?.messageId);
+  }
+
+  @Delete('saved-messages/:messageId')
+  deleteSavedMessage(@Param('messageId') messageId: string, @Req() req: AuthedRequest) {
+    return this.chatService.deleteSavedMessage(this.username(req), messageId);
+  }
+
+  // ── 文件上传：语音/图片/文件 ──
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', { storage, limits: { fileSize: 50 * 1024 * 1024 } }))
+  uploadFile(@UploadedFile() file: any) {
+    if (!file) return { error: '没有文件' };
+    const url = `/uploads/${path.basename(file.filename)}`;
+    return { url };
   }
 }

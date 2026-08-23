@@ -254,6 +254,86 @@ export class ProjectController {
     return { message: '删除成功' };
   }
 
+  // ── 地图展板数据：返回所有项目的地理信息（用于前端工程展板）──
+  @Get('map/dots')
+  mapDots(@Req() req: AuthedRequest) {
+    const items = this.dataService.getCollectionItems('projectArchives');
+    return items.map((p: any) => {
+      const { province, city } = this.parseLocation(p.location);
+      return {
+        id: p.id,
+        name: p.name,
+        province,
+        city,
+        basin: this.inferBasin(p.location),
+        kind: p.type,
+        status: p.status,
+        amount: p.amount,
+        manager: p.manager,
+      };
+    });
+  }
+
+  private parseLocation(location: string): { province: string; city: string } {
+    if (!location) return { province: '', city: '' };
+    
+    // 直辖市
+    const municipalities = ['北京市', '天津市', '上海市', '重庆市'];
+    for (const m of municipalities) {
+      if (location.startsWith(m)) {
+        return { province: m, city: m.replace('市', '') };
+      }
+    }
+    
+    // 自治区
+    const autonomous = ['内蒙古自治区', '广西壮族自治区', '西藏自治区', '宁夏回族自治区', '新疆维吾尔自治区'];
+    for (const a of autonomous) {
+      const idx = location.indexOf(a);
+      if (idx >= 0) {
+        const after = location.slice(idx + a.length);
+        const cityMatch = after.match(/^([^市]+市)/);
+        const city = cityMatch ? cityMatch[1] : '';
+        return { province: a, city: city || a.replace('自治区', '') };
+      }
+    }
+    
+    // 普通省份
+    const provMatch = location.match(/^([^省]+省)/);
+    if (provMatch) {
+      const prov = provMatch[1];
+      const after = location.slice(prov.length);
+      const cityMatch = after.match(/^([^市]+市)/);
+      const city = cityMatch ? cityMatch[1] : '';
+      return { province: prov, city };
+    }
+    
+    return { province: '', city: '' };
+  }
+
+  private inferBasin(location: string): string {
+    if (!location) return '未知流域';
+    const map: Record<string, string> = {
+      '黑龙江': '黑龙江流域', '吉林': '黑龙江流域',
+      '辽宁': '辽河流域',
+      '北京': '海河流域', '天津': '海河流域', '河北': '海河流域',
+      '山西': '黄河流域', '内蒙古': '黄河流域',
+      '陕西': '黄河流域', '甘肃': '黄河流域', '宁夏': '黄河流域', '青海': '黄河流域',
+      '山东': '黄河流域', '河南': '黄河流域',
+      '江苏': '淮河流域', '安徽': '淮河流域',
+      '湖北': '长江流域', '湖南': '长江流域', '江西': '长江流域',
+      '四川': '长江流域', '重庆': '长江流域', '云南': '长江流域', '贵州': '长江流域',
+      '浙江': '浙闽台河流区', '福建': '浙闽台河流区', '台湾': '浙闽台河流区',
+      '广东': '珠江流域', '广西': '珠江流域',
+      '海南': '珠江流域',
+      '西藏': '藏南滇西河流区',
+      '新疆': '内陆河湖区',
+    };
+    for (const [prov, basin] of Object.entries(map)) {
+      if (location.includes(prov)) return basin;
+    }
+    return '未知流域';
+  }
+
   // ── 项目文档 CRUD ──
 
   @Get(':id/documents')
@@ -284,6 +364,74 @@ export class ProjectController {
     if (!canDeleteProject(req.user?.role)) throw new NotFoundException('权限不足');
     this.dataService.logAudit({ action: '删除文档', module: 'projectDocuments', detail: { docId }, operator: req.user?.username, role: req.user?.role });
     this.dataService.deleteCollectionItem('projectDocuments', docId);
+    return { message: '删除成功' };
+  }
+
+  // ── 施工日志 CRUD ──
+  @Get(':id/logs')
+  findLogs(@Param('id') id: string, @Req() req: AuthedRequest) {
+    const items = this.dataService.getCollectionItems('projectArchives');
+    const project = items.find((p: any) => p.id === id);
+    if (!project) throw new NotFoundException('项目不存在');
+    return this.dataService.getCollectionItems('constructionLogs')
+      .filter((log: any) => log.project === project.name)
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  @Get(':id/logs/stats')
+  logsStats(@Param('id') id: string, @Req() req: AuthedRequest) {
+    const items = this.dataService.getCollectionItems('projectArchives');
+    const project = items.find((p: any) => p.id === id);
+    if (!project) throw new NotFoundException('项目不存在');
+    const logs = this.dataService.getCollectionItems('constructionLogs')
+      .filter((log: any) => log.project === project.name);
+    
+    const totalDays = logs.length;
+    const totalLabor = logs.reduce((s: number, l: any) => s + (Number(l.labor) || 0), 0);
+    const totalWorkContent = logs.reduce((s: string, l: any) => s + (l.workContent || '') + '; ', '');
+    const weatherStats: Record<string, number> = {};
+    for (const log of logs) {
+      weatherStats[log.weather || '未知'] = (weatherStats[log.weather || '未知'] || 0) + 1;
+    }
+    const byDate: Record<string, { labor: number; count: number }> = {};
+    for (const log of logs) {
+      if (!byDate[log.date]) byDate[log.date] = { labor: 0, count: 0 };
+      byDate[log.date].labor += Number(log.labor) || 0;
+      byDate[log.date].count += 1;
+    }
+    const dates = Object.keys(byDate).sort();
+    return {
+      totalDays,
+      totalLabor,
+      avgDailyLabor: totalDays ? Math.round(totalLabor / totalDays) : 0,
+      weatherStats,
+      dailyTrend: dates.map(d => ({ date: d, labor: byDate[d].labor, count: byDate[d].count })),
+      recentLogs: logs.slice(0, 5),
+    };
+  }
+
+  @Post(':id/logs')
+  createLog(@Param('id') id: string, @Body() data: any, @Req() req: AuthedRequest) {
+    if (!canEditProject(req.user?.role)) throw new NotFoundException('权限不足');
+    const items = this.dataService.getCollectionItems('projectArchives');
+    const project = items.find((p: any) => p.id === id);
+    if (!project) throw new NotFoundException('项目不存在');
+    this.dataService.logAudit({ action: '新增施工日志', module: 'constructionLogs', detail: { projectId: id, ...data }, operator: req.user?.username, role: req.user?.role });
+    return this.dataService.addCollectionItem('constructionLogs', { ...data, project: project.name });
+  }
+
+  @Put('logs/:logId')
+  updateLog(@Param('logId') logId: string, @Body() data: any, @Req() req: AuthedRequest) {
+    if (!canEditProject(req.user?.role)) throw new NotFoundException('权限不足');
+    this.dataService.logAudit({ action: '修改施工日志', module: 'constructionLogs', detail: { logId, ...data }, operator: req.user?.username, role: req.user?.role });
+    return this.dataService.updateCollectionItem('constructionLogs', logId, data);
+  }
+
+  @Delete('logs/:logId')
+  deleteLog(@Param('logId') logId: string, @Req() req: AuthedRequest) {
+    if (!canDeleteProject(req.user?.role)) throw new NotFoundException('权限不足');
+    this.dataService.logAudit({ action: '删除施工日志', module: 'constructionLogs', detail: { logId }, operator: req.user?.username, role: req.user?.role });
+    this.dataService.deleteCollectionItem('constructionLogs', logId);
     return { message: '删除成功' };
   }
 }

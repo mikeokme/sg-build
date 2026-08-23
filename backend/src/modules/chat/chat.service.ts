@@ -135,9 +135,15 @@ export class ChatService {
     return this.dataService.getOrCreateSingleConversation(myUsername, otherUsername);
   }
 
-  createGroup(name: string, members: string[], owner: string) {
+  createGroup(name: string, members: string[], owner: string, category?: string) {
     const valid = members.filter((m) => this.dataService.getUserByUsername(m));
-    return this.dataService.createGroupConversation(name, valid, owner);
+    // 钉钉原则：选人即可建群，未填群名时按成员真实姓名自动生成
+    let finalName = (name || '').trim();
+    if (!finalName) {
+      const names = Array.from(new Set([owner, ...valid].map((u) => this.dataService.getUserByUsername(u)?.name || u)));
+      finalName = names.length <= 3 ? `${names.join('、')}的群聊` : `${names.slice(0, 3).join('、')}等${names.length}人的群聊`;
+    }
+    return this.dataService.createGroupConversation(finalName, valid, owner, category || 'custom');
   }
 
   // ── 会话偏好（置顶/静音/归档/草稿） ──
@@ -250,9 +256,8 @@ export class ChatService {
     const reqUser = this.dataService.getUserByUsername(requester);
     if (!reqUser) throw new ForbiddenException('操作人不存在');
     const reqLevel = ROLE_LEVELS[reqUser.role] || 0;
-    // 检查是否为群主或管理员（群主 / 群内最高权限）
     const isOwner = c.owner === requester;
-    const isAdmin = reqLevel >= 60; // general_admin 及以上
+    const isAdmin = reqLevel >= 60;
     if (!isOwner && !isAdmin) throw new ForbiddenException('仅群主和管理员可添加成员');
     const added: string[] = [];
     for (const un of usernames) {
@@ -260,10 +265,18 @@ export class ChatService {
       const target = this.dataService.getUserByUsername(un);
       if (!target) continue;
       const targetLevel = ROLE_LEVELS[target.role] || 0;
-      // 权限校验：只能添加同级及向下
       if (targetLevel > reqLevel) throw new ForbiddenException(`无权添加 ${un}（权限高于自己）`);
       this.dataService.addConversationMember(conversationId, un);
       added.push(un);
+      // 反向同步：部门群添加成员 → 自动划入该部门
+      if (c.category === 'department' && c.departmentId) {
+        const dept = this.dataService.getCollectionItems('departments').find((d: any) => d.id === c.departmentId);
+        if (dept) {
+          this.dataService.updateUser(target.id, { department: dept.name });
+          // 重新同步该部门群（防止重复）
+          this.dataService.syncDepartmentGroup(dept.id);
+        }
+      }
       this.dataService.addNotification(un, {
         title: '群聊邀请',
         content: `你已被加入「${c.name}」群聊`,
@@ -271,7 +284,6 @@ export class ChatService {
         link: '/chat',
       });
     }
-    // 重新获取会话并通知所有成员
     const updated = this.dataService.getConversation(conversationId);
     if (updated) {
       this.emit('chat:members-changed', {
@@ -303,6 +315,26 @@ export class ChatService {
     if (targetLevel > reqLevel) throw new ForbiddenException(`无权移除 ${targetUsername}（权限高于自己）`);
     if (!c.members.includes(targetUsername)) throw new ForbiddenException('该用户不在群中');
     this.dataService.removeConversationMember(conversationId, targetUsername);
+    // 反向同步：部门群移除成员 → 清空其部门归属（若该用户已无其他部门群则移除）
+    if (c.category === 'department' && c.departmentId) {
+      const departments = this.dataService.getCollectionItems('departments');
+      const dept = departments.find((d: any) => d.id === c.departmentId);
+      if (dept) {
+        // 检查用户是否还在其他部门群
+        const stillInDeptGroup = this.dataService.getConversations().some(
+          (conv: any) => conv.category === 'department' && conv.departmentId !== c.departmentId && conv.members?.includes(targetUsername)
+        );
+        if (!stillInDeptGroup) {
+          this.dataService.updateUser(target.id, { department: '' });
+        }
+        // 重新同步被移除部门所在的父级部门群
+        for (const d of departments) {
+          if (d.id === c.departmentId || d.parentId === c.departmentId) {
+            this.dataService.syncDepartmentGroup(d.id);
+          }
+        }
+      }
+    }
     this.dataService.addNotification(targetUsername, {
       title: '群聊移除通知',
       content: `你已被移出「${c.name}」群聊`,
@@ -430,7 +462,7 @@ export class ChatService {
     const message = this.dataService.addChatMessage({
       conversationId: c.id,
       sender: username,
-      contentType: isVoice ? 'voice' : encrypted ? 'encrypted' : 'text',
+      contentType: isVoice ? 'voice' : isFile ? (payload.contentType as string) : encrypted ? 'encrypted' : 'text',
       content: stored,
       encrypted: isVoice ? false : encrypted,
       secretTarget: isVoice ? '' : encrypted ? secretTarget : '',
@@ -663,9 +695,12 @@ export class ChatService {
     const msg = this.dataService.addChatMessage({
       conversationId: targetConvId,
       sender: username,
-      contentType: 'text',
+      contentType: m.contentType || 'text',
       content,
       forwardFrom: { conversationId: sourceConvId, sender: m.sender, messageId },
+      fileName: m.fileName || '',
+      fileSize: m.fileSize || 0,
+      duration: m.duration || 0,
     });
     const clientMsg = this.decorateForClient(msg, targetConvId, username);
     this.emit('chat:message', { conversationId: targetConvId, message: clientMsg });
@@ -775,6 +810,9 @@ export class ChatService {
       contentType: m.contentType,
       encrypted: m.encrypted,
       content: displayContent,
+      fileName: m.fileName || '',
+      fileSize: m.fileSize || 0,
+      duration: m.duration || 0,
       secretTarget: m.secretTarget || '',
       secretFor: m.secretFor || '',
       secretRevealedBy: m.secretRevealedBy || [],
@@ -792,5 +830,82 @@ export class ChatService {
       reactions: m.reactions || [],
       createdAt: m.createdAt,
     };
+  }
+
+  // ── Telegram 风格：全局搜索 ──
+  globalSearch(username: string, query: string): { results: any[] } {
+    if (!query || query.length < 2) return { results: [] };
+    const q = query.toLowerCase();
+    const results: any[] = [];
+    const conversations = this.dataService.getConversations().filter(c => c.members.includes(username));
+    for (const conv of conversations) {
+      const msgs = this.dataService.getChatMessages(conv.id);
+      for (const m of msgs) {
+        const content = (m.content || '').toLowerCase();
+        if (content.includes(q)) {
+          const searchStart = content.indexOf(q);
+          results.push({
+            convId: conv.id,
+            convName: conv.type === 'single'
+              ? (conv.members.find((u: string) => u !== username) || '')
+              : conv.name,
+            convType: conv.type,
+            msgId: m.id,
+            sender: m.sender,
+            senderName: this.dataService.getUserByUsername(m.sender)?.name || m.sender,
+            contentType: m.contentType,
+            content: m.content,
+            searchStart,
+            searchText: query,
+            createdAt: m.createdAt,
+          });
+        }
+      }
+    }
+    results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { results };
+  }
+
+  // ── Telegram 风格：已保存消息 ──
+  getSavedMessages(username: string): { messages: any[] } {
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    const userSaved = saved.filter((s: any) => s.username === username);
+    const messages: any[] = [];
+    for (const s of userSaved) {
+      const msg = this.dataService.getChatMessage(s.messageId);
+      if (msg && this.canAccess(username, this.dataService.getConversation(msg.conversationId))) {
+        messages.push(this.decorateForClient(msg, msg.conversationId, username));
+      }
+    }
+    messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { messages };
+  }
+
+  saveMessage(username: string, messageId: string): { ok: boolean; message?: string; error?: string } {
+    if (!messageId) return { ok: false, error: '消息ID不能为空' };
+    const msg = this.dataService.getChatMessage(messageId);
+    if (!msg) return { ok: false, error: '消息不存在' };
+    if (!this.canAccess(username, this.dataService.getConversation(msg.conversationId))) {
+      return { ok: false, error: '无权操作该消息' };
+    }
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    // 检查是否已保存
+    const existing = saved.find((s: any) => s.username === username && s.messageId === messageId);
+    if (existing) return { ok: true, message: '已存在于已保存消息中' };
+    saved.push({ username, messageId, savedAt: new Date().toISOString() });
+    this.dataService.updateSettings({ savedMessages: saved });
+    return { ok: true };
+  }
+
+  deleteSavedMessage(username: string, messageId: string): { ok: boolean; error?: string } {
+    if (!messageId) return { ok: false, error: '消息ID不能为空' };
+    const settings = this.dataService.getSettings();
+    const saved: any[] = (settings.savedMessages as any[]) || [];
+    const filtered = saved.filter((s: any) => !(s.username === username && s.messageId === messageId));
+    if (filtered.length === saved.length) return { ok: false, error: '消息未保存' };
+    this.dataService.updateSettings({ savedMessages: filtered });
+    return { ok: true };
   }
 }
