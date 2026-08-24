@@ -8,8 +8,11 @@
   Param,
   UseGuards,
   Req,
+  Res,
+  Header,
+  NotFoundException,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { CollectionService } from './collection.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { guardCanView, guardCanCreate, guardCanEdit, guardCanDelete } from '../../guards/collection-permissions';
@@ -103,6 +106,39 @@ export class CollectionController {
       role: req.user?.role,
     });
     return this.collectionService.remove(name, id);
+  }
+
+  // ── CSV 导出（Excel 兼容，UTF-8 BOM）──
+  @Get(':name/export')
+  exportCsv(@Param('name') name: string, @Req() req: AuthedRequest, @Res() res: Response) {
+    if (!['super_admin', 'high_admin', 'general_admin'].includes(req.user?.role || '')) {
+      throw new NotFoundException('权限不足');
+    }
+    const items = this.collectionService.findAll(name);
+    if (!items) throw new NotFoundException('集合不存在');
+    const headers = Array.from(items.reduce((set: Set<string>, item: any) => {
+      Object.keys(item || {}).forEach((k) => set.add(k));
+      return set;
+    }, new Set<string>())) as string[];
+    const esc = (v: any) => {
+      if (v === null || v === undefined) return '';
+      let s = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const rows = [headers.map(esc).join(',')];
+    for (const item of items) rows.push(headers.map((h) => esc((item as any)[h])).join(','));
+    const bom = '\uFEFF';
+    this.dataService.logAudit({
+      action: '导出',
+      module: name,
+      detail: { count: items.length },
+      operator: req.user?.username,
+      role: req.user?.role,
+    });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${name}-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(bom + rows.join('\r\n'));
   }
 
   // ── 通知关联逻辑 ──

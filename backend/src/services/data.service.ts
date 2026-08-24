@@ -2033,6 +2033,8 @@ export class DataService implements OnModuleInit {
     this.backupTimer = setInterval(() => this.store?.backup('scheduled'), 6 * 60 * 60 * 1000);
     this.backupTimer.unref?.();
     process.on('exit', () => { this.store?.close(); });
+    // 数据保留策略：每日自动清理过期数据
+    this.startRetentionTimer();
     // 启动时对齐部门群与部门成员（钉钉/飞书式自动联动）
     this.syncAllDepartmentGroups();
   }
@@ -2068,6 +2070,36 @@ export class DataService implements OnModuleInit {
     } catch (e) {
       console.error('[DataService] 保存数据失败', e);
     }
+  }
+
+  // ── 数据保留自动清理（每日执行）──
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
+  private runRetentionCleanup() {
+    const days = Number(this.settings?.dataRetentionDays) || 365;
+    const cutoff = Date.now() - days * 86400000;
+    let changed = false;
+    // 清理过期审计日志
+    const beforeLogs = this.auditLogs.length;
+    this.auditLogs = this.auditLogs.filter((l) => new Date(l.date || 0).getTime() >= cutoff);
+    if (this.auditLogs.length !== beforeLogs) {
+      console.log(`[DataService] 保留策略：清理 ${beforeLogs - this.auditLogs.length} 条过期审计日志`);
+      changed = true;
+    }
+    // 清理已焚毁残留消息（burnScheduled 但未删除的兜底）
+    const beforeMsgs = this.chatMessages.length;
+    this.chatMessages = this.chatMessages.filter((m) => !m.burnScheduled);
+    if (this.chatMessages.length !== beforeMsgs) {
+      console.log(`[DataService] 保留策略：清理 ${beforeMsgs - this.chatMessages.length} 条焚毁残留消息`);
+      changed = true;
+    }
+    if (changed) this.save();
+  }
+
+  startRetentionTimer() {
+    this.runRetentionCleanup();
+    this.cleanupTimer = setInterval(() => this.runRetentionCleanup(), 24 * 60 * 60 * 1000);
+    this.cleanupTimer.unref?.();
   }
 
   // ── 审计日志 ──
