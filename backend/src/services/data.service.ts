@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SqliteStore, SQLITE_FILE } from './sqlite-store';
 
 // 五类注册码（按权限分类）
 export const REG_CODES: Record<string, string> = {
@@ -1986,11 +1987,26 @@ export class DataService implements OnModuleInit {
   // org 变更广播：所有模块订阅此事件
   private orgChangeSubscribers: Array<(payload: any) => void> = [];
 
+  private store: SqliteStore | null = null;
+  private backupTimer: NodeJS.Timeout | null = null;
+
   onModuleInit() {
-    if (fs.existsSync(DATA_FILE)) {
-      try {
-        const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-        const data = JSON.parse(raw);
+    this.store = new SqliteStore();
+    try {
+      // 1) 旧 db.json 一次性迁移到 SQLite
+      if (fs.existsSync(DATA_FILE) && this.store.isEmpty()) {
+        try {
+          const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+          this.store.importFromJson(data);
+          fs.renameSync(DATA_FILE, `${DATA_FILE}.migrated`);
+          console.log('[DataService] 已将 db.json 迁移至 SQLite（原文件保留为 db.json.migrated）');
+        } catch (e) {
+          console.error('[DataService] 迁移 db.json 失败，忽略并继续', e);
+        }
+      }
+
+      if (!this.store.isEmpty()) {
+        const data = this.store.loadAll();
         this.users = data.users || [];
         this.collections = new Map(Object.entries(data.collections || {}));
         this.auditLogs = data.auditLogs || [];
@@ -1998,28 +2014,44 @@ export class DataService implements OnModuleInit {
         this.conversations = data.conversations || [];
         this.chatMessages = data.chatMessages || [];
         this.settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
-        console.log(`[DataService] 已从 ${DATA_FILE} 加载数据`);
-        // 启动时对齐部门群与部门成员（钉钉/飞书式自动联动）
-        this.syncAllDepartmentGroups();
-        return;
-      } catch (e) {
-        console.error('[DataService] 加载数据失败，使用种子数据', e);
+        console.log(`[DataService] 已从 SQLite 加载数据 (${SQLITE_FILE})`);
+      } else {
+        const seeded = seed();
+        this.users = seeded.users;
+        this.collections = new Map(Object.entries(seeded.collections));
+        this.settings = seeded.settings;
+        this.conversations = seeded.conversations;
+        this.chatMessages = seeded.chatMessages;
+        this.save();
+        console.log(`[DataService] 已生成种子数据并写入 SQLite`);
       }
+    } catch (e) {
+      console.error('[DataService] 初始化存储失败，使用内存模式', e);
     }
-    const seeded = seed();
-    this.users = seeded.users;
-    this.collections = new Map(Object.entries(seeded.collections));
-    this.settings = seeded.settings;
-    this.conversations = seeded.conversations;
-    this.chatMessages = seeded.chatMessages;
-    this.save();
-    console.log(`[DataService] 已生成种子数据并保存到 ${DATA_FILE}`);
+    // 启动备份 + 定时自动备份（每6小时）
+    this.store?.backup('startup');
+    this.backupTimer = setInterval(() => this.store?.backup('scheduled'), 6 * 60 * 60 * 1000);
+    this.backupTimer.unref?.();
+    process.on('exit', () => { this.store?.close(); });
     // 启动时对齐部门群与部门成员（钉钉/飞书式自动联动）
     this.syncAllDepartmentGroups();
   }
 
   private save() {
     try {
+      if (this.store) {
+        this.store.persistAll({
+          users: this.users,
+          collections: Object.fromEntries(this.collections),
+          auditLogs: this.auditLogs,
+          notifications: this.notifications,
+          conversations: this.conversations,
+          chatMessages: this.chatMessages,
+          settings: this.settings,
+        });
+        return;
+      }
+      // 兜底：SQLite 不可用时退回 JSON 原子写入
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
       const payload = {
         users: this.users,
@@ -2030,7 +2062,9 @@ export class DataService implements OnModuleInit {
         chatMessages: this.chatMessages,
         settings: this.settings,
       };
-      fs.writeFileSync(DATA_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+      const tmp = `${DATA_FILE}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(payload, null, 2), 'utf-8');
+      fs.renameSync(tmp, DATA_FILE);
     } catch (e) {
       console.error('[DataService] 保存数据失败', e);
     }
