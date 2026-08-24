@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const ROLE_OPTIONS = [
   { value: 'super_admin', label: '超级管理员', desc: '董事长 · 总经理 · 超管', icon: ShieldCheck, color: 'text-red-400 border-red-500/40 bg-red-500/10', iconColor: 'text-red-400' },

@@ -9,8 +9,9 @@ import { Loader2, CheckCircle2, XCircle, Banknote, ReceiptText, FileSignature, S
 import type { FeatureDef } from '@/config/features';
 import { canApprove, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 function fmtMoney(n: number | undefined) {
   if (n == null || isNaN(n)) return '¥0';

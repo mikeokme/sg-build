@@ -10,8 +10,9 @@ import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { useProject } from '@/context/ProjectContext';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const PDCA = [
   { key: 'P 策划', title: '策划 Plan', desc: '质量目标与培训计划', descEn: 'Quality goals & training plans', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },

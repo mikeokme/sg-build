@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -18,8 +18,9 @@ import { categories } from '@/config/features';
 import { CATEGORY_MIN_LEVEL, getRoleLevel } from '@/config/roles';
 import { categoryIcon, categoryTone } from '@/config/branding';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const fmt = (v: number) => (v >= 100000000 ? `¥${(v / 100000000).toFixed(2)}亿` : v >= 10000 ? `¥${(v / 10000).toFixed(1)}万` : `¥${(v || 0).toLocaleString()}`);
 

@@ -12,8 +12,9 @@ import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const STATUS_STYLE: Record<string, string> = {
   未开始: 'bg-slate-100 text-slate-600',

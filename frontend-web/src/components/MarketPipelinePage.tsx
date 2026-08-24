@@ -12,8 +12,9 @@ import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const STAGES = ['初步接触', '方案沟通', '报价谈判', '投标', '中标', '流失'];
 const STAGE_TONES: Record<string, string> = {

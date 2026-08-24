@@ -9,8 +9,9 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const typeMeta: Record<string, { label: string; icon: any; cls: string }> = {
   approval: { label: '待我审批', icon: ClipboardCheck, cls: 'bg-orange-50 text-orange-600 border-orange-200' },

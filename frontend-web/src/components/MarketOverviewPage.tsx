@@ -9,8 +9,9 @@ import { Loader2, Users, Target, Trophy, FileSignature, FileCheck, FolderKanban,
 import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const STAGE_EN: Record<string, string> = {
   初步接触: 'Initial Contact', 方案沟通: 'Solution Discussion', 报价谈判: 'Quote Negotiation', 投标: 'Bidding', 中标: 'Won',

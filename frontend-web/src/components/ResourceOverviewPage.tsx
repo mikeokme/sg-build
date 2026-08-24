@@ -8,8 +8,9 @@ import { Loader2, Users, Boxes, Truck, Building2, HardHat, Cloud, Database, File
 import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const fmtSize = (b: number) => b >= 1073741824 ? `${(b / 1073741824).toFixed(2)}GB` : b >= 1048576 ? `${(b / 1048576).toFixed(1)}MB` : b >= 1024 ? `${(b / 1024).toFixed(1)}KB` : `${b}B`;
 

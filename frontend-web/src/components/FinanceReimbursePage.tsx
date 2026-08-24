@@ -11,8 +11,9 @@ import { Loader2, Plus, Pencil, Trash2, Eye, Search, Plane, FileText, Coffee, Wi
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canApprove, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const TYPE_ICONS: Record<string, any> = {
   差旅费: Plane, 办公费: FileText, 交通费: Bus, 招待费: Coffee, 通讯费: Wifi, 其他: MoreHorizontal,

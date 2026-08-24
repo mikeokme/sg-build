@@ -13,8 +13,9 @@ import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 function createEmptyForm(fields: FeatureDef['fields']) {
   const form: Record<string, any> = {};

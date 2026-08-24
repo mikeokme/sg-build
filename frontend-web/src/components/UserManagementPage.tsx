@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Check, X, Search, UserPlus, ShieldCheck } from 'lucide-react';
 import { ROLE_LABELS } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const statusBadge: Record<string, any> = {
   pending: { label: '待审批', className: 'border-orange-300 text-orange-600 bg-orange-50' },

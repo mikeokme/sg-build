@@ -9,8 +9,9 @@ import { Loader2, Bell, ClipboardCheck, CalendarDays, Users, ListTodo, FolderOpe
 import type { FeatureDef } from '@/config/features';
 import { StatCard } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const PRIORITY_STYLE: Record<string, string> = {
   紧急: 'text-red-600 bg-red-50 border-red-200',

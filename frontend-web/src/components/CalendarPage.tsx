@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,9 @@ import { Loader2, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Eye, Calendar
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 

@@ -14,8 +14,9 @@ import {
 import type { FeatureDef } from '@/config/features';
 import { getCurrentRole, canCreate, canDelete } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const TYPE_META: Record<string, { label: string; icon: any; cls: string }> = {
   folder: { label: '文件夹', icon: Folder, cls: 'text-amber-500 bg-amber-50' },

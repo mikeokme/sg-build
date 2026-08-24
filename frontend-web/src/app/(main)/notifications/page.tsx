@@ -7,8 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCheck, Trash2, Bell, Inbox } from 'lucide-react';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const typeMeta: Record<string, { label: string; className: string }> = {
   approval: { label: '审批', className: 'border-orange-300 text-orange-600 bg-orange-50' },

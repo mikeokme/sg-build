@@ -14,8 +14,9 @@ import { StatCard } from '@/components/ui/StatCard';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const EVAL_RANK: Record<string, string> = {
   'A级-优秀': 'bg-emerald-100 text-emerald-700 border-emerald-200',

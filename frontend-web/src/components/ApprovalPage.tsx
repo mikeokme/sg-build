@@ -9,8 +9,9 @@ import { Loader2, Check, X, Clock, Search, Inbox, Send, History } from 'lucide-r
 import type { FeatureDef } from '@/config/features';
 import { canApprove, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const statusBadge: Record<string, any> = {
   待审批: { variant: 'outline', className: 'border-orange-300 text-orange-600 bg-orange-50' },

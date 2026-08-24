@@ -10,8 +10,9 @@ import { categories } from '@/config/features';
 import { categoryIcon, categoryTone } from '@/config/branding';
 import { StatCard } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin: 'bg-red-500', high_admin: 'bg-orange-500', general_admin: 'bg-amber-400',

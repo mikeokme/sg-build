@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -23,8 +23,9 @@ import { KeyRound } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { categoryIcon, categoryTone } from '@/config/branding';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const notificationTypeStyle: Record<string, any> = {
   approval: { dot: 'bg-orange-500', labelZh: '审批', labelEn: 'Approval' },

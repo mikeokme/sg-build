@@ -17,8 +17,9 @@ import type { FeatureDef } from '@/config/features';
 import { useProject } from '@/context/ProjectContext';
 import { StatCard } from '@/components/ui/StatCard';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#ef4444', '#ec4899'];
 
 const ORDER_STATUS_STYLE: Record<string, string> = {

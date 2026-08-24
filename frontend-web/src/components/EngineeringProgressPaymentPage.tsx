@@ -17,8 +17,9 @@ import { getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 function fmtMoney(n: number) {

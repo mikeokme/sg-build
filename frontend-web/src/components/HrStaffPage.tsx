@@ -11,8 +11,9 @@ import { Loader2, Plus, Pencil, Trash2, Search, Phone, CalendarDays, GraduationC
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const DEPT_COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-rose-500', 'bg-cyan-500', 'bg-orange-500', 'bg-indigo-500', 'bg-teal-500'];
 const DEPT_LIGHT = ['bg-blue-100 text-blue-600', 'bg-emerald-100 text-emerald-600', 'bg-amber-100 text-amber-600', 'bg-violet-100 text-violet-600', 'bg-rose-100 text-rose-600', 'bg-cyan-100 text-cyan-600', 'bg-orange-100 text-orange-600', 'bg-indigo-100 text-indigo-600', 'bg-teal-100 text-teal-600'];

@@ -11,8 +11,9 @@ import { Loader2, Plus, Search, Eye, FileText, CalendarDays, User2, FolderOpen, 
 import type { FeatureDef } from '@/config/features';
 import { canCreate, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const CATEGORY_ICONS: Record<string, any> = {
   制度文件: BookOpen,

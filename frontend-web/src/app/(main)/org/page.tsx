@@ -26,8 +26,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import OrgTreeView from '@/components/OrgTreeView';
 import '@/components/OrgTreeView.css';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 interface Department {
   id: string;

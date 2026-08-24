@@ -7,8 +7,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CHINA_PROVINCES, BASINS, PROJECT_DOTS, CHINA_VIEWBOX } from '@/data/chinaMap';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const fmt = (v: number) => (v >= 100000000 ? `¥${(v / 100000000).toFixed(2)}亿` : v >= 10000 ? `¥${(v / 10000).toFixed(1)}万` : `¥${(v || 0).toLocaleString()}`);
 

@@ -13,8 +13,9 @@ import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, canViewField, canEditField, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
 import { useProjectFilter, useCurrentProject } from '@/context/ProjectContext';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const STATUS_STYLE: Record<string, string> = {
   待审批: 'bg-amber-100 text-amber-700 border-amber-200',

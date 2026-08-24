@@ -11,8 +11,9 @@ import { Loader2, Plus, Pencil, Trash2, Eye, Search, Phone, MapPin, User2, Targe
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const LEVEL_TONES: Record<string, string> = {
   战略: 'bg-red-100 text-red-700',

@@ -15,8 +15,9 @@ import {
 import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const DOC_TYPE_BADGE: Record<string, string> = {
   技术方案: 'text-blue-600 bg-blue-50 border-blue-200',

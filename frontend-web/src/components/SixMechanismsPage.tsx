@@ -12,8 +12,9 @@ import type { FeatureDef } from '@/config/features';
 import { canCreate, canEdit, canDelete, getCurrentRole } from '@/config/roles';
 import { useProject } from '@/context/ProjectContext';
 import { useT } from '@/i18n';
+import { getApiBase } from '@/lib/api';
 
-const API_BASE = 'http://localhost:14725';
+const API_BASE = getApiBase();
 
 const MECHANISMS = [
   { key: '查找', icon: SearchCheck, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', title: '查找机制', en: 'Identify', subtitle: '全面辨识危险源 · 清单管理 · 动态更新', subtitleEn: 'Identify all hazards · Checklist management · Dynamic updates' },
